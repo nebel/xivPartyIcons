@@ -54,6 +54,17 @@ public sealed class StaticAssignmentsSettings
         ImGui.Text("Add context menu commands to assign roles");
         ImGuiComponents.HelpMarker("Adds context menu commands to assign roles to players. When applicable, commands to swap role and use a suggested role are also added.");
 
+        var useContextMenuSubmenu = Plugin.Settings.UseContextMenuSubmenu;
+
+        if (ImGui.Checkbox("##useContextMenuSubmenu", ref useContextMenuSubmenu))
+        {
+            Plugin.Settings.UseContextMenuSubmenu = useContextMenuSubmenu;
+            Plugin.Settings.Save();
+        }
+
+        ImGui.SameLine();
+        ImGui.Text("Place context menu commands (if enabled) in a dedicated submenu");
+
         var assignFromChat = Plugin.Settings.AssignFromChat;
 
         if (ImGui.Checkbox("##assignFromChat", ref assignFromChat))

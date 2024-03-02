@@ -21,6 +21,7 @@ public class Settings : IPluginConfiguration
     public bool EasternNamingConvention = false;
     public bool DisplayRoleInPartyList = false;
     public bool UseContextMenu = false;
+    public bool UseContextMenuSubmenu = true;
     public bool AssignFromChat = true;
     public bool UsePriorityIcons = true;
 

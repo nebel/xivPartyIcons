@@ -20,7 +20,7 @@ public sealed class Plugin : IDalamudPlugin
     public static RoleTracker RoleTracker { get; private set; } = null!;
     public static ViewModeSetter ModeSetter { get; private set; } = null!;
     public static ChatNameUpdater ChatNameUpdater { get; private set; } = null!;
-    public static PlayerContextMenu ContextMenu { get; private set; } = null!;
+    public static ContextMenu ContextMenu { get; private set; } = null!;
     public static CommandHandler CommandHandler { get; private set; } = null!;
     public static Settings Settings { get; private set; } = null!;
     public static PlayerStylesheet PlayerStylesheet { get; private set; } = null!;
@@ -47,7 +47,7 @@ public sealed class Plugin : IDalamudPlugin
         ModeSetter = new ViewModeSetter(NameplateView, Settings, ChatNameUpdater, PartyListHudUpdater);
         NameplateUpdater = new NameplateUpdater(Settings, NameplateView, ModeSetter);
         NpcNameplateFixer = new NPCNameplateFixer(NameplateView);
-        ContextMenu = new PlayerContextMenu(pluginInterface, RoleTracker, Settings, PlayerStylesheet);
+        ContextMenu = new ContextMenu(RoleTracker, Settings, PlayerStylesheet);
         CommandHandler = new CommandHandler();
 
         SettingsWindow.Initialize();
@@ -58,7 +58,6 @@ public sealed class Plugin : IDalamudPlugin
         NameplateUpdater.Enable();
         NpcNameplateFixer.Enable();
         ChatNameUpdater.Enable();
-        ContextMenu.Enable();
     }
 
     public void Dispose()

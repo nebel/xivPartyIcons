@@ -275,17 +275,22 @@ public sealed class PlayerStylesheet
     {
         var builder = new StringBuilder(str.Length);
 
-        foreach (var ch in str.ToLower())
+        foreach (var ch in str)
         {
-            builder.Append(ch switch
-            {
-                _ when ch >= 'a' && ch <= 'z' => (char) (ch + 57360),
-                _ when ch >= '0' && ch <= '9' => (char) (ch + 57439),
-
-                _ => ch
-            });
+            builder.Append(BoxedCharacter(ch));
         }
 
         return builder.ToString();
+    }
+
+    public static char BoxedCharacter(char ch)
+    {
+        return ch switch
+        {
+            >= '0' and <= '9' => (char)(ch + 0xE05F),
+            >= 'A' and <= 'Z' => (char)(ch + 0xE030),
+            >= 'a' and <= 'z' => (char)(ch + 0xE010),
+            _ => ch
+        };
     }
 }
