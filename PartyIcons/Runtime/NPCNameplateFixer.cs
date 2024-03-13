@@ -1,4 +1,5 @@
 ﻿using System;
+using Dalamud.Logging;
 using Dalamud.Plugin.Services;
 using PartyIcons.Api;
 using PartyIcons.View;
@@ -37,71 +38,36 @@ public sealed class NPCNameplateFixer : IDisposable
 
     private void RevertNPC()
     {
-        var addon = XivApi.GetSafeAddonNamePlate();
+        var indexer = new XivApi.SafeAddonNamePlateIndexer();
 
         for (var i = 0; i < 50; i++)
         {
-            var npObject = addon.GetNamePlateObject(i);
+            var npObject = indexer.GetNamePlate(i);
 
-            if (npObject == null || !npObject.IsVisible)
-            {
-                continue;
-            }
-
-            var npInfo = npObject.NamePlateInfo;
-
-            if (npInfo == null)
-            {
-                continue;
-            }
-
-            var actorID = npInfo.Data.ObjectID.ObjectID;
-
-            if (actorID == NoTarget)
-            {
-                continue;
-            }
-
-            var isPC = npInfo.IsPlayerCharacter();
-
-            if (!isPC && _view.SetupDefault(npObject))
-            {
-                Service.Log.Verbose($"Reverted NPC {actorID} (#{i})");
-            }
-        }
-    }
-
-    private void RevertAll()
-    {
-        var addon = XivApi.GetSafeAddonNamePlate();
-
-        for (var i = 0; i < 50; i++)
-        {
-            var npObject = addon.GetNamePlateObject(i);
-
-            if (npObject == null)
-            {
-                continue;
-            }
-
-            var npInfo = npObject.NamePlateInfo;
-
-            if (npInfo == null)
-            {
-                continue;
-            }
-
-            var actorID = npInfo.Data.ObjectID.ObjectID;
-
-            if (actorID == NoTarget)
+            if (npObject is not { IsVisible: true } || npObject.IsPlayer)
             {
                 continue;
             }
 
             if (_view.SetupDefault(npObject))
             {
-                Service.Log.Verbose($"Reverted {actorID} (#{i})");
+                PluginLog.Information($"  -> npc reverted ({npObject.Data.IsPlayerCharacter})");
             }
+        }
+    }
+
+    private void RevertAll()
+    {
+        var indexer = new XivApi.SafeAddonNamePlateIndexer();
+
+        for (var i = 0; i < 50; i++)
+        {
+            var npObject = indexer.GetNamePlate(i);
+            if (npObject == null)
+            {
+                continue;
+            }
+            _view.SetupDefault(npObject);
         }
     }
 }

@@ -69,6 +69,7 @@ public sealed class NameplateUpdater : IDisposable
     public IntPtr SetNamePlate(IntPtr namePlateObjectPtr, bool isPrefixTitle, bool displayTitle, IntPtr title,
         IntPtr name, IntPtr fcName, IntPtr prefix, int iconID)
     {
+        // PluginLog.Debug($"{namePlateObjectPtr}, {isPrefixTitle}, {displayTitle}, {title}, {name}, {fcName}, {prefix}, {iconID}");
         if (Service.ClientState.IsPvP)
         {
             // disable in PvP

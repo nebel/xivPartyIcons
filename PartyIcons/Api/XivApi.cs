@@ -2,7 +2,6 @@
 using System.Runtime.InteropServices;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.SubKinds;
-using Dalamud.Plugin;
 using FFXIVClientStructs.FFXIV.Client.System.String;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.System.Framework;
@@ -63,7 +62,7 @@ public class XivApi : IDisposable
 
     #endregion
 
-    public static SafeAddonNamePlate GetSafeAddonNamePlate() => new(Service.PluginInterface);
+    public static SafeAddonNamePlate GetSafeAddonNamePlate() => new();
 
     public static bool IsLocalPlayer(uint actorID) => Service.ClientState.LocalPlayer?.ObjectId == actorID;
 
@@ -111,23 +110,16 @@ public class XivApi : IDisposable
 
     public class SafeAddonNamePlate
     {
-        private readonly DalamudPluginInterface Interface;
+        private readonly IntPtr _pointer = Service.GameGui.GetAddonByName("NamePlate");
 
-        public IntPtr Pointer => Service.GameGui.GetAddonByName("NamePlate", 1);
-
-        public SafeAddonNamePlate(DalamudPluginInterface pluginInterface)
+        public unsafe SafeNamePlateObject? GetNamePlateObject(int index)
         {
-            Interface = pluginInterface;
-        }
-
-        public unsafe SafeNamePlateObject GetNamePlateObject(int index)
-        {
-            if (Pointer == IntPtr.Zero)
+            if (_pointer == IntPtr.Zero)
             {
                 return null;
             }
 
-            var npObjectArrayPtrPtr = Pointer + Marshal
+            var npObjectArrayPtrPtr = _pointer + Marshal
                 .OffsetOf(typeof(AddonNamePlate), nameof(AddonNamePlate.NamePlateObjectArray)).ToInt32();
             var npObjectArrayPtr = Marshal.ReadIntPtr(npObjectArrayPtrPtr);
 
@@ -140,6 +132,38 @@ public class XivApi : IDisposable
 
             var npObjectPtr = npObjectArrayPtr + Marshal.SizeOf(typeof(AddonNamePlate.NamePlateObject)) * index;
 
+            return new SafeNamePlateObject(npObjectPtr, index);
+        }
+    }
+
+    public class SafeAddonNamePlateIndexer
+    {
+        private readonly IntPtr _npObjectArrayPtr;
+
+        public SafeAddonNamePlateIndexer()
+        {
+            var addonPtr = Service.GameGui.GetAddonByName("NamePlate");
+            if (addonPtr == IntPtr.Zero) {
+                return;
+            }
+            var npObjectArrayPtrPtr = addonPtr + Marshal
+                .OffsetOf(typeof(AddonNamePlate), nameof(AddonNamePlate.NamePlateObjectArray)).ToInt32();
+            _npObjectArrayPtr = Marshal.ReadIntPtr(npObjectArrayPtrPtr);
+
+            if (_npObjectArrayPtr == IntPtr.Zero)
+            {
+                Service.Log.Verbose($"[{GetType().Name}] NamePlateObjectArray was null");
+            }
+        }
+
+        public SafeNamePlateObject? GetNamePlate(int index)
+        {
+            if (_npObjectArrayPtr == IntPtr.Zero)
+            {
+                return null;
+            }
+
+            var npObjectPtr = _npObjectArrayPtr + Marshal.SizeOf(typeof(AddonNamePlate.NamePlateObject)) * index;
             return new SafeNamePlateObject(npObjectPtr, index);
         }
     }
@@ -237,7 +261,7 @@ public class XivApi : IDisposable
 
         public unsafe bool IsLocalPlayer => Data.IsLocalPlayer;
 
-        public bool IsPlayer => Data.NameplateKind == 0;
+        public bool IsPlayer => Data.IsPlayerCharacter;
 
         /// <returns>True if the icon scale was changed.</returns>
         public unsafe bool SetIconScale(float scale, bool force = false)

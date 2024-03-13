@@ -42,8 +42,9 @@ public sealed class NameplateView : IDisposable
     /// <returns>True if the icon or name scale was changed (different from default).</returns>
     public bool SetupDefault(XivApi.SafeNamePlateObject npObject)
     {
-        return npObject.SetIconScale(1f) &&
-               npObject.SetNameScale(0.5f);
+        var iconScaleChanged = npObject.SetIconScale(1f);
+        var nameScaleChanged = npObject.SetNameScale(0.5f);
+        return iconScaleChanged || nameScaleChanged;
     }
 
     /// <summary>
