@@ -3,6 +3,7 @@ using System.Linq;
 using Dalamud.Hooking;
 using Dalamud.Logging;
 using Dalamud.Utility.Signatures;
+using FFXIVClientStructs.FFXIV.Client.UI;
 using PartyIcons.Api;
 using PartyIcons.Configuration;
 using PartyIcons.Entities;
@@ -66,7 +67,7 @@ public sealed class NameplateUpdater : IDisposable
         }
     }
 
-    public IntPtr SetNamePlate(IntPtr namePlateObjectPtr, bool isPrefixTitle, bool displayTitle, IntPtr title,
+    public unsafe IntPtr SetNamePlate(IntPtr namePlateObjectPtr, bool isPrefixTitle, bool displayTitle, IntPtr title,
         IntPtr name, IntPtr fcName, IntPtr prefix, int iconID)
     {
         // PluginLog.Debug($"{namePlateObjectPtr}, {isPrefixTitle}, {displayTitle}, {title}, {name}, {fcName}, {prefix}, {iconID}");
@@ -76,63 +77,34 @@ public sealed class NameplateUpdater : IDisposable
             return _setNamePlateHook.Original(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name, fcName, prefix, iconID);
         }
 
-        var originalTitle = title;
-        var originalName = name;
-        var originalFcName = fcName;
-
-        var npObject = new XivApi.SafeNamePlateObject(namePlateObjectPtr);
-
-        if (npObject == null)
+        var npObject = new XivApi.SafeNamePlateObject((AddonNamePlate.NamePlateObject*)namePlateObjectPtr);
+        if (npObject is not { IsPlayer: true, NamePlateInfo: { Data.ObjectID.ObjectID: not 0xE0000000 } npInfo })
         {
             _view.SetupDefault(npObject);
-
-            return _setNamePlateHook.Original(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name, fcName, prefix, iconID);
-        }
-
-        var npInfo = npObject.NamePlateInfo;
-
-        if (npInfo == null)
-        {
-            _view.SetupDefault(npObject);
-
-            return _setNamePlateHook.Original(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name, fcName, prefix, iconID);
-        }
-
-        var actorID = npInfo.Data.ObjectID.ObjectID;
-
-        if (actorID == 0xE0000000)
-        {
-            _view.SetupDefault(npObject);
-
-            return _setNamePlateHook.Original(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name, fcName, prefix, iconID);
-        }
-
-        if (!npObject.IsPlayer)
-        {
-            _view.SetupDefault(npObject);
-
             return _setNamePlateHook.Original(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name, fcName, prefix, iconID);
         }
 
         var jobID = npInfo.GetJobID();
-
-        if (jobID < 1 || jobID >= Enum.GetValues(typeof(Job)).Length)
+        if (jobID < 1 || jobID >= JobConstants.NumJobs)
         {
             _view.SetupDefault(npObject);
-
             return _setNamePlateHook.Original(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name, fcName, prefix, iconID);
         }
 
-        var isPriorityIcon = IsPriorityIcon(iconID, out var priorityIconId);
+        var originalTitle = title;
+        var originalName = name;
+        var originalFcName = fcName;
 
         _view.NameplateDataForPC(npObject, ref isPrefixTitle, ref displayTitle, ref title, ref name, ref fcName, ref iconID);
 
+        var isPriorityIcon = IsPriorityIcon(iconID, out var priorityIconId);
         if (isPriorityIcon)
         {
             iconID = priorityIconId;
         }
 
         var result = _setNamePlateHook.Original(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name, fcName, prefix, iconID);
+
         _view.SetupForPC(npObject, isPriorityIcon);
 
         if (originalName != name)

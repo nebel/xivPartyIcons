@@ -1,7 +1,10 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.SubKinds;
+using Dalamud.Logging;
 using FFXIVClientStructs.FFXIV.Client.System.String;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.System.Framework;
@@ -43,10 +46,8 @@ public class XivApi : IDisposable
     {
         get
         {
-            if (_RaptureAtkModulePtr == IntPtr.Zero)
-            {
-                unsafe
-                {
+            if (_RaptureAtkModulePtr == IntPtr.Zero) {
+                unsafe {
                     var framework = Framework.Instance();
                     var uiModule = framework->GetUiModule();
 
@@ -62,8 +63,6 @@ public class XivApi : IDisposable
 
     #endregion
 
-    public static SafeAddonNamePlate GetSafeAddonNamePlate() => new();
-
     public static bool IsLocalPlayer(uint actorID) => Service.ClientState.LocalPlayer?.ObjectId == actorID;
 
     public unsafe static bool IsPartyMember(uint actorID) =>
@@ -74,15 +73,12 @@ public class XivApi : IDisposable
 
     public static bool IsPlayerCharacter(uint actorID)
     {
-        foreach (var obj in Service.ObjectTable)
-        {
-            if (obj == null)
-            {
+        foreach (var obj in Service.ObjectTable) {
+            if (obj == null) {
                 continue;
             }
 
-            if (obj.ObjectId == actorID)
-            {
+            if (obj.ObjectId == actorID) {
                 return obj.ObjectKind == ObjectKind.Player;
             }
         }
@@ -92,15 +88,12 @@ public class XivApi : IDisposable
 
     public static uint GetJobId(uint actorID)
     {
-        foreach (var obj in Service.ObjectTable)
-        {
-            if (obj == null)
-            {
+        foreach (var obj in Service.ObjectTable) {
+            if (obj == null) {
                 continue;
             }
 
-            if (obj.ObjectId == actorID && obj is PlayerCharacter character)
-            {
+            if (obj.ObjectId == actorID && obj is PlayerCharacter character) {
                 return character.ClassJob.Id;
             }
         }
@@ -108,109 +101,81 @@ public class XivApi : IDisposable
         return 0;
     }
 
-    public class SafeAddonNamePlate
+    public unsafe class NamePlateArrayReader : IEnumerable<SafeNamePlateObject>
     {
-        private readonly IntPtr _pointer = Service.GameGui.GetAddonByName("NamePlate");
+        private readonly AddonNamePlate.NamePlateObject* _npObjectArrayPtr = GetObjectArrayPointer();
+        private const int MaxNameplates = 50;
 
-        public unsafe SafeNamePlateObject? GetNamePlateObject(int index)
+        private static AddonNamePlate.NamePlateObject* GetObjectArrayPointer()
         {
-            if (_pointer == IntPtr.Zero)
-            {
+            var addonPtr = (AddonNamePlate*)Service.GameGui.GetAddonByName("NamePlate");
+            if (addonPtr == null) {
                 return null;
             }
 
-            var npObjectArrayPtrPtr = _pointer + Marshal
-                .OffsetOf(typeof(AddonNamePlate), nameof(AddonNamePlate.NamePlateObjectArray)).ToInt32();
-            var npObjectArrayPtr = Marshal.ReadIntPtr(npObjectArrayPtrPtr);
-
-            if (npObjectArrayPtr == IntPtr.Zero)
-            {
-                Service.Log.Verbose($"[{GetType().Name}] NamePlateObjectArray was null");
-
-                return null;
+            var objectArrayPtr = addonPtr->NamePlateObjectArray;
+            if (objectArrayPtr == null) {
+                Service.Log.Verbose("NamePlateObjectArray was null");
             }
 
-            var npObjectPtr = npObjectArrayPtr + Marshal.SizeOf(typeof(AddonNamePlate.NamePlateObject)) * index;
-
-            return new SafeNamePlateObject(npObjectPtr, index);
+            return objectArrayPtr;
         }
+
+        public static int GetIndexOf(AddonNamePlate.NamePlateObject* namePlateObjectPtr)
+        {
+            var basePtr = (nint)GetObjectArrayPointer();
+            var npObjectSize = Marshal.SizeOf(typeof(AddonNamePlate.NamePlateObject));
+            var index = (int)((((nint)namePlateObjectPtr).ToInt64() - basePtr.ToInt64()) / npObjectSize);
+            if (index is < 0 or >= MaxNameplates) {
+                Service.Log.Verbose("NamePlateObject index was out of bounds");
+                return -1;
+            }
+
+            return index;
+        }
+
+        private bool IsValid()
+        {
+            return _npObjectArrayPtr != null;
+        }
+
+        private SafeNamePlateObject Get(int index)
+        {
+            var ptr = &_npObjectArrayPtr[index];
+            return new SafeNamePlateObject(ptr, index);
+        }
+
+        public IEnumerator<SafeNamePlateObject> GetEnumerator()
+        {
+            if (IsValid()) {
+                for (var i = 0; i < MaxNameplates; i++) {
+                    yield return Get(i);
+                }
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 
-    public class SafeAddonNamePlateIndexer
+    public unsafe struct SafeNamePlateObject
     {
-        private readonly IntPtr _npObjectArrayPtr;
+        private readonly AddonNamePlate.NamePlateObject* Pointer;
 
-        public SafeAddonNamePlateIndexer()
-        {
-            var addonPtr = Service.GameGui.GetAddonByName("NamePlate");
-            if (addonPtr == IntPtr.Zero) {
-                return;
-            }
-            var npObjectArrayPtrPtr = addonPtr + Marshal
-                .OffsetOf(typeof(AddonNamePlate), nameof(AddonNamePlate.NamePlateObjectArray)).ToInt32();
-            _npObjectArrayPtr = Marshal.ReadIntPtr(npObjectArrayPtrPtr);
-
-            if (_npObjectArrayPtr == IntPtr.Zero)
-            {
-                Service.Log.Verbose($"[{GetType().Name}] NamePlateObjectArray was null");
-            }
-        }
-
-        public SafeNamePlateObject? GetNamePlate(int index)
-        {
-            if (_npObjectArrayPtr == IntPtr.Zero)
-            {
-                return null;
-            }
-
-            var npObjectPtr = _npObjectArrayPtr + Marshal.SizeOf(typeof(AddonNamePlate.NamePlateObject)) * index;
-            return new SafeNamePlateObject(npObjectPtr, index);
-        }
-    }
-
-    public class SafeNamePlateObject
-    {
-        public readonly IntPtr Pointer;
-        public readonly AddonNamePlate.NamePlateObject Data;
-        
         private int _Index;
         private SafeNamePlateInfo _NamePlateInfo;
 
-        public SafeNamePlateObject(IntPtr pointer, int index = -1)
+        public SafeNamePlateObject(AddonNamePlate.NamePlateObject* pointer, int index = -1)
         {
             Pointer = pointer;
-            Data = Marshal.PtrToStructure<AddonNamePlate.NamePlateObject>(pointer);
             _Index = index;
         }
 
-        public int Index
+        private int Index
         {
             get
             {
-                if (_Index == -1)
-                {
-                    var addon = GetSafeAddonNamePlate();
-                    var npObject0 = addon.GetNamePlateObject(0);
-
-                    if (npObject0 == null)
-                    {
-                        Service.Log.Verbose($"[{GetType().Name}] NamePlateObject0 was null");
-
-                        return -1;
-                    }
-
-                    var npObjectBase = npObject0.Pointer;
-                    var npObjectSize = Marshal.SizeOf(typeof(AddonNamePlate.NamePlateObject));
-                    var index = (Pointer.ToInt64() - npObjectBase.ToInt64()) / npObjectSize;
-
-                    if (index < 0 || index >= 50)
-                    {
-                        Service.Log.Verbose($"[{GetType().Name}] NamePlateObject index was out of bounds");
-
-                        return -1;
-                    }
-
-                    _Index = (int) index;
+                if (_Index == -1) {
+                    _Index = NamePlateArrayReader.GetIndexOf(Pointer);
                 }
 
                 return _Index;
@@ -221,14 +186,11 @@ public class XivApi : IDisposable
         {
             get
             {
-                if (_NamePlateInfo == null)
-                {
+                if (_NamePlateInfo == null) {
                     var rapturePtr = RaptureAtkModulePtr;
 
-                    if (rapturePtr == IntPtr.Zero)
-                    {
+                    if (rapturePtr == IntPtr.Zero) {
                         Service.Log.Verbose($"[{GetType().Name}] RaptureAtkModule was null");
-
                         return null;
                     }
 
@@ -242,33 +204,15 @@ public class XivApi : IDisposable
             }
         }
 
-        #region Getters
+        public bool IsVisible => Pointer->IsVisible;
 
-        public unsafe IntPtr IconImageNodeAddress => Marshal.ReadIntPtr(Pointer + Marshal
-            .OffsetOf(typeof(AddonNamePlate.NamePlateObject), nameof(AddonNamePlate.NamePlateObject.IconImageNode))
-            .ToInt32());
-
-        public unsafe IntPtr NameNodeAddress => Marshal.ReadIntPtr(Pointer + Marshal
-            .OffsetOf(typeof(AddonNamePlate.NamePlateObject), nameof(AddonNamePlate.NamePlateObject.NameText))
-            .ToInt32());
-
-        public AtkImageNode IconImageNode => Marshal.PtrToStructure<AtkImageNode>(IconImageNodeAddress);
-        public AtkTextNode NameTextNode => Marshal.PtrToStructure<AtkTextNode>(NameNodeAddress);
-
-        #endregion
-
-        public unsafe bool IsVisible => Data.IsVisible;
-
-        public unsafe bool IsLocalPlayer => Data.IsLocalPlayer;
-
-        public bool IsPlayer => Data.IsPlayerCharacter;
+        public bool IsPlayer => Pointer->IsPlayerCharacter;
 
         /// <returns>True if the icon scale was changed.</returns>
-        public unsafe bool SetIconScale(float scale, bool force = false)
+        public bool SetIconScale(float scale, bool force = false)
         {
-            if (force || !IsIconScaleEqual(scale))
-            {
-                ((AddonNamePlate.NamePlateObject*)Pointer)->IconImageNode->AtkResNode.SetScale(scale, scale);
+            if (force || !IsIconScaleEqual(scale)) {
+                Pointer->IconImageNode->AtkResNode.SetScale(scale, scale);
                 return true;
             }
 
@@ -276,50 +220,43 @@ public class XivApi : IDisposable
         }
 
         /// <returns>True if the name scale was changed.</returns>
-        public unsafe bool SetNameScale(float scale, bool force = false)
+        public bool SetNameScale(float scale, bool force = false)
         {
-            if (force || !IsNameScaleEqual(scale))
-            {
-                ((AddonNamePlate.NamePlateObject*)Pointer)->NameText->AtkResNode.SetScale(scale, scale);
+            if (force || !IsNameScaleEqual(scale)) {
+                Pointer->NameText->AtkResNode.SetScale(scale, scale);
                 return true;
             }
 
             return false;
         }
 
-        public unsafe void SetName(IntPtr ptr)
-        {
-            NameTextNode.SetText("aaa");
-        }
-
-        public void SetIcon(int icon)
-        {
-            IconImageNode.LoadIconTexture(icon, 1);
-        }
-
         public void SetIconPosition(short x, short y)
         {
-            var iconXAdjustPtr = Pointer + Marshal.OffsetOf(typeof(AddonNamePlate.NamePlateObject),
-                nameof(AddonNamePlate.NamePlateObject.IconXAdjust)).ToInt32();
-            var iconYAdjustPtr = Pointer + Marshal.OffsetOf(typeof(AddonNamePlate.NamePlateObject),
-                nameof(AddonNamePlate.NamePlateObject.IconYAdjust)).ToInt32();
-            Marshal.WriteInt16(iconXAdjustPtr, x);
-            Marshal.WriteInt16(iconYAdjustPtr, y);
+            Pointer->IconXAdjust = x;
+            Pointer->IconXAdjust = y;
         }
-        
+
         private static bool NearlyEqual(float left, float right, float tolerance)
         {
-            return Math.Abs(left - right) <= tolerance; 
+            return Math.Abs(left - right) <= tolerance;
         }
-        
-        private bool IsIconScaleEqual(float scale) =>
-            NearlyEqual(scale, IconImageNode.AtkResNode.ScaleX, ScaleTolerance) &&
-            NearlyEqual(scale, IconImageNode.AtkResNode.ScaleY, ScaleTolerance);
 
-        private bool IsNameScaleEqual(float scale) =>
-            NearlyEqual(scale, NameTextNode.AtkResNode.ScaleX, ScaleTolerance) &&
-            NearlyEqual(scale, NameTextNode.AtkResNode.ScaleY, ScaleTolerance);
-        
+        private bool IsIconScaleEqual(float scale)
+        {
+            var node = Pointer->IconImageNode->AtkResNode;
+            return
+                NearlyEqual(scale, node.ScaleX, ScaleTolerance) &&
+                NearlyEqual(scale, node.ScaleY, ScaleTolerance);
+        }
+
+        private bool IsNameScaleEqual(float scale)
+        {
+            var node = Pointer->NameText->AtkResNode;
+            return
+                NearlyEqual(scale, node.ScaleX, ScaleTolerance) &&
+                NearlyEqual(scale, node.ScaleY, ScaleTolerance);
+        }
+
         private const float ScaleTolerance = 0.001f;
     }
 

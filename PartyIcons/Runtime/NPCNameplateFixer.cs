@@ -38,12 +38,7 @@ public sealed class NPCNameplateFixer : IDisposable
 
     private void RevertNPC()
     {
-        var indexer = new XivApi.SafeAddonNamePlateIndexer();
-
-        for (var i = 0; i < 50; i++)
-        {
-            var npObject = indexer.GetNamePlate(i);
-
+        foreach (var npObject in new XivApi.NamePlateArrayReader()) {
             if (npObject is not { IsVisible: true } || npObject.IsPlayer)
             {
                 continue;
@@ -51,22 +46,14 @@ public sealed class NPCNameplateFixer : IDisposable
 
             if (_view.SetupDefault(npObject))
             {
-                PluginLog.Information($"  -> npc reverted ({npObject.Data.IsPlayerCharacter})");
+                PluginLog.Information($"  -> npc reverted ({npObject.IsPlayer})"); // FIXME debugging
             }
         }
     }
 
     private void RevertAll()
     {
-        var indexer = new XivApi.SafeAddonNamePlateIndexer();
-
-        for (var i = 0; i < 50; i++)
-        {
-            var npObject = indexer.GetNamePlate(i);
-            if (npObject == null)
-            {
-                continue;
-            }
+        foreach (var npObject in new XivApi.NamePlateArrayReader()) {
             _view.SetupDefault(npObject);
         }
     }

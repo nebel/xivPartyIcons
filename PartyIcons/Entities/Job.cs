@@ -47,6 +47,11 @@ public enum Job : uint
     SGE = 40
 }
 
+public static class JobConstants
+{
+    public static readonly int NumJobs = Enum.GetValues(typeof(Job)).Length;
+}
+
 public static class JobExtensions
 {
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0066:Convert switch statement to expression",
