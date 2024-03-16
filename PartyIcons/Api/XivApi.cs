@@ -4,34 +4,26 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.SubKinds;
-using Dalamud.Logging;
-using FFXIVClientStructs.FFXIV.Client.System.String;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.System.Framework;
-using FFXIVClientStructs.FFXIV.Component.GUI;
 
 namespace PartyIcons.Api;
 
 public class XivApi : IDisposable
 {
-    public static int ThreadID => System.Threading.Thread.CurrentThread.ManagedThreadId;
-
-    private static Plugin _plugin;
-
     public static void Initialize(Plugin plugin)
     {
-        _plugin ??= plugin;
         Instance ??= new XivApi();
     }
 
-    private static XivApi Instance;
+    private static XivApi? Instance;
 
     private XivApi()
     {
         Service.ClientState.Logout += OnLogout_ResetRaptureAtkModule;
     }
 
-    public static void DisposeInstance() => Instance.Dispose();
+    public static void DisposeInstance() => Instance?.Dispose();
 
     public void Dispose()
     {
@@ -159,26 +151,26 @@ public class XivApi : IDisposable
 
     public unsafe struct SafeNamePlateObject
     {
-        private readonly AddonNamePlate.NamePlateObject* Pointer;
+        private readonly AddonNamePlate.NamePlateObject* _ptr;
 
-        private int _Index;
-        private SafeNamePlateInfo _NamePlateInfo;
+        private int _index;
+        private SafeNamePlateInfo _namePlateInfo;
 
-        public SafeNamePlateObject(AddonNamePlate.NamePlateObject* pointer, int index = -1)
+        public SafeNamePlateObject(AddonNamePlate.NamePlateObject* ptr, int index = -1)
         {
-            Pointer = pointer;
-            _Index = index;
+            _ptr = ptr;
+            _index = index;
         }
 
         private int Index
         {
             get
             {
-                if (_Index == -1) {
-                    _Index = NamePlateArrayReader.GetIndexOf(Pointer);
+                if (_index == -1) {
+                    _index = NamePlateArrayReader.GetIndexOf(_ptr);
                 }
 
-                return _Index;
+                return _index;
             }
         }
 
@@ -186,33 +178,32 @@ public class XivApi : IDisposable
         {
             get
             {
-                if (_NamePlateInfo == null) {
+                if (_namePlateInfo.ObjectID == default) {
+                    // var raptureAtkModule = Framework.Instance()->GetUiModule()->GetRaptureAtkModule();
                     var rapturePtr = RaptureAtkModulePtr;
-
                     if (rapturePtr == IntPtr.Zero) {
                         Service.Log.Verbose($"[{GetType().Name}] RaptureAtkModule was null");
-                        return null;
+                        throw new Exception("Cannot get NamePlateInfo as RaptureAtkModule was null");
                     }
 
-                    var npInfoArrayPtr = RaptureAtkModulePtr + Marshal.OffsetOf(typeof(RaptureAtkModule),
-                        nameof(RaptureAtkModule.NamePlateInfoArray)).ToInt32();
-                    var npInfoPtr = npInfoArrayPtr + Marshal.SizeOf(typeof(RaptureAtkModule.NamePlateInfo)) * Index;
-                    _NamePlateInfo = new SafeNamePlateInfo(npInfoPtr);
+                    var raptureAtkModule = (RaptureAtkModule*)rapturePtr;
+                    var infoArray = &raptureAtkModule->NamePlateInfoArray;
+                    _namePlateInfo = new SafeNamePlateInfo(&infoArray[Index]);
                 }
 
-                return _NamePlateInfo;
+                return _namePlateInfo;
             }
         }
 
-        public bool IsVisible => Pointer->IsVisible;
+        public bool IsVisible => _ptr->IsVisible;
 
-        public bool IsPlayer => Pointer->IsPlayerCharacter;
+        public bool IsPlayer => _ptr->IsPlayerCharacter;
 
         /// <returns>True if the icon scale was changed.</returns>
         public bool SetIconScale(float scale, bool force = false)
         {
             if (force || !IsIconScaleEqual(scale)) {
-                Pointer->IconImageNode->AtkResNode.SetScale(scale, scale);
+                _ptr->IconImageNode->AtkResNode.SetScale(scale, scale);
                 return true;
             }
 
@@ -223,7 +214,7 @@ public class XivApi : IDisposable
         public bool SetNameScale(float scale, bool force = false)
         {
             if (force || !IsNameScaleEqual(scale)) {
-                Pointer->NameText->AtkResNode.SetScale(scale, scale);
+                _ptr->NameText->AtkResNode.SetScale(scale, scale);
                 return true;
             }
 
@@ -232,8 +223,8 @@ public class XivApi : IDisposable
 
         public void SetIconPosition(short x, short y)
         {
-            Pointer->IconXAdjust = x;
-            Pointer->IconXAdjust = y;
+            _ptr->IconXAdjust = x;
+            _ptr->IconYAdjust = y;
         }
 
         private static bool NearlyEqual(float left, float right, float tolerance)
@@ -243,7 +234,7 @@ public class XivApi : IDisposable
 
         private bool IsIconScaleEqual(float scale)
         {
-            var node = Pointer->IconImageNode->AtkResNode;
+            var node = _ptr->IconImageNode->AtkResNode;
             return
                 NearlyEqual(scale, node.ScaleX, ScaleTolerance) &&
                 NearlyEqual(scale, node.ScaleY, ScaleTolerance);
@@ -251,7 +242,7 @@ public class XivApi : IDisposable
 
         private bool IsNameScaleEqual(float scale)
         {
-            var node = Pointer->NameText->AtkResNode;
+            var node = _ptr->NameText->AtkResNode;
             return
                 NearlyEqual(scale, node.ScaleX, ScaleTolerance) &&
                 NearlyEqual(scale, node.ScaleY, ScaleTolerance);
@@ -260,59 +251,12 @@ public class XivApi : IDisposable
         private const float ScaleTolerance = 0.001f;
     }
 
-    public class SafeNamePlateInfo
+    public readonly unsafe struct SafeNamePlateInfo(RaptureAtkModule.NamePlateInfo* pointer)
     {
-        public readonly IntPtr Pointer;
-        public readonly RaptureAtkModule.NamePlateInfo Data;
+        public readonly uint ObjectID = pointer->ObjectID.ObjectID;
 
-        public SafeNamePlateInfo(IntPtr pointer)
-        {
-            Pointer = pointer; //-0x10;
-            Data = Marshal.PtrToStructure<RaptureAtkModule.NamePlateInfo>(Pointer);
-        }
+        public bool IsPartyMember() => XivApi.IsPartyMember(ObjectID);
 
-        #region Getters
-
-        public IntPtr NameAddress => GetStringPtr(nameof(RaptureAtkModule.NamePlateInfo.Name));
-
-        public string Name => GetString(NameAddress);
-
-        public IntPtr FcNameAddress => GetStringPtr(nameof(RaptureAtkModule.NamePlateInfo.FcName));
-
-        public string FcName => GetString(FcNameAddress);
-
-        public IntPtr TitleAddress => GetStringPtr(nameof(RaptureAtkModule.NamePlateInfo.Title));
-
-        public string Title => GetString(TitleAddress);
-
-        public IntPtr DisplayTitleAddress => GetStringPtr(nameof(RaptureAtkModule.NamePlateInfo.DisplayTitle));
-
-        public string DisplayTitle => GetString(DisplayTitleAddress);
-
-        public IntPtr LevelTextAddress => GetStringPtr(nameof(RaptureAtkModule.NamePlateInfo.LevelText));
-
-        public string LevelText => GetString(LevelTextAddress);
-
-        #endregion
-
-        public bool IsPlayerCharacter() => XivApi.IsPlayerCharacter(Data.ObjectID.ObjectID);
-
-        public bool IsPartyMember() => XivApi.IsPartyMember(Data.ObjectID.ObjectID);
-
-        public bool IsAllianceMember() => XivApi.IsAllianceMember(Data.ObjectID.ObjectID);
-
-        public uint GetJobID() => GetJobId(Data.ObjectID.ObjectID);
-
-        private unsafe IntPtr GetStringPtr(string name)
-        {
-            var namePtr = Pointer + Marshal.OffsetOf(typeof(RaptureAtkModule.NamePlateInfo), name).ToInt32();
-            var stringPtrPtr =
-                namePtr + Marshal.OffsetOf(typeof(Utf8String), nameof(Utf8String.StringPtr)).ToInt32();
-            var stringPtr = Marshal.ReadIntPtr(stringPtrPtr);
-
-            return stringPtr;
-        }
-
-        private string GetString(IntPtr stringPtr) => Marshal.PtrToStringUTF8(stringPtr);
+        public uint GetJobID() => GetJobId(ObjectID);
     }
 }

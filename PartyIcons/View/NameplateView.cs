@@ -172,7 +172,7 @@ public sealed class NameplateView : IDisposable
     )
     {
         //name = SeStringUtils.SeStringToPtr(SeStringUtils.Text("Plugin Enjoyer"));
-        var uid = npObject.NamePlateInfo.Data.ObjectID.ObjectID;
+        var uid = npObject.NamePlateInfo.ObjectID;
         var mode = GetModeForNameplate(npObject);
 
         if (_configuration.HideLocalPlayerNameplate && uid == Service.ClientState.LocalPlayer?.ObjectId)
@@ -260,7 +260,7 @@ public sealed class NameplateView : IDisposable
             case NameplateMode.BigJobIconAndPartySlot:
                 fcName = SeStringUtils.emptyPtr;
                 displayTitle = false;
-                var partySlot = _partyListHudView.GetPartySlotIndex(npObject.NamePlateInfo.Data.ObjectID.ObjectID) +
+                var partySlot = _partyListHudView.GetPartySlotIndex(npObject.NamePlateInfo.ObjectID) +
                                 1;
 
                 if (partySlot != null)
@@ -334,7 +334,7 @@ public sealed class NameplateView : IDisposable
 
     private NameplateMode GetModeForNameplate(XivApi.SafeNamePlateObject npObject)
     {
-        var uid = npObject.NamePlateInfo.Data.ObjectID.ObjectID;
+        var uid = npObject.NamePlateInfo.ObjectID;
         var mode = OthersMode;
 
         if (_configuration.TestingMode || npObject.NamePlateInfo.IsPartyMember() ||

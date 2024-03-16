@@ -78,7 +78,7 @@ public sealed class NameplateUpdater : IDisposable
         }
 
         var npObject = new XivApi.SafeNamePlateObject((AddonNamePlate.NamePlateObject*)namePlateObjectPtr);
-        if (npObject is not { IsPlayer: true, NamePlateInfo: { Data.ObjectID.ObjectID: not 0xE0000000 } npInfo })
+        if (npObject is not { IsPlayer: true, NamePlateInfo: { ObjectID: not 0xE0000000 } npInfo })
         {
             _view.SetupDefault(npObject);
             return _setNamePlateHook.Original(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name, fcName, prefix, iconID);
