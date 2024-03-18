@@ -40,7 +40,7 @@ public sealed class NameplateView : IDisposable
     public void Dispose() { }
 
     /// <returns>True if the icon or name scale was changed (different from default).</returns>
-    public bool SetupDefault(XivApi.SafeNamePlateObject npObject)
+    public bool SetupDefault(NamePlateObjectWrapper npObject)
     {
         var iconScaleChanged = npObject.SetIconScale(1f);
         var nameScaleChanged = npObject.SetNameScale(0.5f);
@@ -52,7 +52,7 @@ public sealed class NameplateView : IDisposable
     /// </summary>
     /// <param name="npObject">The nameplate object to modify.</param>
     /// <param name="forceIcon">Whether modes that do not normally support icons should be adjusted to show an icon.</param>
-    public void SetupForPC(XivApi.SafeNamePlateObject npObject, bool forceIcon)
+    public void SetupForPC(NamePlateObjectWrapper npObject, bool forceIcon)
     {
         var nameScale = 0.75f;
         var iconScale = 1f;
@@ -162,7 +162,7 @@ public sealed class NameplateView : IDisposable
     }
 
     public void NameplateDataForPC(
-        XivApi.SafeNamePlateObject npObject,
+        NamePlateObjectWrapper npObject,
         ref bool isPrefixTitle,
         ref bool displayTitle,
         ref IntPtr title,
@@ -297,7 +297,7 @@ public sealed class NameplateView : IDisposable
         }
     }
 
-    private int GetClassIcon(XivApi.SafeNamePlateInfo info)
+    private int GetClassIcon(NamePlateInfoWrapper info)
     {
         var genericRole = JobExtensions.GetRole((Job) info.GetJobID());
         var iconSet = _stylesheet.GetGenericRoleIconset(genericRole);
@@ -332,7 +332,7 @@ public sealed class NameplateView : IDisposable
         }
     }
 
-    private NameplateMode GetModeForNameplate(XivApi.SafeNamePlateObject npObject)
+    private NameplateMode GetModeForNameplate(NamePlateObjectWrapper npObject)
     {
         var uid = npObject.NamePlateInfo.ObjectID;
         var mode = OthersMode;

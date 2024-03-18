@@ -1,5 +1,4 @@
 ﻿using System;
-using Dalamud.Logging;
 using Dalamud.Plugin.Services;
 using PartyIcons.Api;
 using PartyIcons.View;
@@ -38,22 +37,16 @@ public sealed class NPCNameplateFixer : IDisposable
 
     private void RevertNPC()
     {
-        foreach (var npObject in new XivApi.NamePlateArrayReader()) {
-            if (npObject is not { IsVisible: true } || npObject.IsPlayer)
-            {
-                continue;
-            }
-
-            if (_view.SetupDefault(npObject))
-            {
-                PluginLog.Information($"  -> npc reverted ({npObject.IsPlayer})"); // FIXME debugging
+        foreach (var npObject in new NamePlateArrayReader()) {
+            if (npObject is { IsVisible: true, IsPlayer: false }) {
+                _view.SetupDefault(npObject);
             }
         }
     }
 
     private void RevertAll()
     {
-        foreach (var npObject in new XivApi.NamePlateArrayReader()) {
+        foreach (var npObject in new NamePlateArrayReader()) {
             _view.SetupDefault(npObject);
         }
     }
