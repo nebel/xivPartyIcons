@@ -203,7 +203,9 @@ public sealed class NameplateSettings
         {
             IconSetId.Framed => "Framed, role colored",
             IconSetId.GlowingColored => "Glowing, role colored",
-            IconSetId.GlowingGold => "Glowing, gold"
+            IconSetId.GlowingGold => "Glowing, gold",
+            IconSetId.PlainGold => "Plain gold",
+            _ => id.ToString()
         };
     }
 

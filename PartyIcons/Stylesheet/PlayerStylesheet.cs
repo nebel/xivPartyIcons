@@ -115,6 +115,9 @@ public sealed class PlayerStylesheet
                     _ => "Grey"
                 };
 
+            case IconSetId.PlainGold:
+                return "Gold";
+
             default:
                 throw new ArgumentException($"Unknown icon set id: {_configuration.IconSetId}");
         }
