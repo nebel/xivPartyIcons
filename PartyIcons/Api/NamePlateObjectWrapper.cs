@@ -1,5 +1,10 @@
 using System;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Text;
+using Dalamud.Memory;
 using FFXIVClientStructs.FFXIV.Client.UI;
+using FFXIVClientStructs.FFXIV.Component.GUI;
 
 namespace PartyIcons.Api;
 
@@ -101,4 +106,65 @@ public unsafe struct NamePlateObjectWrapper
     }
 
     private const float ScaleTolerance = 0.001f;
+
+    public override string ToString()
+    {
+        var p = *_pointer;
+        var nameRaw = MemoryHelper.ReadSeStringNullTerminated(new IntPtr(p.NameText->GetText()));
+        var name = string.Join("//", nameRaw.Payloads.Select(payload => payload.ToString()));
+        var nameScale = p.NameText->AtkResNode.ScaleX;
+        var iconScale = p.IconImageNode->AtkResNode.ScaleX;
+        var iconPos = $"[x={p.IconXAdjust} y={p.IconYAdjust}]";
+
+        var icon = GetImageNodeInfo(p.IconImageNode);
+        var image2 = GetImageNodeInfo(p.ImageNode2);
+        var image3 = GetImageNodeInfo(p.ImageNode3);
+        var image4 = GetImageNodeInfo(p.ImageNode4);
+        var image5 = GetImageNodeInfo(p.ImageNode5);
+
+        var images = string.Join("\n", [icon, image2 /*, image3, image4, image5*/]);
+
+        var objectId = NamePlateInfo.ObjectID;
+        var obj = Service.ObjectTable.SearchById(objectId);
+        var objName = obj != null
+            ? $"{obj.Address.ToInt64():X}:{obj.ObjectId:X}[{Index}] - {obj.ObjectKind} - {obj.Name}"
+            : $"???????????:{objectId:X}[{Index}] - ? - ?";
+
+        return
+            $"{objName}\n{name}\nisVisible={p.IsVisible} isPlayer={p.IsPlayerCharacter} onlineStatus={NamePlateInfo.GetOnlineStatusName()}\nnameScale={nameScale} iconScale={iconScale} iconPos={iconPos}\n{images}";
+    }
+
+    private string GetImageNodeInfo(AtkImageNode* iNode)
+    {
+        var sb = new StringBuilder();
+        sb.Append($"wrap: {iNode->WrapMode}, flags: {iNode->Flags} / ");
+        if (iNode->PartsList != null) {
+            if (iNode->PartId > iNode->PartsList->PartCount) {
+                sb.Append($"part id({iNode->PartId}) > part count({iNode->PartsList->PartCount})? / ");
+            }
+            else {
+                var part = iNode->PartsList->Parts[iNode->PartId];
+                var textureInfo = part.UldAsset;
+                var texType = textureInfo->AtkTexture.TextureType;
+                sb.Append(
+                    $"texture type: {texType} part_id={iNode->PartId} part_id_count={iNode->PartsList->PartCount} / ");
+                if (texType == TextureType.Resource) {
+                    var texFileNamePtr = textureInfo->AtkTexture.Resource->TexFileResourceHandle->ResourceHandle
+                        .FileName;
+                    var texString = Marshal.PtrToStringAnsi(new IntPtr(texFileNamePtr.BufferPtr));
+                    var isHighResolution = texString?.Contains("_hr1") ?? false;
+                    sb.Append($"texture path: {texString}");
+                    var kernelTexture = textureInfo->AtkTexture.Resource->KernelTextureObject;
+                }
+                else if (texType == TextureType.KernelTexture) {
+                    sb.Append("KernelTexture");
+                }
+            }
+        }
+        else {
+            sb.Append("no texture loaded");
+        }
+
+        return sb.ToString();
+    }
 }

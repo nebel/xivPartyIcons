@@ -1,7 +1,11 @@
 ﻿using System;
 using System.Linq;
+using System.Runtime.InteropServices;
+using Dalamud.Game.Text.SeStringHandling;
+using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Hooking;
 using Dalamud.Logging;
+using Dalamud.Memory;
 using Dalamud.Utility.Signatures;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using PartyIcons.Api;
@@ -17,6 +21,8 @@ public sealed class NameplateUpdater : IDisposable
     private readonly Settings _configuration;
     private readonly NameplateView _view;
     private readonly ViewModeSetter _modeSetter;
+
+    private static GCHandle NullString = GCHandle.Alloc(new byte[] { 0 }, GCHandleType.Pinned);
 
     [Signature("E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? 48 8B 5C 24 ?? 45 38 BE", DetourName = nameof(SetNamePlateDetour))]
     private readonly Hook<SetNamePlateDelegate> _setNamePlateHook = null!;
@@ -49,10 +55,10 @@ public sealed class NameplateUpdater : IDisposable
     }
 
     private delegate IntPtr SetNamePlateDelegate(IntPtr addon, bool isPrefixTitle, bool displayTitle, IntPtr title,
-        IntPtr name, IntPtr fcName, IntPtr prefix, int iconID);
+        IntPtr name, IntPtr fcName, IntPtr prefix, uint iconID);
 
     public IntPtr SetNamePlateDetour(IntPtr namePlateObjectPtr, bool isPrefixTitle, bool displayTitle,
-            IntPtr title, IntPtr name, IntPtr fcName, IntPtr prefix, int iconID)
+            IntPtr title, IntPtr name, IntPtr fcName, IntPtr prefix, uint iconID)
     // IntPtr titlePtr, IntPtr namePtr, IntPtr freeCompanyPtr, IntPtr prefixOrWhatever, int iconId
     {
         try
@@ -68,42 +74,60 @@ public sealed class NameplateUpdater : IDisposable
     }
 
     public unsafe IntPtr SetNamePlate(IntPtr namePlateObjectPtr, bool isPrefixTitle, bool displayTitle, IntPtr title,
-        IntPtr name, IntPtr fcName, IntPtr prefix, int iconID)
+        IntPtr name, IntPtr fcName, IntPtr prefix, uint iconID)
     {
-        // PluginLog.Debug($"{namePlateObjectPtr}, {isPrefixTitle}, {displayTitle}, {title}, {name}, {fcName}, {prefix}, {iconID}");
-        if (Service.ClientState.IsPvP)
-        {
+        var prefixByte = ((byte*)prefix)[0];
+        var prefixIcon = BitmapFontIcon.None;
+        if (prefixByte != 0) {
+            prefixIcon = ((IconPayload)MemoryHelper.ReadSeStringNullTerminated(prefix).Payloads[1]).Icon;
+        }
+
+        PluginLog.Warning(
+            $"SetNamePlate @ 0x{namePlateObjectPtr:X}\nTitle: isPrefix=[{isPrefixTitle}] displayTitle=[{displayTitle}] title=[{XivApi.PrintRawStringArg(title)}]\n" +
+            $"name=[{XivApi.PrintRawStringArg(name)}] fcName=[{XivApi.PrintRawStringArg(fcName)}] prefix=[{XivApi.PrintRawStringArg(prefix)}] iconID=[{iconID}]\n" +
+            $"prefixByte=[0x{prefixByte:X}] prefixIcon=[{prefixIcon}({(int)prefixIcon})] priority={iconID}/{IsPriorityIcon((int)iconID, out var priorityIconId2)}");
+
+        // prefix = NullString.AddrOfPinnedObject();
+
+        if (Service.ClientState.IsPvP) {
             // disable in PvP
-            return _setNamePlateHook.Original(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name, fcName, prefix, iconID);
+            return _setNamePlateHook.Original(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name, fcName,
+                prefix, iconID);
         }
 
         var npObject = new NamePlateObjectWrapper((AddonNamePlate.NamePlateObject*)namePlateObjectPtr);
-        if (npObject is not { IsPlayer: true, NamePlateInfo: { ObjectID: not 0xE0000000 } npInfo })
-        {
+        if (npObject is not { IsPlayer: true, NamePlateInfo: { ObjectID: not 0xE0000000 } npInfo }) {
             _view.SetupDefault(npObject);
-            return _setNamePlateHook.Original(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name, fcName, prefix, iconID);
+            return _setNamePlateHook.Original(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name, fcName,
+                prefix, iconID);
         }
 
         var jobID = npInfo.GetJobID();
-        if (jobID < 1 || jobID >= JobConstants.NumJobs)
-        {
+        if (jobID < 1 || jobID >= JobConstants.NumJobs) {
             _view.SetupDefault(npObject);
-            return _setNamePlateHook.Original(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name, fcName, prefix, iconID);
+            return _setNamePlateHook.Original(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name, fcName,
+                prefix, iconID);
         }
 
         var originalTitle = title;
         var originalName = name;
         var originalFcName = fcName;
 
-        _view.NameplateDataForPC(npObject, ref isPrefixTitle, ref displayTitle, ref title, ref name, ref fcName, ref iconID);
+        _view.NameplateDataForPC(npObject, ref isPrefixTitle, ref displayTitle, ref title, ref name, ref fcName,
+            ref iconID);
 
-        var isPriorityIcon = IsPriorityIcon(iconID, out var priorityIconId);
-        if (isPriorityIcon)
-        {
-            iconID = priorityIconId;
+        var status = npInfo.GetOnlineStatus();
+        bool isPriorityIcon;
+        if (IsPriorityStatus(status)) {
+            isPriorityIcon = false;
+            iconID = IconConverter.OnlineStatusToIconId(status);
+        }
+        else {
+            isPriorityIcon = false;
         }
 
-        var result = _setNamePlateHook.Original(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name, fcName, prefix, iconID);
+        var result = _setNamePlateHook.Original(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name, fcName,
+            NullString.AddrOfPinnedObject(), iconID);
 
         _view.SetupForPC(npObject, isPriorityIcon);
 
@@ -225,4 +249,20 @@ public sealed class NameplateUpdater : IDisposable
         061511, // Idle
         061546, // Group Pose
     };
+
+    private bool IsPriorityStatus(OnlineStatus status)
+    {
+        return status == OnlineStatus.Disconnected || GetPriorityStatuses().Contains(status);
+    }
+
+    private OnlineStatus[] GetPriorityStatuses()
+    {
+        if (_modeSetter.ZoneType == ZoneType.Foray)
+            return IconConverter.PriorityStatusesInForay;
+
+        if (_modeSetter.InDuty)
+            return IconConverter.PriorityStatusesInDuty;
+
+        return IconConverter.PriorityStatusesInOverworld;
+    }
 }

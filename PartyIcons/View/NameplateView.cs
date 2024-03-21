@@ -3,6 +3,7 @@ using System.Numerics;
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
+using Dalamud.Logging;
 using PartyIcons.Api;
 using PartyIcons.Configuration;
 using PartyIcons.Entities;
@@ -168,7 +169,7 @@ public sealed class NameplateView : IDisposable
         ref IntPtr title,
         ref IntPtr name,
         ref IntPtr fcName,
-        ref int iconID
+        ref uint iconID
     )
     {
         //name = SeStringUtils.SeStringToPtr(SeStringUtils.Text("Plugin Enjoyer"));
@@ -223,7 +224,13 @@ public sealed class NameplateView : IDisposable
                 break;
 
             case NameplateMode.SmallJobIcon:
-                var nameString = GetStateNametext(iconID, "");
+                // var nameString = GetStateNametext(iconID, "");
+
+                var nameString = new SeString();
+                if (npObject.NamePlateInfo.GetOnlineStatus() is var status) {
+                    nameString.Append(new IconPayload(IconConverter.OnlineStatusToBitmapIcon(status)));
+                    // nameString.Append(new TextPayload(" "));
+                }
                 var originalName = SeStringUtils.SeStringFromPtr(name);
                 nameString.Append(originalName);
 
@@ -297,7 +304,7 @@ public sealed class NameplateView : IDisposable
         }
     }
 
-    private int GetClassIcon(NamePlateInfoWrapper info)
+    private uint GetClassIcon(NamePlateInfoWrapper info)
     {
         var genericRole = JobExtensions.GetRole((Job) info.GetJobID());
         var iconSet = _stylesheet.GetGenericRoleIconset(genericRole);
@@ -305,7 +312,7 @@ public sealed class NameplateView : IDisposable
         return _iconSet.GetJobIcon(iconSet, info.GetJobID());
     }
 
-    private SeString GetStateNametext(int iconId, string prefix)
+    private SeString GetStateNametext(uint iconId, string prefix)
     {
         switch (iconId)
         {

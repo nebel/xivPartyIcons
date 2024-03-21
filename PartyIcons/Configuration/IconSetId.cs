@@ -4,5 +4,6 @@ public enum IconSetId
 {
     GlowingColored,
     GlowingGold,
-    Framed
+    Framed,
+    // PlainGold // FIXME: add support for this
 }
