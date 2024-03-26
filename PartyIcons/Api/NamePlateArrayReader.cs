@@ -7,8 +7,8 @@ namespace PartyIcons.Api;
 
 public unsafe class NamePlateArrayReader : IEnumerable<NamePlateObjectWrapper>
 {
-     private readonly AddonNamePlate.NamePlateObject* _pointer = GetObjectArrayPointer();
-    private const int MaxNameplates = 50;
+    private readonly AddonNamePlate.NamePlateObject* _pointer = GetObjectArrayPointer();
+    private const int MaxNameplates = 50; // FIXME: read from AddonNamePlate.NumNamePlateObjects
 
     private static AddonNamePlate.NamePlateObject* GetObjectArrayPointer()
     {

@@ -3,7 +3,6 @@ using System.Numerics;
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
-using Dalamud.Logging;
 using PartyIcons.Api;
 using PartyIcons.Configuration;
 using PartyIcons.Entities;
@@ -217,90 +216,94 @@ public sealed class NameplateView : IDisposable
         var hasRole = _roleTracker.TryGetAssignedRole(playerCharacter.Name.TextValue, playerCharacter.HomeWorld.Id,
             out var roleId);
 
-        switch (mode)
-        {
+        switch (mode) {
             case NameplateMode.Default:
             case NameplateMode.Hide:
                 break;
-
             case NameplateMode.SmallJobIcon:
-                // var nameString = GetStateNametext(iconID, "");
-
-                var nameString = new SeString();
-                if (npObject.NamePlateInfo.GetOnlineStatus() is var status) {
-                    nameString.Append(new IconPayload(IconConverter.OnlineStatusToBitmapIcon(status)));
-                    // nameString.Append(new TextPayload(" "));
+            {
+                var icon = IconConverter.OnlineStatusToBitmapIcon(npObject.NamePlateInfo.GetOnlineStatus());
+                if (icon is not BitmapFontIcon.None) {
+                    var nameString = new SeString()
+                        .Append(new IconPayload(icon))
+                        .Append(SeStringUtils.SeStringFromPtr(name));
+                    name = SeStringUtils.SeStringToPtr(nameString);
                 }
-                var originalName = SeStringUtils.SeStringFromPtr(name);
-                nameString.Append(originalName);
 
-                name = SeStringUtils.SeStringToPtr(nameString);
                 iconID = GetClassIcon(npObject.NamePlateInfo);
-
                 break;
-
+            }
             case NameplateMode.SmallJobIconAndRole:
-                nameString = new SeString();
-
-                if (hasRole)
-                {
-                    nameString.Append(_stylesheet.GetRolePlate(roleId));
-                    nameString.Append(" ");
+            {
+                if (hasRole) {
+                    var nameString = new SeString()
+                        .Append(_stylesheet.GetRolePlate(roleId))
+                        .Append(" ")
+                        .Append(SeStringUtils.SeStringFromPtr(name));
+                    name = SeStringUtils.SeStringToPtr(nameString);
+                }
+                else {
+                    var icon = IconConverter.OnlineStatusToBitmapIcon(npObject.NamePlateInfo.GetOnlineStatus());
+                    if (icon is not BitmapFontIcon.None) {
+                        var nameString = new SeString()
+                            .Append(new IconPayload(icon))
+                            .Append(SeStringUtils.SeStringFromPtr(name));
+                        name = SeStringUtils.SeStringToPtr(nameString);
+                    }
                 }
 
-                originalName = SeStringUtils.SeStringFromPtr(name);
-                nameString.Append(originalName);
-
-                name = SeStringUtils.SeStringToPtr(nameString);
                 iconID = GetClassIcon(npObject.NamePlateInfo);
-
                 break;
-
+            }
             case NameplateMode.BigJobIcon:
-                name = SeStringUtils.SeStringToPtr(GetStateNametext(iconID, "   "));
+            {
+                var icon = IconConverter.OnlineStatusToBitmapIcon(npObject.NamePlateInfo.GetOnlineStatus());
+                if (icon is not BitmapFontIcon.None) {
+                    var nameString = new SeString()
+                        .Append("  ")
+                        .Append(new IconPayload(icon));
+                    name = SeStringUtils.SeStringToPtr(nameString);
+                }
                 fcName = SeStringUtils.emptyPtr;
                 displayTitle = false;
                 iconID = GetClassIcon(npObject.NamePlateInfo);
-
                 break;
-
+            }
             case NameplateMode.BigJobIconAndPartySlot:
+            {
                 fcName = SeStringUtils.emptyPtr;
                 displayTitle = false;
                 var partySlot = _partyListHudView.GetPartySlotIndex(npObject.NamePlateInfo.ObjectID) +
                                 1;
 
-                if (partySlot != null)
-                {
-                    var genericRole = JobExtensions.GetRole((Job) npObject.NamePlateInfo.GetJobID());
+                if (partySlot != null) {
+                    var genericRole = JobExtensions.GetRole((Job)npObject.NamePlateInfo.GetJobID());
                     var str = _stylesheet.GetPartySlotNumber(partySlot.Value, genericRole);
                     str.Payloads.Insert(0, new TextPayload("   "));
                     name = SeStringUtils.SeStringToPtr(str);
                     iconID = GetClassIcon(npObject.NamePlateInfo);
                 }
-                else
-                {
+                else {
                     name = SeStringUtils.emptyPtr;
                     iconID = GetClassIcon(npObject.NamePlateInfo);
                 }
 
                 break;
-
+            }
             case NameplateMode.RoleLetters:
-                if (hasRole)
-                {
+            {
+                if (hasRole) {
                     name = SeStringUtils.SeStringToPtr(_stylesheet.GetRolePlate(roleId));
                 }
-                else
-                {
-                    var genericRole = JobExtensions.GetRole((Job) npObject.NamePlateInfo.GetJobID());
+                else {
+                    var genericRole = JobExtensions.GetRole((Job)npObject.NamePlateInfo.GetJobID());
                     name = SeStringUtils.SeStringToPtr(_stylesheet.GetGenericRolePlate(genericRole));
                 }
 
                 fcName = SeStringUtils.emptyPtr;
                 displayTitle = false;
-
                 break;
+            }
         }
     }
 

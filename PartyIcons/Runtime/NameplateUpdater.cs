@@ -22,8 +22,6 @@ public sealed class NameplateUpdater : IDisposable
     private readonly NameplateView _view;
     private readonly ViewModeSetter _modeSetter;
 
-    private static GCHandle NullString = GCHandle.Alloc(new byte[] { 0 }, GCHandleType.Pinned);
-
     [Signature("E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? 48 8B 5C 24 ?? 45 38 BE", DetourName = nameof(SetNamePlateDetour))]
     private readonly Hook<SetNamePlateDelegate> _setNamePlateHook = null!;
 
@@ -76,16 +74,16 @@ public sealed class NameplateUpdater : IDisposable
     public unsafe IntPtr SetNamePlate(IntPtr namePlateObjectPtr, bool isPrefixTitle, bool displayTitle, IntPtr title,
         IntPtr name, IntPtr fcName, IntPtr prefix, uint iconID)
     {
-        var prefixByte = ((byte*)prefix)[0];
-        var prefixIcon = BitmapFontIcon.None;
-        if (prefixByte != 0) {
-            prefixIcon = ((IconPayload)MemoryHelper.ReadSeStringNullTerminated(prefix).Payloads[1]).Icon;
-        }
-
-        PluginLog.Warning(
-            $"SetNamePlate @ 0x{namePlateObjectPtr:X}\nTitle: isPrefix=[{isPrefixTitle}] displayTitle=[{displayTitle}] title=[{XivApi.PrintRawStringArg(title)}]\n" +
-            $"name=[{XivApi.PrintRawStringArg(name)}] fcName=[{XivApi.PrintRawStringArg(fcName)}] prefix=[{XivApi.PrintRawStringArg(prefix)}] iconID=[{iconID}]\n" +
-            $"prefixByte=[0x{prefixByte:X}] prefixIcon=[{prefixIcon}({(int)prefixIcon})] priority={iconID}/{IsPriorityIcon((int)iconID, out var priorityIconId2)}");
+        // var prefixByte = ((byte*)prefix)[0];
+        // var prefixIcon = BitmapFontIcon.None;
+        // if (prefixByte != 0) {
+        //     prefixIcon = ((IconPayload)MemoryHelper.ReadSeStringNullTerminated(prefix).Payloads[1]).Icon;
+        // }
+        //
+        // PluginLog.Warning(
+        //     $"SetNamePlate @ 0x{namePlateObjectPtr:X}\nTitle: isPrefix=[{isPrefixTitle}] displayTitle=[{displayTitle}] title=[{XivApi.PrintRawStringArg(title)}]\n" +
+        //     $"name=[{XivApi.PrintRawStringArg(name)}] fcName=[{XivApi.PrintRawStringArg(fcName)}] prefix=[{XivApi.PrintRawStringArg(prefix)}] iconID=[{iconID}]\n" +
+        //     $"prefixByte=[0x{prefixByte:X}] prefixIcon=[{prefixIcon}({(int)prefixIcon})] priority={iconID}/{IsPriorityIcon((int)iconID, out var priorityIconId2)}");
 
         // prefix = NullString.AddrOfPinnedObject();
 
@@ -127,7 +125,7 @@ public sealed class NameplateUpdater : IDisposable
         }
 
         var result = _setNamePlateHook.Original(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name, fcName,
-            NullString.AddrOfPinnedObject(), iconID);
+            SeStringUtils.emptyPtr, iconID);
 
         _view.SetupForPC(npObject, isPriorityIcon);
 
@@ -241,9 +239,7 @@ public sealed class NameplateUpdater : IDisposable
     
     private static readonly int[] priorityIconsInForay =
     {
-        // This allows you to see which players don't have a party
-        061506, // In Duty
-        
+        061506, // In Duty -- This allows you to see which players don't have a party
         061503, // Disconnecting
         061508, // Viewing Cutscene
         061511, // Idle
@@ -252,7 +248,16 @@ public sealed class NameplateUpdater : IDisposable
 
     private bool IsPriorityStatus(OnlineStatus status)
     {
-        return status == OnlineStatus.Disconnected || GetPriorityStatuses().Contains(status);
+        if (_modeSetter.ZoneType == ZoneType.Foray)
+            return IconConverter.PriorityStatusesInForay.Contains(status);
+
+        if (_modeSetter.InDuty)
+            return IconConverter.PriorityStatusesInDuty.Contains(status);
+
+        return status != OnlineStatus.None;
+        // return IconConverter.OnlineStatusToBitmapIcon(status) != BitmapFontIcon.None;
+        // return status != OnlineStatus.None;
+        // return GetPriorityStatuses().Contains(status); // FIXME use this?
     }
 
     private OnlineStatus[] GetPriorityStatuses()

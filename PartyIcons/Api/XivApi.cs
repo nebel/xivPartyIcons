@@ -74,10 +74,10 @@ public static class IconConverter
     {
         return status switch
         {
-            OnlineStatus.EventParticipant => BitmapFontIcon.Meteor,
+            // OnlineStatus.EventParticipant => BitmapFontIcon.Meteor,
             OnlineStatus.Roleplaying => BitmapFontIcon.RolePlaying,
-            OnlineStatus.Disconnected => BitmapFontIcon.Disconnecting,
-            OnlineStatus.Busy => BitmapFontIcon.DoNotDisturb,
+            // OnlineStatus.Disconnected => BitmapFontIcon.Disconnecting,
+            // OnlineStatus.Busy => BitmapFontIcon.DoNotDisturb,
             OnlineStatus.NewAdventurer => BitmapFontIcon.NewAdventurer,
             OnlineStatus.Returner => BitmapFontIcon.Returner,
             OnlineStatus.Mentor => BitmapFontIcon.Mentor,
@@ -99,7 +99,7 @@ public static class IconConverter
         OnlineStatus.AwayFromKeyboard,
         OnlineStatus.LookingToMeldMateria,
         OnlineStatus.LookingForParty,
-        // OnlineStatus.WaitingForDutyFinder,
+        OnlineStatus.WaitingForDutyFinder,
         OnlineStatus.PartyLeader,
         OnlineStatus.PartyMember,
         OnlineStatus.GameMasterRed,
