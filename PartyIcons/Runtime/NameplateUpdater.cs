@@ -112,16 +112,13 @@ public sealed class NameplateUpdater : IDisposable
         var originalFcName = fcName;
 
         _view.NameplateDataForPC(npObject, ref isPrefixTitle, ref displayTitle, ref title, ref name, ref fcName,
-            ref iconID);
+            ref iconID, out var usedTextIcon);
 
         var status = npInfo.GetOnlineStatus();
-        bool isPriorityIcon;
-        if (IsPriorityStatus(status)) {
-            isPriorityIcon = false;
+        // status = OnlineStatus.ViewingCutscene;
+        var isPriorityIcon = IsPriorityStatus(status);
+        if (isPriorityIcon && !usedTextIcon) {
             iconID = IconConverter.OnlineStatusToIconId(status);
-        }
-        else {
-            isPriorityIcon = false;
         }
 
         var result = _setNamePlateHook.Original(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name, fcName,

@@ -168,9 +168,11 @@ public sealed class NameplateView : IDisposable
         ref IntPtr title,
         ref IntPtr name,
         ref IntPtr fcName,
-        ref uint iconID
+        ref uint iconID,
+        out bool usedTextIcon
     )
     {
+        usedTextIcon = false;
         //name = SeStringUtils.SeStringToPtr(SeStringUtils.Text("Plugin Enjoyer"));
         var uid = npObject.NamePlateInfo.ObjectID;
         var mode = GetModeForNameplate(npObject);
@@ -228,6 +230,7 @@ public sealed class NameplateView : IDisposable
                         .Append(new IconPayload(icon))
                         .Append(SeStringUtils.SeStringFromPtr(name));
                     name = SeStringUtils.SeStringToPtr(nameString);
+                    usedTextIcon = true;
                 }
 
                 iconID = GetClassIcon(npObject.NamePlateInfo);
@@ -241,6 +244,7 @@ public sealed class NameplateView : IDisposable
                         .Append(" ")
                         .Append(SeStringUtils.SeStringFromPtr(name));
                     name = SeStringUtils.SeStringToPtr(nameString);
+                    usedTextIcon = true;
                 }
                 else {
                     var icon = IconConverter.OnlineStatusToBitmapIcon(npObject.NamePlateInfo.GetOnlineStatus());
@@ -249,6 +253,7 @@ public sealed class NameplateView : IDisposable
                             .Append(new IconPayload(icon))
                             .Append(SeStringUtils.SeStringFromPtr(name));
                         name = SeStringUtils.SeStringToPtr(nameString);
+                        usedTextIcon = true;
                     }
                 }
 
@@ -263,6 +268,7 @@ public sealed class NameplateView : IDisposable
                         .Append("  ")
                         .Append(new IconPayload(icon));
                     name = SeStringUtils.SeStringToPtr(nameString);
+                    usedTextIcon = true;
                 }
                 fcName = SeStringUtils.emptyPtr;
                 displayTitle = false;
