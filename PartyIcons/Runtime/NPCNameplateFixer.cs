@@ -40,7 +40,7 @@ public sealed class NPCNameplateFixer : IDisposable
         if (!reader.HasValidPointer())
             return;
 
-        for (var i = 0; i < NamePlateArrayReader.MaxNameplates; i++) {
+        for (var i = 0; i < NamePlateArrayReader.NumNameplates; i++) {
             if (reader.GetUnchecked(i) is { IsVisible: true, IsPlayer: false } npObject) {
                 _view.SetupDefault(npObject);
             }
@@ -53,7 +53,7 @@ public sealed class NPCNameplateFixer : IDisposable
         if (!reader.HasValidPointer())
             return;
 
-        for (var i = 0; i < NamePlateArrayReader.MaxNameplates; i++) {
+        for (var i = 0; i < NamePlateArrayReader.NumNameplates; i++) {
             _view.SetupDefault(reader.GetUnchecked(i));
         }
     }

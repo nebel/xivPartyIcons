@@ -3,6 +3,7 @@ using System.Numerics;
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
+using Dalamud.Logging;
 using PartyIcons.Api;
 using PartyIcons.Configuration;
 using PartyIcons.Entities;
@@ -270,6 +271,9 @@ public sealed class NameplateView : IDisposable
                     name = SeStringUtils.SeStringToPtr(nameString);
                     usedTextIcon = true;
                 }
+                else {
+                    name = SeStringUtils.emptyPtr;
+                }
                 fcName = SeStringUtils.emptyPtr;
                 displayTitle = false;
                 iconID = GetClassIcon(npObject.NamePlateInfo);
@@ -283,7 +287,7 @@ public sealed class NameplateView : IDisposable
                                 1;
 
                 if (partySlot != null) {
-                    var genericRole = JobExtensions.GetRole((Job)npObject.NamePlateInfo.GetJobID());
+                    var genericRole = ((Job)npObject.NamePlateInfo.GetJobID()).GetRole();
                     var str = _stylesheet.GetPartySlotNumber(partySlot.Value, genericRole);
                     str.Payloads.Insert(0, new TextPayload("   "));
                     name = SeStringUtils.SeStringToPtr(str);
@@ -302,7 +306,7 @@ public sealed class NameplateView : IDisposable
                     name = SeStringUtils.SeStringToPtr(_stylesheet.GetRolePlate(roleId));
                 }
                 else {
-                    var genericRole = JobExtensions.GetRole((Job)npObject.NamePlateInfo.GetJobID());
+                    var genericRole = ((Job)npObject.NamePlateInfo.GetJobID()).GetRole();
                     name = SeStringUtils.SeStringToPtr(_stylesheet.GetGenericRolePlate(genericRole));
                 }
 
@@ -321,46 +325,16 @@ public sealed class NameplateView : IDisposable
         return _iconSet.GetJobIcon(iconSet, info.GetJobID());
     }
 
-    private SeString GetStateNametext(uint iconId, string? prefix)
-    {
-        switch (iconId)
-        {
-            case 061523:
-                return SeStringUtils.Icon(BitmapFontIcon.NewAdventurer, prefix);
-            
-            case 061540:
-                return SeStringUtils.Icon(BitmapFontIcon.Mentor, prefix);
-            
-            case 061542:
-                return SeStringUtils.Icon(BitmapFontIcon.MentorPvE, prefix);
-            
-            case 061543:
-                return SeStringUtils.Icon(BitmapFontIcon.MentorCrafting, prefix);
-            
-            case 061544:
-                return SeStringUtils.Icon(BitmapFontIcon.MentorPvP, prefix);
-            
-            case 061547:
-                return SeStringUtils.Icon(BitmapFontIcon.Returner, prefix);
-            
-            default:
-                return SeStringUtils.Text(prefix + " ");
-        }
-    }
-
     private NameplateMode GetModeForNameplate(NamePlateObjectWrapper npObject)
     {
         var uid = npObject.NamePlateInfo.ObjectID;
-        var mode = OthersMode;
 
         if (_configuration.TestingMode || npObject.NamePlateInfo.IsPartyMember() ||
             uid == Service.ClientState.LocalPlayer?.ObjectId)
         {
             return PartyMode;
         }
-        else
-        {
-            return OthersMode;
-        }
+
+        return OthersMode;
     }
 }

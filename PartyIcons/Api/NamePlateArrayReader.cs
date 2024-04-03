@@ -5,7 +5,7 @@ namespace PartyIcons.Api;
 
 public unsafe class NamePlateArrayReader
 {
-    public static readonly int MaxNameplates = AddonNamePlate.NumNamePlateObjects;
+    public static readonly int NumNameplates = AddonNamePlate.NumNamePlateObjects;
     private readonly AddonNamePlate.NamePlateObject* _pointer = GetNamePlateObjectArrayPointer();
 
     private static AddonNamePlate.NamePlateObject* GetNamePlateObjectArrayPointer()
@@ -29,7 +29,7 @@ public unsafe class NamePlateArrayReader
         var targetAddr = ((nint)namePlateObjectPtr).ToInt64();
         var npObjectSize = Marshal.SizeOf(typeof(AddonNamePlate.NamePlateObject));
         var index = (int)((targetAddr - baseAddr) / npObjectSize);
-        if (index < 0 || index >= MaxNameplates) {
+        if (index < 0 || index >= NumNameplates) {
             Service.Log.Verbose("NamePlateObject index was out of bounds");
             return -1;
         }

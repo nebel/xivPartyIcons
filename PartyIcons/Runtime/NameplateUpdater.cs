@@ -90,7 +90,7 @@ public sealed class NameplateUpdater : IDisposable
         }
 
         var jobID = npInfo.GetJobID();
-        if (jobID is < 1 or >= JobConstants.MaxJob) {
+        if (jobID is < 1 or > JobConstants.MaxJob) {
             _view.SetupDefault(npObject);
             return;
         }
@@ -102,13 +102,6 @@ public sealed class NameplateUpdater : IDisposable
         _view.NameplateDataForPC(npObject, ref isPrefixTitle, ref displayTitle, ref title, ref name, ref fcName,
             ref iconID, out var usedTextIcon);
 
-        if (originalName != name)
-            SeStringUtils.FreePtr(name);
-        if (originalTitle != title)
-            SeStringUtils.FreePtr(title);
-        if (originalFcName != fcName)
-            SeStringUtils.FreePtr(fcName);
-
         var status = npInfo.GetOnlineStatus();
         var isPriorityIcon = IsPriorityStatus(status);
         if (isPriorityIcon && !usedTextIcon) {
@@ -119,6 +112,13 @@ public sealed class NameplateUpdater : IDisposable
             SeStringUtils.emptyPtr, iconID);
 
         _view.SetupForPC(npObject, isPriorityIcon);
+
+        if (originalName != name)
+            SeStringUtils.FreePtr(name);
+        if (originalTitle != title)
+            SeStringUtils.FreePtr(title);
+        if (originalFcName != fcName)
+            SeStringUtils.FreePtr(fcName);
     }
 
     private bool IsPriorityStatus(Status status)
