@@ -1,5 +1,4 @@
 ﻿using System;
-using Dalamud.Logging;
 using Dalamud.Plugin.Services;
 using PartyIcons.Api;
 using PartyIcons.View;
@@ -12,7 +11,6 @@ namespace PartyIcons.Runtime;
 /// </summary>
 public sealed class NPCNameplateFixer : IDisposable
 {
-    private const uint NoTarget = 0xE0000000;
     private readonly NameplateView _view;
 
     public NPCNameplateFixer(NameplateView view)
@@ -38,12 +36,12 @@ public sealed class NPCNameplateFixer : IDisposable
 
     private void RevertNPC()
     {
-        foreach (var npObject in new NamePlateArrayReader()) {
-            // if (npObject is { IsVisible: true }) {
-            //     PluginLog.Information(npObject.ToString());
-            // }
+        var reader = new NamePlateArrayReader();
+        if (!reader.HasValidPointer())
+            return;
 
-            if (npObject is { IsVisible: true, IsPlayer: false }) {
+        for (var i = 0; i < NamePlateArrayReader.MaxNameplates; i++) {
+            if (reader.GetUnchecked(i) is { IsVisible: true, IsPlayer: false } npObject) {
                 _view.SetupDefault(npObject);
             }
         }
@@ -51,8 +49,12 @@ public sealed class NPCNameplateFixer : IDisposable
 
     private void RevertAll()
     {
-        foreach (var npObject in new NamePlateArrayReader()) {
-            _view.SetupDefault(npObject);
+        var reader = new NamePlateArrayReader();
+        if (!reader.HasValidPointer())
+            return;
+
+        for (var i = 0; i < NamePlateArrayReader.MaxNameplates; i++) {
+            _view.SetupDefault(reader.GetUnchecked(i));
         }
     }
 }

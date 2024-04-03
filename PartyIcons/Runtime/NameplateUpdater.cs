@@ -1,11 +1,6 @@
 ﻿using System;
 using System.Linq;
-using System.Runtime.InteropServices;
-using Dalamud.Game.Text.SeStringHandling;
-using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Hooking;
-using Dalamud.Logging;
-using Dalamud.Memory;
 using Dalamud.Utility.Signatures;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using PartyIcons.Api;
@@ -26,7 +21,7 @@ public sealed class NameplateUpdater : IDisposable
     private readonly Hook<SetNamePlateDelegate> _setNamePlateHook = null!;
 
     public int DebugIcon { get; set; } = -1;
-    
+
     public NameplateUpdater(Settings configuration, NameplateView view, ViewModeSetter modeSetter)
     {
         _configuration = configuration;
@@ -34,21 +29,16 @@ public sealed class NameplateUpdater : IDisposable
         _modeSetter = modeSetter;
 
         Service.GameInteropProvider.InitializeFromAttributes(this);
-     }
+    }
 
     public void Enable()
     {
         _setNamePlateHook.Enable();
     }
-    
-    public void Disable()
-    {
-        _setNamePlateHook.Disable();
-    }
 
     public void Dispose()
     {
-        Disable();
+        _setNamePlateHook.Disable();
         _setNamePlateHook.Dispose();
     }
 
@@ -56,23 +46,25 @@ public sealed class NameplateUpdater : IDisposable
         IntPtr name, IntPtr fcName, IntPtr prefix, uint iconID);
 
     public IntPtr SetNamePlateDetour(IntPtr namePlateObjectPtr, bool isPrefixTitle, bool displayTitle,
-            IntPtr title, IntPtr name, IntPtr fcName, IntPtr prefix, uint iconID)
-    // IntPtr titlePtr, IntPtr namePtr, IntPtr freeCompanyPtr, IntPtr prefixOrWhatever, int iconId
+        IntPtr title, IntPtr name, IntPtr fcName, IntPtr prefix, uint iconID)
     {
-        try
-        {
-            return SetNamePlate(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name, fcName, prefix, iconID);
+        var hookResult = IntPtr.MinValue;
+        try {
+            SetNamePlate(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name, fcName, prefix, iconID,
+                ref hookResult);
         }
-        catch (Exception ex)
-        {
+        catch (Exception ex) {
             Service.Log.Error(ex, "SetNamePlateDetour encountered a critical error");
-
-            return _setNamePlateHook.Original(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name, fcName, prefix, iconID);
         }
+
+        return hookResult == IntPtr.MinValue
+            ? _setNamePlateHook.Original(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name, fcName, prefix,
+                iconID)
+            : hookResult;
     }
 
-    public unsafe IntPtr SetNamePlate(IntPtr namePlateObjectPtr, bool isPrefixTitle, bool displayTitle, IntPtr title,
-        IntPtr name, IntPtr fcName, IntPtr prefix, uint iconID)
+    private unsafe void SetNamePlate(IntPtr namePlateObjectPtr, bool isPrefixTitle, bool displayTitle, IntPtr title,
+        IntPtr name, IntPtr fcName, IntPtr prefix, uint iconID, ref IntPtr hookResult)
     {
         // var prefixByte = ((byte*)prefix)[0];
         // var prefixIcon = BitmapFontIcon.None;
@@ -85,26 +77,22 @@ public sealed class NameplateUpdater : IDisposable
         //     $"name=[{XivApi.PrintRawStringArg(name)}] fcName=[{XivApi.PrintRawStringArg(fcName)}] prefix=[{XivApi.PrintRawStringArg(prefix)}] iconID=[{iconID}]\n" +
         //     $"prefixByte=[0x{prefixByte:X}] prefixIcon=[{prefixIcon}({(int)prefixIcon})] priority={iconID}/{IsPriorityIcon((int)iconID, out var priorityIconId2)}");
 
-        // prefix = NullString.AddrOfPinnedObject();
+        var npObject = new NamePlateObjectWrapper((AddonNamePlate.NamePlateObject*)namePlateObjectPtr);
 
         if (Service.ClientState.IsPvP) {
-            // disable in PvP
-            return _setNamePlateHook.Original(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name, fcName,
-                prefix, iconID);
+            _view.SetupDefault(npObject);
+            return;
         }
 
-        var npObject = new NamePlateObjectWrapper((AddonNamePlate.NamePlateObject*)namePlateObjectPtr);
         if (npObject is not { IsPlayer: true, NamePlateInfo: { ObjectID: not 0xE0000000 } npInfo }) {
             _view.SetupDefault(npObject);
-            return _setNamePlateHook.Original(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name, fcName,
-                prefix, iconID);
+            return;
         }
 
         var jobID = npInfo.GetJobID();
-        if (jobID < 1 || jobID >= JobConstants.NumJobs) {
+        if (jobID is < 1 or >= JobConstants.MaxJob) {
             _view.SetupDefault(npObject);
-            return _setNamePlateHook.Original(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name, fcName,
-                prefix, iconID);
+            return;
         }
 
         var originalTitle = title;
@@ -114,158 +102,36 @@ public sealed class NameplateUpdater : IDisposable
         _view.NameplateDataForPC(npObject, ref isPrefixTitle, ref displayTitle, ref title, ref name, ref fcName,
             ref iconID, out var usedTextIcon);
 
+        if (originalName != name)
+            SeStringUtils.FreePtr(name);
+        if (originalTitle != title)
+            SeStringUtils.FreePtr(title);
+        if (originalFcName != fcName)
+            SeStringUtils.FreePtr(fcName);
+
         var status = npInfo.GetOnlineStatus();
-        // status = OnlineStatus.ViewingCutscene;
         var isPriorityIcon = IsPriorityStatus(status);
         if (isPriorityIcon && !usedTextIcon) {
-            iconID = IconConverter.OnlineStatusToIconId(status);
+            iconID = StatusUtils.OnlineStatusToIconId(status);
         }
 
-        var result = _setNamePlateHook.Original(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name, fcName,
+        hookResult = _setNamePlateHook.Original(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name, fcName,
             SeStringUtils.emptyPtr, iconID);
 
         _view.SetupForPC(npObject, isPriorityIcon);
-
-        if (originalName != name)
-        {
-            SeStringUtils.FreePtr(name);
-        }
-
-        if (originalTitle != title)
-        {
-            SeStringUtils.FreePtr(title);
-        }
-
-        if (originalFcName != fcName)
-        {
-            SeStringUtils.FreePtr(fcName);
-        }
-
-        return result;
     }
 
-    /// <summary>
-    /// Check for an icon that should take priority over the job icon,
-    /// taking into account whether or not the player is in a duty.
-    /// </summary>
-    /// <param name="iconId">The incoming icon id that is being overwritten by the plugin.</param>
-    /// <param name="priorityIconId">The icon id that should be used.</param>
-    /// <returns>Whether a priority icon was found.</returns>
-    private bool IsPriorityIcon(int iconId, out int priorityIconId)
+    private bool IsPriorityStatus(Status status)
     {
-        // Service.Log.Verbose($"Icon ID: {iconId}, Debug Icon ID: {DebugIcon}");
-        priorityIconId = iconId;
-
-        if (_configuration.UsePriorityIcons == false &&
-            iconId != (int)Icon.Disconnecting && iconId != (int)Icon.Disconnecting + 50)
-        {
+        if (_configuration.UsePriorityIcons == false && status != Status.Disconnected)
             return false;
-        }
-        
-        // Select which set of priority icons to use based on whether we're in a duty
-        // In the future, there can be a third list used when in combat
-        var priorityIcons = GetPriorityIcons();
-
-        // Determine whether the incoming icon should take priority over the job icon
-        // Check the id plus 50 as that's an alternately sized version
-        bool isPriorityIcon = priorityIcons.Contains(iconId) || priorityIcons.Contains(iconId + 50);
-        
-        // Save the id of the icon
-        priorityIconId = iconId;
-
-        // If an icon was set with the plugin's debug command, always use that
-        if (DebugIcon >= 0)
-        {
-            isPriorityIcon = true;
-            priorityIconId = DebugIcon;
-            Service.Log.Verbose($"Setting debug icon. Id: {DebugIcon}");
-            
-            DebugIcon++;
-        }
-
-        return isPriorityIcon;
-    }
-
-    private int[] GetPriorityIcons()
-    {
-        if (_modeSetter.ZoneType == ZoneType.Foray)
-        {
-            return priorityIconsInForay;
-        }
-        
-        if (_modeSetter.InDuty)
-        {
-            return priorityIconsInDuty;
-        }
-        
-        return priorityIconsOverworld;
-    }
-
-    public enum Icon
-    {
-        Disconnecting = 061503,
-    }
-
-    // This could be done as a range but
-    private static readonly int[] priorityIconsOverworld =
-    {
-        061503, // Disconnecting
-        061506, // In Duty
-        061508, // Viewing Cutscene
-        061509, // Busy
-        061511, // Idle
-        061514, // Looking for meld
-        061515, // Looking for party
-        061517, // Duty Finder
-        061521, // Party Leader
-        061522, // Party Member
-        061524, // Game Master
-        061532, // Game Master
-        061533, // Event Participant
-        061545, // Role Playing
-        061546, // Group Pose
-    };
-
-    private static readonly int[] priorityIconsInDuty =
-    {
-        061503, // Disconnecting
-        061508, // Viewing Cutscene
-        061511, // Idle
-        061546, // Group Pose
-    };
-    
-    private static readonly int[] priorityIconsInForay =
-    {
-        061506, // In Duty -- This allows you to see which players don't have a party
-        061503, // Disconnecting
-        061508, // Viewing Cutscene
-        061511, // Idle
-        061546, // Group Pose
-    };
-
-    private bool IsPriorityStatus(OnlineStatus status)
-    {
-        if (_configuration.UsePriorityIcons == false && status != OnlineStatus.Disconnected) {
-            return false;
-        }
 
         if (_modeSetter.ZoneType == ZoneType.Foray)
-            return IconConverter.PriorityStatusesInForay.Contains(status);
+            return StatusUtils.PriorityStatusesInForay.Contains(status);
 
         if (_modeSetter.InDuty)
-            return IconConverter.PriorityStatusesInDuty.Contains(status);
+            return StatusUtils.PriorityStatusesInDuty.Contains(status);
 
-        return status != OnlineStatus.None;
-    }
-
-    private OnlineStatus[] GetPriorityStatuses()
-    {
-        if (_modeSetter.ZoneType == ZoneType.Foray)
-            return IconConverter.PriorityStatusesInForay;
-
-        if (_modeSetter.InDuty)
-            return IconConverter.PriorityStatusesInDuty;
-
-        return IconConverter.PriorityStatusesInOverworld;
+        return status != Status.None;
     }
 }

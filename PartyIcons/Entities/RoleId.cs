@@ -1,5 +1,8 @@
-﻿namespace PartyIcons.Entities;
+﻿using System.Diagnostics.CodeAnalysis;
 
+namespace PartyIcons.Entities;
+
+[SuppressMessage("ReSharper", "InconsistentNaming")]
 public enum RoleId
 {
     Undefined,

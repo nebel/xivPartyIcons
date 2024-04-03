@@ -157,8 +157,8 @@ public sealed class NameplateView : IDisposable
         }
 
         npObject.SetIconPosition((short) iconOffset.X, (short) iconOffset.Y);
-        _ = npObject.SetIconScale(iconScale);
-        _ = npObject.SetNameScale(nameScale);
+        npObject.SetIconScale(iconScale);
+        npObject.SetNameScale(nameScale);
     }
 
     public void NameplateDataForPC(
@@ -224,7 +224,7 @@ public sealed class NameplateView : IDisposable
                 break;
             case NameplateMode.SmallJobIcon:
             {
-                var icon = IconConverter.OnlineStatusToBitmapIcon(npObject.NamePlateInfo.GetOnlineStatus());
+                var icon = StatusUtils.OnlineStatusToBitmapIcon(npObject.NamePlateInfo.GetOnlineStatus());
                 if (icon is not BitmapFontIcon.None) {
                     var nameString = new SeString()
                         .Append(new IconPayload(icon))
@@ -247,7 +247,7 @@ public sealed class NameplateView : IDisposable
                     usedTextIcon = true;
                 }
                 else {
-                    var icon = IconConverter.OnlineStatusToBitmapIcon(npObject.NamePlateInfo.GetOnlineStatus());
+                    var icon = StatusUtils.OnlineStatusToBitmapIcon(npObject.NamePlateInfo.GetOnlineStatus());
                     if (icon is not BitmapFontIcon.None) {
                         var nameString = new SeString()
                             .Append(new IconPayload(icon))
@@ -262,7 +262,7 @@ public sealed class NameplateView : IDisposable
             }
             case NameplateMode.BigJobIcon:
             {
-                var icon = IconConverter.OnlineStatusToBitmapIcon(npObject.NamePlateInfo.GetOnlineStatus());
+                var icon = StatusUtils.OnlineStatusToBitmapIcon(npObject.NamePlateInfo.GetOnlineStatus());
                 if (icon is not BitmapFontIcon.None) {
                     var nameString = new SeString()
                         .Append("  ")
@@ -321,7 +321,7 @@ public sealed class NameplateView : IDisposable
         return _iconSet.GetJobIcon(iconSet, info.GetJobID());
     }
 
-    private SeString GetStateNametext(uint iconId, string prefix)
+    private SeString GetStateNametext(uint iconId, string? prefix)
     {
         switch (iconId)
         {

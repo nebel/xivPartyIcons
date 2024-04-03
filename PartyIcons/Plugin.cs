@@ -35,7 +35,7 @@ public sealed class Plugin : IDalamudPlugin
 
         SettingsWindow = new SettingsWindow();
 
-        XivApi.Initialize();
+        ModuleCache.Initialize();
 
         SeStringUtils.Initialize();
 
@@ -74,6 +74,6 @@ public sealed class Plugin : IDalamudPlugin
         CommandHandler.Dispose();
 
         SeStringUtils.Dispose();
-        XivApi.Dispose();
+        ModuleCache.Dispose();
     }
 }

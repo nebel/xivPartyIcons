@@ -49,7 +49,7 @@ public enum Job : uint
 
 public static class JobConstants
 {
-    public static readonly int NumJobs = Enum.GetValues(typeof(Job)).Length;
+    public const int MaxJob = (int)Job.SGE;
 }
 
 public static class JobExtensions

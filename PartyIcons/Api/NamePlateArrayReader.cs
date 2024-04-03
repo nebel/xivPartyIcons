@@ -1,16 +1,14 @@
-using System.Collections;
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using FFXIVClientStructs.FFXIV.Client.UI;
 
 namespace PartyIcons.Api;
 
-public unsafe class NamePlateArrayReader : IEnumerable<NamePlateObjectWrapper>
+public unsafe class NamePlateArrayReader
 {
-    private readonly AddonNamePlate.NamePlateObject* _pointer = GetObjectArrayPointer();
-    private const int MaxNameplates = 50; // FIXME: read from AddonNamePlate.NumNamePlateObjects
+    public static readonly int MaxNameplates = AddonNamePlate.NumNamePlateObjects;
+    private readonly AddonNamePlate.NamePlateObject* _pointer = GetNamePlateObjectArrayPointer();
 
-    private static AddonNamePlate.NamePlateObject* GetObjectArrayPointer()
+    private static AddonNamePlate.NamePlateObject* GetNamePlateObjectArrayPointer()
     {
         var addonPtr = (AddonNamePlate*)Service.GameGui.GetAddonByName("NamePlate");
         if (addonPtr == null) {
@@ -27,11 +25,11 @@ public unsafe class NamePlateArrayReader : IEnumerable<NamePlateObjectWrapper>
 
     public static int GetIndexOf(AddonNamePlate.NamePlateObject* namePlateObjectPtr)
     {
-        var baseAddr = ((nint)GetObjectArrayPointer()).ToInt64();
+        var baseAddr = ((nint)GetNamePlateObjectArrayPointer()).ToInt64();
         var targetAddr = ((nint)namePlateObjectPtr).ToInt64();
         var npObjectSize = Marshal.SizeOf(typeof(AddonNamePlate.NamePlateObject));
         var index = (int)((targetAddr - baseAddr) / npObjectSize);
-        if (index is < 0 or >= MaxNameplates) {
+        if (index < 0 || index >= MaxNameplates) {
             Service.Log.Verbose("NamePlateObject index was out of bounds");
             return -1;
         }
@@ -39,25 +37,14 @@ public unsafe class NamePlateArrayReader : IEnumerable<NamePlateObjectWrapper>
         return index;
     }
 
-    private bool IsValidPointer()
+    internal bool HasValidPointer()
     {
         return _pointer != null;
     }
 
-    private NamePlateObjectWrapper GetUnchecked(int index)
+    internal NamePlateObjectWrapper GetUnchecked(int index)
     {
         var ptr = &_pointer[index];
         return new NamePlateObjectWrapper(ptr, index);
     }
-
-    public IEnumerator<NamePlateObjectWrapper> GetEnumerator()
-    {
-        if (IsValidPointer()) {
-            for (var i = 0; i < MaxNameplates; i++) {
-                yield return GetUnchecked(i);
-            }
-        }
-    }
-
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

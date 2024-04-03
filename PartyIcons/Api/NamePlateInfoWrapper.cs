@@ -1,10 +1,11 @@
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using FFXIVClientStructs.FFXIV.Client.Game.Group;
 using FFXIVClientStructs.FFXIV.Client.UI;
+using PartyIcons.Entities;
 
 namespace PartyIcons.Api;
 
-public unsafe struct NamePlateInfoWrapper(RaptureAtkModule.NamePlateInfo* pointer)
+public unsafe ref struct NamePlateInfoWrapper(RaptureAtkModule.NamePlateInfo* pointer)
 {
     public readonly uint ObjectID = pointer->ObjectID.ObjectID;
     private PlayerCharacter? _character = null;
@@ -33,9 +34,9 @@ public unsafe struct NamePlateInfoWrapper(RaptureAtkModule.NamePlateInfo* pointe
         return Character?.ClassJob.Id ?? 0;
     }
 
-    public OnlineStatus GetOnlineStatus()
+    public Status GetOnlineStatus()
     {
-        return (OnlineStatus)(Character?.OnlineStatus.Id ?? 0);
+        return (Status)(Character?.OnlineStatus.Id ?? 0);
     }
 
     public string GetOnlineStatusName()

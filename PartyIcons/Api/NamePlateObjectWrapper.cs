@@ -8,10 +8,9 @@ using FFXIVClientStructs.FFXIV.Component.GUI;
 
 namespace PartyIcons.Api;
 
-public unsafe struct NamePlateObjectWrapper
+public unsafe ref struct NamePlateObjectWrapper
 {
-    internal readonly AddonNamePlate.NamePlateObject* _pointer;
-
+    private readonly AddonNamePlate.NamePlateObject* _pointer;
     private int _index;
     private NamePlateInfoWrapper _namePlateInfoWrapper;
 
@@ -38,9 +37,9 @@ public unsafe struct NamePlateObjectWrapper
         get
         {
             if (_namePlateInfoWrapper.ObjectID == default) {
-                var atkModule = XivApi.RaptureAtkModulePtr;
+                var atkModule = ModuleCache.RaptureAtkModulePtr;
                 if (atkModule == null) {
-                    Service.Log.Verbose($"[{GetType().Name}] RaptureAtkModule was null");
+                    Service.Log.Verbose($"[NamePlateObjectWrapper] RaptureAtkModule was null");
                     throw new Exception("Cannot get NamePlateInfo as RaptureAtkModule was null");
                 }
 
@@ -152,9 +151,7 @@ public unsafe struct NamePlateObjectWrapper
                     var texFileNamePtr = textureInfo->AtkTexture.Resource->TexFileResourceHandle->ResourceHandle
                         .FileName;
                     var texString = Marshal.PtrToStringAnsi(new IntPtr(texFileNamePtr.BufferPtr));
-                    var isHighResolution = texString?.Contains("_hr1") ?? false;
                     sb.Append($"texture path: {texString}");
-                    var kernelTexture = textureInfo->AtkTexture.Resource->KernelTextureObject;
                 }
                 else if (texType == TextureType.KernelTexture) {
                     sb.Append("KernelTexture");

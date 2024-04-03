@@ -72,7 +72,7 @@ public static class SeStringUtils
         return seString;
     }
 
-    public static SeString Icon(BitmapFontIcon icon, string prefix = null)
+    public static SeString Icon(BitmapFontIcon icon, string? prefix = null)
     {
         var seString = new SeString(new List<Payload>());
 
