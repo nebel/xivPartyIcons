@@ -245,6 +245,10 @@ public sealed class NameplateUpdater : IDisposable
 
     private bool IsPriorityStatus(OnlineStatus status)
     {
+        if (_configuration.UsePriorityIcons == false && status != OnlineStatus.Disconnected) {
+            return false;
+        }
+
         if (_modeSetter.ZoneType == ZoneType.Foray)
             return IconConverter.PriorityStatusesInForay.Contains(status);
 
@@ -252,9 +256,6 @@ public sealed class NameplateUpdater : IDisposable
             return IconConverter.PriorityStatusesInDuty.Contains(status);
 
         return status != OnlineStatus.None;
-        // return IconConverter.OnlineStatusToBitmapIcon(status) != BitmapFontIcon.None;
-        // return status != OnlineStatus.None;
-        // return GetPriorityStatuses().Contains(status); // FIXME use this?
     }
 
     private OnlineStatus[] GetPriorityStatuses()
