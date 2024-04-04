@@ -5,6 +5,7 @@ using System.Text;
 using Dalamud.Memory;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using FFXIVClientStructs.Interop;
 
 namespace PartyIcons.Api;
 
@@ -39,12 +40,11 @@ public unsafe ref struct NamePlateObjectWrapper
             if (_namePlateInfoWrapper.ObjectID == default) {
                 var atkModule = ModuleCache.RaptureAtkModulePtr;
                 if (atkModule == null) {
-                    Service.Log.Verbose($"[NamePlateObjectWrapper] RaptureAtkModule was null");
+                    Service.Log.Verbose("[NamePlateObjectWrapper] RaptureAtkModule was null");
                     throw new Exception("Cannot get NamePlateInfo as RaptureAtkModule was null");
                 }
 
-                var infoArray = &atkModule->NamePlateInfoArray;
-                _namePlateInfoWrapper = new NamePlateInfoWrapper(&infoArray[Index]);
+                _namePlateInfoWrapper = new NamePlateInfoWrapper(atkModule->NamePlateInfoEntriesSpan.GetPointer(Index));
             }
 
             return _namePlateInfoWrapper;

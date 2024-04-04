@@ -2,7 +2,7 @@
 
 namespace PartyIcons.Entities;
 
-[SuppressMessage("ReSharper", "InconsistentNaming")]
+[SuppressMessage("ReSharper", "InconsistentNaming", Justification = "To match in-game case")]
 public enum RoleId
 {
     Undefined,

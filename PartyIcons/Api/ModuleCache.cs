@@ -1,7 +1,4 @@
-﻿using System;
-using System.Linq;
-using Dalamud.Memory;
-using FFXIVClientStructs.FFXIV.Client.System.Framework;
+﻿using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.FFXIV.Client.UI;
 
 namespace PartyIcons.Api;
@@ -33,10 +30,4 @@ public static unsafe class ModuleCache
     }
 
     private static void ResetRaptureAtkModule() => _raptureAtkModulePtr = null;
-
-    public static string PrintRawStringArg(IntPtr arg)
-    {
-        var seString = MemoryHelper.ReadSeStringNullTerminated(arg);
-        return string.Join("", seString.Payloads.Select(payload => $"[{payload}]"));
-    }
 }

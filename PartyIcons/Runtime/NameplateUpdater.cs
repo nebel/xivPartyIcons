@@ -73,24 +73,15 @@ public sealed class NameplateUpdater : IDisposable
         // }
         //
         // PluginLog.Warning(
-        //     $"SetNamePlate @ 0x{namePlateObjectPtr:X}\nTitle: isPrefix=[{isPrefixTitle}] displayTitle=[{displayTitle}] title=[{XivApi.PrintRawStringArg(title)}]\n" +
-        //     $"name=[{XivApi.PrintRawStringArg(name)}] fcName=[{XivApi.PrintRawStringArg(fcName)}] prefix=[{XivApi.PrintRawStringArg(prefix)}] iconID=[{iconID}]\n" +
-        //     $"prefixByte=[0x{prefixByte:X}] prefixIcon=[{prefixIcon}({(int)prefixIcon})] priority={iconID}/{IsPriorityIcon((int)iconID, out var priorityIconId2)}");
+        //     $"SetNamePlate @ 0x{namePlateObjectPtr:X}\nTitle: isPrefix=[{isPrefixTitle}] displayTitle=[{displayTitle}] title=[{SeStringUtils.PrintRawStringArg(title)}]\n" +
+        //     $"name=[{SeStringUtils.PrintRawStringArg(name)}] fcName=[{SeStringUtils.PrintRawStringArg(fcName)}] prefix=[{SeStringUtils.PrintRawStringArg(prefix)}] iconID=[{iconID}]\n" +
+        //     $"prefixByte=[0x{prefixByte:X}] prefixIcon=[{prefixIcon}({(int)prefixIcon})]");
 
         var npObject = new NamePlateObjectWrapper((AddonNamePlate.NamePlateObject*)namePlateObjectPtr);
 
-        if (Service.ClientState.IsPvP) {
-            _view.SetupDefault(npObject);
-            return;
-        }
-
-        if (npObject is not { IsPlayer: true, NamePlateInfo: { ObjectID: not 0xE0000000 } npInfo }) {
-            _view.SetupDefault(npObject);
-            return;
-        }
-
-        var jobID = npInfo.GetJobID();
-        if (jobID is < 1 or > JobConstants.MaxJob) {
+        if (Service.ClientState.IsPvP
+            || npObject is not { IsPlayer: true, NamePlateInfo: { ObjectID: not 0xE0000000 } npInfo }
+            || npInfo.GetJobID() is < 1 or > JobConstants.MaxJob) {
             _view.SetupDefault(npObject);
             return;
         }
@@ -99,8 +90,19 @@ public sealed class NameplateUpdater : IDisposable
         var originalName = name;
         var originalFcName = fcName;
 
-        _view.NameplateDataForPC(npObject, ref isPrefixTitle, ref displayTitle, ref title, ref name, ref fcName,
-            ref iconID, out var usedTextIcon);
+        bool usedTextIcon;
+        try {
+            _view.NameplateDataForPC(npObject, ref isPrefixTitle, ref displayTitle, ref title, ref name, ref fcName,
+                ref iconID, out usedTextIcon);
+        }
+        finally {
+            if (originalName != name)
+                SeStringUtils.FreePtr(name);
+            if (originalTitle != title)
+                SeStringUtils.FreePtr(title);
+            if (originalFcName != fcName)
+                SeStringUtils.FreePtr(fcName);
+        }
 
         var status = npInfo.GetOnlineStatus();
         var isPriorityIcon = IsPriorityStatus(status);
@@ -112,13 +114,6 @@ public sealed class NameplateUpdater : IDisposable
             SeStringUtils.emptyPtr, iconID);
 
         _view.SetupForPC(npObject, isPriorityIcon);
-
-        if (originalName != name)
-            SeStringUtils.FreePtr(name);
-        if (originalTitle != title)
-            SeStringUtils.FreePtr(title);
-        if (originalFcName != fcName)
-            SeStringUtils.FreePtr(fcName);
     }
 
     private bool IsPriorityStatus(Status status)
