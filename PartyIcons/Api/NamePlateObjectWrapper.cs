@@ -11,7 +11,7 @@ namespace PartyIcons.Api;
 
 public unsafe ref struct NamePlateObjectWrapper
 {
-    private readonly AddonNamePlate.NamePlateObject* _pointer;
+    internal readonly AddonNamePlate.NamePlateObject* _pointer;
     private int _index;
     private NamePlateInfoWrapper _namePlateInfoWrapper;
 
@@ -81,6 +81,12 @@ public unsafe ref struct NamePlateObjectWrapper
     {
         _pointer->IconXAdjust = x;
         _pointer->IconYAdjust = y;
+    }
+
+    public void MoveIconPosition(short x, short y)
+    {
+        _pointer->IconXAdjust += x;
+        _pointer->IconYAdjust += y;
     }
 
     private static bool NearlyEqual(float left, float right, float tolerance)

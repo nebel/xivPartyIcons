@@ -123,6 +123,34 @@ public sealed class PlayerStylesheet
         }
     }
 
+    public IconGroupId GetGenericRoleIconGroupId(GenericRole role)
+    {
+        switch (_configuration.IconSetId)
+        {
+            case IconSetId.Framed:
+                return IconGroupId.EmbossedFramed;
+
+            case IconSetId.GlowingGold:
+                return IconGroupId.Glowing;
+
+            case IconSetId.GlowingColored:
+                return role switch
+                {
+                    GenericRole.Tank => IconGroupId.GradientBlue,
+                    GenericRole.Melee => IconGroupId.GradientRed,
+                    GenericRole.Ranged => IconGroupId.GradientOrange,
+                    GenericRole.Healer => IconGroupId.GradientGreen,
+                    _ => IconGroupId.GradientGrey
+                };
+
+            case IconSetId.PlainGold:
+                return IconGroupId.Embossed;
+
+            default:
+                throw new ArgumentException($"Unknown icon set id: {_configuration.IconSetId}");
+        }
+    }
+
     public string GetRoleName(RoleId roleId)
     {
         return roleId switch

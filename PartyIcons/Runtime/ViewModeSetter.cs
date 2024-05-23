@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using Lumina.Excel;
 using Lumina.Excel.GeneratedSheets;
 using PartyIcons.Configuration;
@@ -160,5 +161,7 @@ public sealed class ViewModeSetter
 
         Service.Log.Verbose($"Setting modes: nameplates party {_nameplateView.PartyMode} others {_nameplateView.OthersMode}, chat {_chatNameUpdater.PartyMode}, update HUD {_partyListHudUpdater.UpdateHUD}");
         Service.Log.Debug($"Entered ZoneType {ZoneType.ToString()}");
+
+        Service.Framework.RunOnFrameworkThread(NameplateUpdater.ForceRedrawNamePlates);
     }
 }
