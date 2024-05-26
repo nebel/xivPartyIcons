@@ -20,12 +20,12 @@ public sealed class NPCNameplateFixer : IDisposable
 
     public void Enable()
     {
-        Service.Framework.Update += OnUpdate;
+        // Service.Framework.Update += OnUpdate;
     }
 
     public void Dispose()
     {
-        Service.Framework.Update -= OnUpdate;
+        // Service.Framework.Update -= OnUpdate;
         RevertAll();
     }
 

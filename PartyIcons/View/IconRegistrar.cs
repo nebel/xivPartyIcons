@@ -4,7 +4,7 @@ namespace PartyIcons.View;
 
 public static class IconRegistrar
 {
-    private static readonly Dictionary<IconGroupId, IconGroup> _icons = new();
+    private static readonly Dictionary<IconGroupId, IconGroup> Icons = new();
 
     static IconRegistrar()
     {
@@ -101,24 +101,17 @@ public static class IconRegistrar
         ]);
     }
 
-    // public static readonly HashSet<uint> AllIcons = new();
-
     private static void Add(IconGroupId id, float scale, Padding padding, uint[] icons)
     {
-        // foreach (var icon in icons) {
-        //     AllIcons.Add(icon);
-        // }
-        _icons[id] = new IconGroup(id, scale, padding, icons);
-        // _icons[id] = icons;
-        // _iconScales[id] = scale;
+        Icons[id] = new IconGroup(id, scale, padding, icons);
     }
 
     public static IconGroup Get(IconGroupId groupId)
     {
-        return _icons[groupId];
+        return Icons[groupId];
     }
 
-    // public static uint GetJobIcon(string set, uint jobId) => _icons[set].Icons[jobId - 1];
+    public static IconGroup Status = new(IconGroupId.Status, 1, new Padding(0), []);
 }
 
 public record IconGroup
@@ -126,37 +119,20 @@ public record IconGroup
     public readonly IconGroupId Id;
     public readonly float Scale = 1f;
     public readonly Padding Padding = new(0);
-    public readonly uint[] Icons;
+    private readonly uint[] _icons;
 
     public IconGroup(IconGroupId id, float scale, Padding padding, uint[] icons)
     {
         Id = id;
         Scale = scale;
         Padding = padding;
-        Icons = icons;
+        _icons = icons;
     }
 
-    public uint GetJobIcon(uint jobId) => Icons[jobId - 1];
+    public uint GetJobIcon(uint jobId) => _icons[jobId - 1];
 }
 
-public enum IconGroupId
-{
-    Embossed,
-    EmbossedFramed,
-    EmbossedFramedSmall,
-    EmbossedFramedRole,
-    Glowing,
-    GradientGrey,
-    GradientBlack,
-    GradientYellow,
-    GradientOrange,
-    GradientRed,
-    GradientPurple,
-    GradientBlue,
-    GradientGreen,
-}
-
-public record Padding
+public struct Padding
 {
     public readonly float Top;
     public readonly float Right;
@@ -175,4 +151,22 @@ public record Padding
         Bottom = bottom;
         Left = left;
     }
+}
+
+public enum IconGroupId
+{
+    Embossed,
+    EmbossedFramed,
+    EmbossedFramedSmall,
+    EmbossedFramedRole,
+    Glowing,
+    GradientGrey,
+    GradientBlack,
+    GradientYellow,
+    GradientOrange,
+    GradientRed,
+    GradientPurple,
+    GradientBlue,
+    GradientGreen,
+    Status
 }

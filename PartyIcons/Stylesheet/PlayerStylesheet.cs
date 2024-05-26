@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text;
+using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Lumina.Excel.GeneratedSheets;
@@ -13,7 +14,7 @@ namespace PartyIcons.Stylesheet;
 public sealed class PlayerStylesheet
 {
     private readonly Settings _configuration;
-    private ushort _fallbackColor = 1;
+    private const ushort FallbackColor = 2;
 
     public PlayerStylesheet(Settings configuration)
     {
@@ -37,7 +38,7 @@ public sealed class PlayerStylesheet
                 return 42;
 
             default:
-                return _fallbackColor;
+                return FallbackColor;
         }
     }
 
@@ -62,7 +63,7 @@ public sealed class PlayerStylesheet
                 return GetGenericRoleColor(GenericRole.Healer);
 
             default:
-                return _fallbackColor;
+                return FallbackColor;
         }
     }
 
@@ -175,15 +176,10 @@ public sealed class PlayerStylesheet
             genericRole switch
             {
                 GenericRole.Tank => SeStringUtils.Text(BoxedCharacterString("T"), GetGenericRoleColor(genericRole)),
-                GenericRole.Melee => SeStringUtils.Text(
-                    BoxedCharacterString(_configuration.EasternNamingConvention ? "D" : "M"),
-                    GetGenericRoleColor(genericRole)),
-                GenericRole.Ranged => SeStringUtils.Text(
-                    BoxedCharacterString(_configuration.EasternNamingConvention ? "D" : "R"),
-                    GetGenericRoleColor(genericRole)),
-                GenericRole.Healer => SeStringUtils.Text(BoxedCharacterString("H"),
-                    GetGenericRoleColor(genericRole)),
-                _ => ""
+                GenericRole.Melee => SeStringUtils.Text(BoxedCharacterString(_configuration.EasternNamingConvention ? "D" : "M"), GetGenericRoleColor(genericRole)),
+                GenericRole.Ranged => SeStringUtils.Text(BoxedCharacterString(_configuration.EasternNamingConvention ? "D" : "R"), GetGenericRoleColor(genericRole)),
+                GenericRole.Healer => SeStringUtils.Text(BoxedCharacterString("H"), GetGenericRoleColor(genericRole)),
+                _ => SeStringUtils.Text(SeIconChar.BoxedQuestionMark.ToIconString(), GetGenericRoleColor(genericRole))
             } :
             genericRole switch
             {
@@ -193,7 +189,7 @@ public sealed class PlayerStylesheet
                 GenericRole.Ranged => SeStringUtils.Text(
                     BoxedCharacterString(_configuration.EasternNamingConvention ? "D" : "R")),
                 GenericRole.Healer => SeStringUtils.Text(BoxedCharacterString("H")),
-                _ => ""
+                _ => SeIconChar.BoxedQuestionMark.ToIconString()
             };
     }
 
