@@ -13,7 +13,6 @@ using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using FFXIVClientStructs.Interop;
-using PartyIcons.Api;
 using PartyIcons.Configuration;
 using PartyIcons.Entities;
 using PartyIcons.Utils;
@@ -38,16 +37,15 @@ public sealed class NameplateUpdater : IDisposable
 
     private const uint EmptyIconId = 4294967295; // (uint)-1
     private const uint PlaceholderEmptyIconId = 61696;
+
     private const int NameTextNodeId = 3;
     private const int IconNodeId = 4;
     private const int ExNodeId = 8004;
     private const int SubNodeId = 8005;
+
     private static nint _addonNamePlateAddr;
-
-    private static PlateState[] _stateCache = new PlateState[AddonNamePlate.NumNamePlateObjects];
-
-    private static FrozenDictionary<nint, int> _indexMap =
-        new Dictionary<nint, int>().ToFrozenDictionary();
+    private static PlateState[] _stateCache = [];
+    private static FrozenDictionary<nint, int> _indexMap = new Dictionary<nint, int>().ToFrozenDictionary();
 
     public int DebugIcon { get; set; } = -1;
 
@@ -71,6 +69,7 @@ public sealed class NameplateUpdater : IDisposable
         Service.Log.Info($"OnPreFinalize (0x{args.Addon:X})");
         ResetAllNodes();
         DestroyNodes((AddonNamePlate*)args.Addon);
+        _addonNamePlateAddr = 0;
     }
 
     public void Dispose()
@@ -96,7 +95,7 @@ public sealed class NameplateUpdater : IDisposable
         IntPtr title, IntPtr name, IntPtr fcName, IntPtr prefix, uint iconID)
     {
         var hookResult = IntPtr.MinValue;
-        if (_addonNamePlateAddr != 0) {
+        if (_addonNamePlateAddr > 0) {
             try {
                 SetNamePlate(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name, fcName, prefix, iconID,
                     ref hookResult);
@@ -104,9 +103,6 @@ public sealed class NameplateUpdater : IDisposable
             catch (Exception ex) {
                 Service.Log.Error(ex, "SetNamePlateDetour encountered a critical error");
             }
-        }
-        else {
-            Service.Log.Warning("Skip SetNamePlate (null addon ptr)");
         }
 
         return hookResult == IntPtr.MinValue
@@ -146,7 +142,7 @@ public sealed class NameplateUpdater : IDisposable
         //     $"name=[{SeStringUtils.PrintRawStringArg(name)}] fcName=[{SeStringUtils.PrintRawStringArg(fcName)}] prefix=[{SeStringUtils.PrintRawStringArg(prefix)}] iconID=[{iconID}]\n" +
         //     $"prefixByte=[0x{prefixByte:X}] prefixIcon=[{prefixIcon}({(int)prefixIcon})]");
 
-        var atkModule = ModuleCache.RaptureAtkModulePtr;
+        var atkModule = RaptureAtkModule.Instance();
         if (atkModule == null) {
             throw new Exception("Unable to resolve NamePlate character as RaptureAtkModule was null");
         }
@@ -156,14 +152,12 @@ public sealed class NameplateUpdater : IDisposable
         var info = atkModule->NamePlateInfoEntriesSpan.GetPointer(index);
 
         if (Service.ClientState.IsPvP || info == null) {
-            Service.Log.Warning("R1");
             ResetNodes(state);
             return;
         }
 
         var objectId = info->ObjectID.ObjectID;
         if (ResolvePlayerCharacter(objectId) is not { } playerCharacter) {
-            Service.Log.Warning("R2");
             ResetNodes(state);
             return;
         }
@@ -225,15 +219,19 @@ public sealed class NameplateUpdater : IDisposable
             var resNode = np.ResNode;
             var componentNode = resNode->ParentNode->GetAsAtkComponentNode();
 
-            var textNode = UiHelper.GetNodeByID<AtkTextNode>(&componentNode->Component->UldManager, NameTextNodeId);
-            var iconNode = UiHelper.GetNodeByID<AtkImageNode>(&componentNode->Component->UldManager, IconNodeId);
+            var textNode =
+                UiHelper.GetNodeByID<AtkTextNode>(&componentNode->Component->UldManager, NameTextNodeId, NodeType.Text);
+            var iconNode =
+                UiHelper.GetNodeByID<AtkImageNode>(&componentNode->Component->UldManager, IconNodeId, NodeType.Image);
 
-            var exNode = UiHelper.GetNodeByID<AtkImageNode>(&componentNode->Component->UldManager, ExNodeId);
+            var exNode =
+                UiHelper.GetNodeByID<AtkImageNode>(&componentNode->Component->UldManager, ExNodeId, NodeType.Image);
             if (exNode == null) {
                 exNode = CreateImageNode(ExNodeId, componentNode, IconNodeId);
             }
 
-            var subNode = UiHelper.GetNodeByID<AtkImageNode>(&componentNode->Component->UldManager, SubNodeId);
+            var subNode =
+                UiHelper.GetNodeByID<AtkImageNode>(&componentNode->Component->UldManager, SubNodeId, NodeType.Image);
             if (subNode == null) {
                 subNode = CreateImageNode(SubNodeId, componentNode, NameTextNodeId);
             }
@@ -274,7 +272,14 @@ public sealed class NameplateUpdater : IDisposable
         if (addon->NamePlateObjectArray == null) return;
 
         if (_addonNamePlateAddr == 0) {
-            CreateNodes(addon);
+            try {
+                CreateNodes(addon);
+            }
+            catch (Exception e) {
+                Service.Log.Error(e, "Failed to create nameplate icon nodes, will not try again");
+                _addonNamePlateAddr = -1;
+            }
+
             Service.Framework.RunOnFrameworkThread(ForceRedrawNamePlates);
         }
 
@@ -350,6 +355,10 @@ public sealed class NameplateUpdater : IDisposable
     private static unsafe AtkImageNode* CreateImageNode(uint nodeId, AtkComponentNode* parent, uint targetNodeId)
     {
         var imageNode = UiHelper.MakeImageNode(nodeId, new UiHelper.PartInfo(0, 0, 32, 32));
+        if (imageNode == null) {
+            throw new Exception($"Failed to create image node {nodeId}");
+        }
+
         imageNode->AtkResNode.NodeFlags = NodeFlags.AnchorTop | NodeFlags.AnchorLeft | NodeFlags.Enabled |
                                           NodeFlags.EmitsEvents | NodeFlags.UseDepthBasedPriority;
         imageNode->AtkResNode.SetWidth(32);
@@ -360,6 +369,10 @@ public sealed class NameplateUpdater : IDisposable
         imageNode->LoadIconTexture(60071, 0);
 
         var targetNode = UiHelper.GetNodeByID<AtkResNode>(&parent->Component->UldManager, targetNodeId);
+        if (targetNode == null) {
+            throw new Exception($"Failed to find link target ({targetNodeId}) for image node {nodeId}");
+        }
+
         UiHelper.LinkNodeAfterTargetNode((AtkResNode*)imageNode, parent, targetNode);
 
         return imageNode;
@@ -385,25 +398,27 @@ public sealed class NameplateUpdater : IDisposable
             var parentComponentNodeComponent = parentComponentNode->Component;
             if (parentComponentNodeComponent == null) continue;
 
-            var exNode = UiHelper.GetNodeByID<AtkImageNode>(&parentComponentNodeComponent->UldManager, ExNodeId);
+            var exNode =
+                UiHelper.GetNodeByID<AtkImageNode>(&parentComponentNodeComponent->UldManager, ExNodeId, NodeType.Image);
             if (exNode != null) {
                 UiHelper.UnlinkAndFreeImageNodeIndirect(exNode, parentComponentNodeComponent->UldManager);
             }
 
-            var subNode = UiHelper.GetNodeByID<AtkImageNode>(&parentComponentNodeComponent->UldManager, SubNodeId);
+            var subNode = UiHelper.GetNodeByID<AtkImageNode>(&parentComponentNodeComponent->UldManager, SubNodeId,
+                NodeType.Image);
             if (subNode != null) {
                 UiHelper.UnlinkAndFreeImageNodeIndirect(subNode, parentComponentNodeComponent->UldManager);
             }
         }
     }
 
-    // 2: Shares the same internal 'renderer' as 1 & 5.
-    // 4: Shares same internal 'renderer' as 3. Seems to be used by any friendly NPC with a level in its nameplate.
-    //    NPCs of type 1 can become type 4 when a FATE triggers, for example (e.g. Boughbury Trader -> Lv32 Boughbury
-    //    Trader).
-    // 6: Unknown
-    // 7: Unknown
-    // 8: Unknown
+    // 2: Unknown. Shares the same internal 'renderer' as 1 & 5.
+    // 4: Seems to be used by any friendly NPC with a level in its nameplate. NPCs of type 1 can become type 4 when a
+    //    FATE triggers, for example (e.g. Boughbury Trader -> Lv32 Boughbury Trader). Shares same internal 'renderer'
+    //    as 3.
+    // 6: Unknown.
+    // 7: Unknown.
+    // 8: Unknown.
     [SuppressMessage("ReSharper", "UnusedMember.Local")]
     private enum NamePlateKind : byte
     {

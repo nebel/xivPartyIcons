@@ -32,6 +32,14 @@ public static class IconRegistrar
             62256, 62257, 62258, 62259, 62260, 62261, 62262, 62263, 62264, 62265
         ]);
 
+        // Embossed blue/green/red role icons with gold frame and role-colored backdrop
+        Add(IconGroupId.EmbossedFramedRole, 1, new Padding(0), [
+            62581, 62584, 62581, 62584, 62586, 62582, 62502, 62502, 62503, 62504,
+            62505, 62506, 62507, 62508, 62509, 62510, 62511, 62512, 62581, 62584,
+            62581, 62584, 62586, 62582, 62587, 62587, 62587, 62582, 62584, 62584,
+            62586, 62581, 62582, 62584, 62587, 62587, 62581, 62586
+        ]);
+
         // Glowing gold/silver
         Add(IconGroupId.Glowing, 1, new Padding(2.5f), [
             62301, 62302, 62303, 62304, 62305, 62306, 62307, 62310, 62311, 62312,
@@ -41,63 +49,55 @@ public static class IconRegistrar
         ]);
 
         // Colored gradients with thin black border
-        const float eightColorScale = 1.45f;
-        var eightColorPadding = new Padding(6.5f);
-        Add(IconGroupId.GradientGrey, eightColorScale, eightColorPadding, [
+        const float gradientScale = 1.45f;
+        var gradientPadding = new Padding(6.5f);
+        Add(IconGroupId.GradientGrey, gradientScale, gradientPadding, [
             91022, 91023, 91024, 91025, 91026, 91028, 91029, 91031, 91032, 91033,
             91034, 91035, 91036, 91037, 91038, 91039, 91040, 91041, 91079, 91080,
             91081, 91082, 91083, 91084, 91085, 91030, 91086, 91087, 91121, 91122,
             91125, 91123, 91124, 91127, 91128, 91129, 91130, 91131, 91132, 91133
         ]);
-        Add(IconGroupId.GradientBlack, eightColorScale, eightColorPadding, [
+        Add(IconGroupId.GradientBlack, gradientScale, gradientPadding, [
             91522, 91523, 91524, 91525, 91526, 91528, 91529, 91531, 91532, 91533,
             91534, 91535, 91536, 91537, 91538, 91539, 91540, 91541, 91579, 91580,
             91581, 91582, 91583, 91584, 91585, 91530, 91586, 91587, 91621, 91622,
             91625, 91623, 91624, 91627, 91628, 91629, 91630, 91631, 91632, 91633
         ]);
-        Add(IconGroupId.GradientYellow, eightColorScale, eightColorPadding, [
+        Add(IconGroupId.GradientYellow, gradientScale, gradientPadding, [
             92022, 92023, 92024, 92025, 92026, 92028, 92029, 92031, 92032, 92033,
             92034, 92035, 92036, 92037, 92038, 92039, 92040, 92041, 92079, 92080,
             92081, 92082, 92083, 92084, 92085, 92030, 92086, 92087, 92121, 92122,
             92125, 92123, 92124, 92127, 92128, 92129, 92130, 92131, 92132, 92133
         ]);
-        Add(IconGroupId.GradientOrange, eightColorScale, eightColorPadding, [
+        Add(IconGroupId.GradientOrange, gradientScale, gradientPadding, [
             92522, 92523, 92524, 92525, 92526, 92528, 92529, 92531, 92532, 92533,
             92534, 92535, 92536, 92537, 92538, 92539, 92540, 92541, 92579, 92580,
             92581, 92582, 92583, 92584, 92585, 92530, 92586, 92587, 92621, 92622,
             92625, 92623, 92624, 92627, 92628, 92629, 92630, 92631, 92632, 92633
         ]);
-        Add(IconGroupId.GradientRed, eightColorScale, eightColorPadding, [
+        Add(IconGroupId.GradientRed, gradientScale, gradientPadding, [
             93022, 93023, 93024, 93025, 93026, 93028, 93029, 93031, 93032, 93033,
             93034, 93035, 93036, 93037, 93038, 93039, 93040, 93041, 93079, 93080,
             93081, 93082, 93083, 93084, 93085, 93030, 93086, 93087, 93121, 93122,
             93125, 93123, 93124, 93127, 93128, 93129, 93130, 93131, 93132, 93133
         ]);
-        Add(IconGroupId.GradientPurple, eightColorScale, eightColorPadding, [
+        Add(IconGroupId.GradientPurple, gradientScale, gradientPadding, [
             93522, 93523, 93524, 93525, 93526, 93528, 93529, 93531, 93532, 93533,
             93534, 93535, 93536, 93537, 93538, 93539, 93540, 93541, 93579, 93580,
             93581, 93582, 93583, 93584, 93585, 93530, 93586, 93587, 93621, 93622,
             93625, 93623, 93624, 93627, 93628, 93629, 93630, 93631, 93632, 93633
         ]);
-        Add(IconGroupId.GradientBlue, eightColorScale, eightColorPadding, [
+        Add(IconGroupId.GradientBlue, gradientScale, gradientPadding, [
             94022, 94023, 94024, 94025, 94026, 94028, 94029, 94031, 94032, 94033,
             94034, 94035, 94036, 94037, 94038, 94039, 94040, 94041, 94079, 94080,
             94081, 94082, 94083, 94084, 94085, 94030, 94086, 94087, 94121, 94122,
             94125, 94123, 94124, 94127, 94128, 94129, 94130, 94131, 94132, 94133
         ]);
-        Add(IconGroupId.GradientGreen, eightColorScale, eightColorPadding, [
+        Add(IconGroupId.GradientGreen, gradientScale, gradientPadding, [
             94522, 94523, 94524, 94525, 94526, 94528, 94529, 94531, 94532, 94533,
             94534, 94535, 94536, 94537, 94538, 94539, 94540, 94541, 94579, 94580,
             94581, 94582, 94583, 94584, 94585, 94530, 94586, 94587, 94621, 94622,
             94625, 94623, 94624, 94627, 94628, 94629, 94630, 94631, 94632, 94633
-        ]);
-
-        // Embossed blue/green/red with gold frame and role-colored backdrop
-        Add(IconGroupId.EmbossedFramedRole, 1, new Padding(0), [
-            62581, 62584, 62581, 62584, 62586, 62582, 62502, 62502, 62503, 62504,
-            62505, 62506, 62507, 62508, 62509, 62510, 62511, 62512, 62581, 62584,
-            62581, 62584, 62586, 62582, 62587, 62587, 62587, 62582, 62584, 62584,
-            62586, 62581, 62582, 62584, 62587, 62587, 62581, 62586
         ]);
     }
 
@@ -111,7 +111,7 @@ public static class IconRegistrar
         return Icons[groupId];
     }
 
-    public static IconGroup Status = new(IconGroupId.Status, 1, new Padding(0), []);
+    public static readonly IconGroup Status = new(IconGroupId.Status, 1, new Padding(0), []);
 }
 
 public record IconGroup

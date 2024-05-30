@@ -3,7 +3,6 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
-using PartyIcons.Api;
 using PartyIcons.Configuration;
 using PartyIcons.Entities;
 using PartyIcons.Runtime;
@@ -60,14 +59,6 @@ public sealed class NameplateView : IDisposable
         context.StatusIconId = StatusUtils.OnlineStatusToIconId(context.Status);
         context.GenericRole = genericRole;
         context.Mode = GetModeForNameplate(context);
-    }
-
-    /// <returns>True if the icon or name scale was changed (different from default).</returns>
-    public bool SetupDefault(NamePlateObjectWrapper npObject)
-    {
-        var iconScaleChanged = npObject.SetIconScale(1f);
-        var nameScaleChanged = npObject.SetNameScale(0.5f);
-        return iconScaleChanged || nameScaleChanged;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
