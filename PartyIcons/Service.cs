@@ -23,4 +23,5 @@ internal class Service
     [PluginService] public static IToastGui ToastGui { get; private set; } = null!;
     [PluginService] public static IContextMenu ContextMenu { get; private set; } = null!;
     [PluginService] public static IGameConfig GameConfig { get; private set; } = null!;
+    [PluginService] public static IAddonLifecycle AddonLifecycle { get; private set; } = null!;
 }

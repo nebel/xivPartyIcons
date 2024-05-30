@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.Gui.ContextMenu;
 using Dalamud.Game.Text;
 using PartyIcons.Configuration;
@@ -34,9 +33,9 @@ public sealed class ContextMenu : IDisposable
 
     private CharacterInfo? GetCharacterInfo(MenuOpenedArgs args)
     {
-        if (args is { MenuType: ContextMenuType.Default, Target: MenuTargetDefault { TargetObject: PlayerCharacter pc } }) {
-            var name = pc.Name.TextValue;
-            var world = pc.HomeWorld.Id;
+        if (args is { MenuType: ContextMenuType.Default, Target: MenuTargetDefault { TargetCharacter: { } charData } }) {
+            var name = charData.Name;
+            var world = charData.HomeWorld.Id;
             return new CharacterInfo(
                 name,
                 world,

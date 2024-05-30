@@ -26,7 +26,7 @@ public sealed class NPCNameplateFixer : IDisposable
     public void Dispose()
     {
         // Service.Framework.Update -= OnUpdate;
-        RevertAll();
+        // RevertAll();
     }
 
     private void OnUpdate(IFramework framework)

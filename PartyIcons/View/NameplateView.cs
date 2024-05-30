@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Linq;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
-using Dalamud.Logging;
-using FFXIVClientStructs.FFXIV.Component.GUI;
 using PartyIcons.Api;
 using PartyIcons.Configuration;
 using PartyIcons.Entities;
@@ -24,6 +21,7 @@ public sealed class NameplateView : IDisposable
     private readonly PlayerStylesheet _stylesheet;
     private readonly RoleTracker _roleTracker;
     private readonly PartyListHUDView _partyListHudView;
+    private ModeConfigs _modeConfigs = new();
 
     private const short ExIconWidth = 32;
     private const short ExIconWidthHalf = 16;
@@ -31,7 +29,7 @@ public sealed class NameplateView : IDisposable
     private const short ExIconHeightHalf = 16;
 
     private const short ResNodeCenter = 144;
-    private const short ResNodeBottom = 112;
+    private const short ResNodeBottom = 107;
 
     private const string FullWidthSpace = "　";
 
@@ -160,7 +158,7 @@ public sealed class NameplateView : IDisposable
     {
         var iconGroup = context.JobIconGroup;
 
-        const short yAdjust = -10;
+        const short yAdjust = -5;
         const float iconScale = 2.1f;
         var iconPaddingBottom = iconGroup.Padding.Bottom;
 
@@ -170,13 +168,14 @@ public sealed class NameplateView : IDisposable
 
         var scale = iconGroup.Scale * iconScale;
         exNode->AtkResNode.SetScale(scale, scale);
-        exNode->AtkResNode.SetPositionFloat(ResNodeCenter - ExIconWidthHalf, ResNodeBottom - ExIconHeight + iconPaddingBottom + yAdjust);
+        exNode->AtkResNode.SetPositionFloat(ResNodeCenter - ExIconWidthHalf,
+            ResNodeBottom - ExIconHeight + iconPaddingBottom + yAdjust);
 
         exNode->LoadIconTexture((int)context.JobIconId, 0);
 
         if (state.UseSubIcon) {
             const short subXAdjust = 6;
-            const short subYAdjust = -10;
+            const short subYAdjust = -5;
             const float subIconScale = 0.85f;
 
             var subNode = state.SubIconNode;
@@ -188,7 +187,8 @@ public sealed class NameplateView : IDisposable
             subNode->AtkResNode.OriginX = 0 + subIconPaddingLeft;
             subNode->AtkResNode.OriginY = ExIconHeight - subIconPaddingBottom;
             subNode->AtkResNode.SetScale(subScale, subScale);
-            subNode->AtkResNode.SetPositionFloat(ResNodeCenter - subIconPaddingLeft + subXAdjust, ResNodeBottom - ExIconHeight + subIconPaddingBottom + subYAdjust);
+            subNode->AtkResNode.SetPositionFloat(ResNodeCenter - subIconPaddingLeft + subXAdjust,
+                ResNodeBottom - ExIconHeight + subIconPaddingBottom + subYAdjust);
             subNode->LoadIconTexture((int)context.StatusIconId, 0);
         }
     }
@@ -202,7 +202,7 @@ public sealed class NameplateView : IDisposable
         }
 
         const short xAdjust = 2;
-        const short yAdjust = -18;
+        const short yAdjust = -13;
         const float iconScale = 1.55f;
 
         var iconGroup = context.JobIconGroup;
@@ -214,13 +214,14 @@ public sealed class NameplateView : IDisposable
 
         var scale = iconGroup.Scale * iconScale;
         exNode->AtkResNode.SetScale(scale, scale);
-        exNode->AtkResNode.SetPositionFloat(ResNodeCenter - ExIconWidth + iconPaddingRight + xAdjust, ResNodeBottom - ExIconHeight + yAdjust);
+        exNode->AtkResNode.SetPositionFloat(ResNodeCenter - ExIconWidth + iconPaddingRight + xAdjust,
+            ResNodeBottom - ExIconHeight + yAdjust);
 
         exNode->LoadIconTexture((int)context.JobIconId, 0);
 
         if (state.UseSubIcon) {
             const short subXAdjust = -10;
-            const short subYAdjust = -10;
+            const short subYAdjust = -5;
             const float subIconScale = 0.85f;
 
             var subNode = state.SubIconNode;
@@ -232,7 +233,9 @@ public sealed class NameplateView : IDisposable
             subNode->AtkResNode.OriginX = 0 + subIconPaddingLeft;
             subNode->AtkResNode.OriginY = ExIconHeight - subIconPaddingBottom;
             subNode->AtkResNode.SetScale(subScale, subScale);
-            subNode->AtkResNode.SetPositionFloat(ResNodeCenter + state.NamePlateObject->TextW - subIconPaddingLeft + subXAdjust, ResNodeBottom - ExIconHeight + subIconPaddingBottom + subYAdjust);
+            subNode->AtkResNode.SetPositionFloat(
+                ResNodeCenter + state.NamePlateObject->TextW - subIconPaddingLeft + subXAdjust,
+                ResNodeBottom - ExIconHeight + subIconPaddingBottom + subYAdjust);
             subNode->LoadIconTexture((int)context.StatusIconId, 0);
         }
     }
@@ -374,13 +377,13 @@ public sealed class NameplateView : IDisposable
         switch (_configuration.SizeMode) {
             case NameplateSizeMode.Smaller:
                 state.ResNode->OriginX = ResNodeCenter;
-                state.ResNode->OriginY = 107;
+                state.ResNode->OriginY = ResNodeBottom;
                 state.ResNode->SetScale(0.6f, 0.6f);
                 state.IsGlobalScaleModified = true;
                 break;
             case NameplateSizeMode.Bigger:
                 state.ResNode->OriginX = ResNodeCenter;
-                state.ResNode->OriginY = 107;
+                state.ResNode->OriginY = ResNodeBottom;
                 state.ResNode->SetScale(1.5f, 1.5f);
                 state.IsGlobalScaleModified = true;
                 break;
@@ -392,5 +395,51 @@ public sealed class NameplateView : IDisposable
                 state.IsGlobalScaleModified = false;
                 break;
         }
+    }
+}
+
+public class ModeConfigs
+{
+    public PositionConfig SmallJobIcon;
+    public PositionConfig SmallJobIconAndRole;
+    public PositionConfig BigJobIcon;
+    public PositionConfig BigJobIconAndPartySlot;
+    public PositionConfig RoleLetters;
+
+    public PositionConfig GetForMode(NameplateMode mode)
+    {
+        return mode switch
+        {
+            NameplateMode.Default => default,
+            NameplateMode.Hide => default,
+            NameplateMode.SmallJobIcon => SmallJobIcon,
+            NameplateMode.SmallJobIconAndRole => SmallJobIconAndRole,
+            NameplateMode.BigJobIcon => BigJobIcon,
+            NameplateMode.BigJobIconAndPartySlot => BigJobIconAndPartySlot,
+            NameplateMode.RoleLetters => RoleLetters,
+            _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
+        };
+    }
+}
+
+public struct PositionConfig
+{
+    public float GlobalScale = 1;
+    public IconConfig ExIconConfig = default;
+    public IconConfig SubIconConfig = default;
+
+    public PositionConfig()
+    {
+    }
+}
+
+public struct IconConfig
+{
+    public float Scale = 1f;
+    public short OffsetX = 0;
+    public short OffsetY = 0;
+
+    public IconConfig()
+    {
     }
 }

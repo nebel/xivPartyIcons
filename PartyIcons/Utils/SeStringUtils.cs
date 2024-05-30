@@ -68,7 +68,9 @@ public static class SeStringUtils
     {
         var seString = new SeString(new List<Payload>());
         seString.Append(new UIForegroundPayload(color));
+        seString.Append(new UIGlowPayload(51)); // Black glow
         seString.Append(new TextPayload(text));
+        seString.Append(UIGlowPayload.UIGlowOff);
         seString.Append(UIForegroundPayload.UIForegroundOff);
 
         return seString;

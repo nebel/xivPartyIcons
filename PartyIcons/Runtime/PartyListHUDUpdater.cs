@@ -1,7 +1,11 @@
 ﻿using System;
 using System.Linq;
+using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Hooking;
+using Dalamud.Memory;
 using Dalamud.Plugin.Services;
+using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using FFXIVClientStructs.FFXIV.Client.UI.Info;
 using PartyIcons.Configuration;
 using PartyIcons.Entities;
 using PartyIcons.Utils;
@@ -139,6 +143,37 @@ public sealed class PartyListHUDUpdater : IDisposable
 
         Service.Log.Verbose($"Updating party list HUD. members = {Service.PartyList.Length}");
         _displayingRoles = true;
+
+        unsafe {
+            Service.Log.Info("======");
+
+            var agentHud = AgentHUD.Instance();
+            Service.Log.Info("Members (AgentHud):");
+            for (int i = 0; i < agentHud->PartyMemberListSpan.Length; i++) {
+                var hudPartyMember = agentHud->PartyMemberListSpan[i];
+                if (hudPartyMember.Name != null) {
+                    var name = MemoryHelper.ReadSeStringNullTerminated((nint)hudPartyMember.Name);
+                    Service.Log.Info($"  [{i}] {name} -> 0x{(nint)hudPartyMember.Object:X} ({(hudPartyMember.Object != null ? hudPartyMember.Object->Character.HomeWorld : "?")}) ");
+                }
+            }
+
+
+            Service.Log.Info($"Members (PartyList):");
+            for (int i = 0; i < Service.PartyList.Length; i++) {
+                var member = Service.PartyList[i];
+                Service.Log.Info($"  [{i}] {member?.Name.TextValue ?? "?"} ({member?.World.Id}) {member?.ContentId}");
+            }
+
+            var proxy = InfoProxyParty.Instance();
+            var list = proxy->InfoProxyCommonList;
+            Service.Log.Info($"Members (Proxy):");
+            for (int i = 0; i < list.CharDataSpan.Length; i++) {
+                var index = 0/*list.CharIndexSpan[i]*/;
+                var data = list.CharDataSpan[i];
+                var name = MemoryHelper.ReadSeStringNullTerminated((nint)data.Name);
+                Service.Log.Info($"  [{i}] {name} ({data.HomeWorld}) {data.ContentId}");
+            }
+        }
 
         foreach (var member in Service.PartyList)
         {

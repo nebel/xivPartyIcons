@@ -116,7 +116,7 @@ public unsafe class PartyListHUDView : IDisposable
         Service.Log.Verbose($"Member struct by the name {name} not found.");
     }
 
-    public void SetPartyMemberRole(uint index, RoleId roleId)
+    private void SetPartyMemberRole(uint index, RoleId roleId)
     {
         var memberStructOptional = GetPartyMemberStruct(index);
 
