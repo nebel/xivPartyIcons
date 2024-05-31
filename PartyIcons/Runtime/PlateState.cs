@@ -6,7 +6,6 @@ namespace PartyIcons.Runtime;
 public unsafe class PlateState
 {
     public AddonNamePlate.NamePlateObject* NamePlateObject;
-    public AtkComponentNode* ComponentNode;
     public AtkResNode* ResNode;
     public AtkTextNode* NameTextNode;
     public AtkImageNode* IconNode;

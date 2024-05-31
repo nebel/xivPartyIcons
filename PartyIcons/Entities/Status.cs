@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Dalamud.Game.Text.SeStringHandling;
@@ -53,11 +54,132 @@ public enum Status : uint
     SimilarDuty = 42,
     InDuty = 43,
     TrialAdventurer = 44,
-    Online = 45
+    FreeCompany = 45,
+    GrandCompany = 46,
+    Online = 47
+}
+
+public enum StatusImportance : byte
+{
+    Hide = 0,
+    Show = 1,
+    Important = 2,
+    Alert = 3
 }
 
 public static class StatusUtils
 {
+    public const int StatusCount = (int)(Status.Online + 1);
+
+    public static StatusImportance[] DictToArray(Dictionary<Status, StatusImportance> dict)
+    {
+        var array = new StatusImportance[StatusCount];
+
+        foreach (var status in AllStatuses) {
+            if (FixedStatuses.Contains(status)) {
+                array[(int)status] = StatusImportance.Important;
+            }
+            else if (SupportedStatuses.Contains(status)) {
+                if (dict.TryGetValue(status, out var importance)) {
+                    array[(int)status] = importance;
+                }
+            }
+            else {
+                array[(int)status] = StatusImportance.Alert;
+            }
+        }
+
+        foreach (var status in FixedStatuses) {
+            array[(int)status] = StatusImportance.Important;
+        }
+
+        return array;
+    }
+
+    public static StatusImportance[] ListsToArray(List<Status> important, List<Status> show)
+    {
+        var array = new StatusImportance[StatusCount];
+
+        foreach (var status in AllStatuses) {
+            if (FixedStatuses.Contains(status)) {
+                array[(int)status] = StatusImportance.Important;
+            }
+            else if (SupportedStatuses.Contains(status)) {
+                if (important.Contains(status)) {
+                    array[(int)status] = StatusImportance.Important;
+                }
+                else if (show.Contains(status)) {
+                    array[(int)status] = StatusImportance.Show;
+                }
+            }
+            else {
+                array[(int)status] = StatusImportance.Alert;
+            }
+        }
+
+        return array;
+    }
+
+    public static readonly Status[] AllStatuses = Enum.GetValues<Status>();
+
+    public static readonly Status[] FixedStatuses =
+    [
+        Status.GameQA,
+        Status.GameMasterRed,
+        Status.GameMasterBlue,
+    ];
+
+    public static readonly Status[] SupportedStatuses =
+    [
+        // Status.GameQA, // Always shown
+        // Status.GameMasterRed, // Always shown
+        // Status.GameMasterBlue, // Always shown
+        Status.EventParticipant,
+        Status.Disconnected,
+        // Status.WaitingForFriendListApproval, // Not displayed in nameplates
+        // Status.WaitingForLinkshellApproval, // Not displayed in nameplates
+        // Status.WaitingForFreeCompanyApproval, // Not displayed in nameplates
+        // Status.NotFound, // Not displayed in nameplates
+        // Status.Offline, // Not displayed in nameplates, Disconnected is used instead
+        // Status.BattleMentor, // Not used in game, PvEMentor is used instead
+        Status.Busy,
+        // Status.PvP, // Not displayed in nameplates
+        Status.PlayingTripleTriad,
+        Status.ViewingCutscene,
+        // Status.UsingChocoboPorter, // Not displayed in nameplates
+        Status.AwayFromKeyboard,
+        Status.CameraMode,
+        Status.LookingForRepairs,
+        Status.LookingToRepair,
+        Status.LookingToMeldMateria,
+        Status.Roleplaying,
+        Status.LookingForParty,
+        // Status.SwordForHire, // Not used in game
+        Status.WaitingForDutyFinder,
+        Status.RecruitingPartyMembers,
+        Status.Mentor,
+        Status.PvEMentor,
+        Status.TradeMentor,
+        Status.PvPMentor,
+        Status.Returner,
+        Status.NewAdventurer,
+        Status.AllianceLeader,
+        Status.AlliancePartyLeader,
+        Status.AlliancePartyMember,
+        Status.PartyLeader,
+        Status.PartyMember,
+        Status.PartyLeaderCrossworld,
+        Status.PartyMemberCrossworld,
+        // Status.AnotherWorld, // Not displayed in nameplates
+        // Status.SharingDuty, // Not displayed in nameplates(?)
+        // Status.SimilarDuty, // Not displayed in nameplates(?)
+        Status.InDuty,
+        Status.TrialAdventurer,
+        // Status.FreeCompany, // Not displayed in nameplates
+        // Status.GrandCompany, // Not displayed in nameplates
+        // Status.Online, // Not displayed in nameplates
+    ];
+
     private static readonly Status[] BitmapIconAllowedStatuses =
     [
         // OnlineStatus.EventParticipant,
@@ -99,7 +221,7 @@ public static class StatusUtils
     }
 
     public static readonly Status[] PriorityStatusesInOverworld =
-    {
+    [
         Status.Disconnected,
         Status.SharingDuty,
         Status.ViewingCutscene,
@@ -115,24 +237,24 @@ public static class StatusUtils
         Status.EventParticipant,
         Status.Roleplaying,
         Status.CameraMode
-    };
+    ];
 
     public static readonly Status[] PriorityStatusesInDuty =
-    {
+    [
         Status.Disconnected,
         Status.ViewingCutscene,
         Status.AwayFromKeyboard,
         Status.CameraMode
-    };
+    ];
 
     public static readonly Status[] PriorityStatusesInForay =
-    {
+    [
         Status.SharingDuty, // This allows you to see which players don't have a party
         Status.Disconnected,
         Status.ViewingCutscene,
         Status.AwayFromKeyboard,
         Status.CameraMode
-    };
+    ];
 
     private static readonly Dictionary<Status, uint> IconIdCache = new();
 

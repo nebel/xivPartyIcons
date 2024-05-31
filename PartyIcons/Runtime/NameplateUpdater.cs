@@ -208,7 +208,7 @@ public sealed class NameplateUpdater : IDisposable
     {
         Service.Log.Error("CreateNodes");
 
-        var stateArray = new PlateState[AddonNamePlate.NumNamePlateObjects];
+        var stateCache = new PlateState[AddonNamePlate.NumNamePlateObjects];
         var indexMap = new Dictionary<nint, int>();
 
         var arr = addon->NamePlateObjectArray;
@@ -238,18 +238,17 @@ public sealed class NameplateUpdater : IDisposable
 
             var namePlateObjectPointer = arr + i;
 
-            stateArray[i] = new PlateState
+            stateCache[i] = new PlateState
             {
                 NamePlateObject = namePlateObjectPointer,
-                ComponentNode = componentNode,
                 ResNode = resNode,
                 NameTextNode = textNode,
                 IconNode = iconNode,
                 ExIconNode = exNode,
                 SubIconNode = subNode,
+                IsIconBlank = false,
                 UseExIcon = false,
                 UseSubIcon = true,
-                IsIconBlank = false,
             };
             indexMap[(nint)namePlateObjectPointer] = i;
         }
@@ -262,7 +261,7 @@ public sealed class NameplateUpdater : IDisposable
         //     }
         // }
 
-        _stateCache = stateArray;
+        _stateCache = stateCache;
         _indexMap = indexMap.ToFrozenDictionary();
         _addonNamePlateAddr = (nint)addon;
     }

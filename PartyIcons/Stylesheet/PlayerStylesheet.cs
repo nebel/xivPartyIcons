@@ -179,16 +179,18 @@ public sealed class PlayerStylesheet
                 GenericRole.Melee => SeStringUtils.Text(BoxedCharacterString(_configuration.EasternNamingConvention ? "D" : "M"), GetGenericRoleColor(genericRole)),
                 GenericRole.Ranged => SeStringUtils.Text(BoxedCharacterString(_configuration.EasternNamingConvention ? "D" : "R"), GetGenericRoleColor(genericRole)),
                 GenericRole.Healer => SeStringUtils.Text(BoxedCharacterString("H"), GetGenericRoleColor(genericRole)),
+                GenericRole.Crafter => SeStringUtils.Text(BoxedCharacterString("C"), GetGenericRoleColor(genericRole)),
+                GenericRole.Gatherer => SeStringUtils.Text(BoxedCharacterString("G"), GetGenericRoleColor(genericRole)),
                 _ => SeStringUtils.Text(SeIconChar.BoxedQuestionMark.ToIconString(), GetGenericRoleColor(genericRole))
             } :
             genericRole switch
             {
                 GenericRole.Tank => SeStringUtils.Text(BoxedCharacterString("T")),
-                GenericRole.Melee => SeStringUtils.Text(
-                    BoxedCharacterString(_configuration.EasternNamingConvention ? "D" : "M")),
-                GenericRole.Ranged => SeStringUtils.Text(
-                    BoxedCharacterString(_configuration.EasternNamingConvention ? "D" : "R")),
+                GenericRole.Melee => SeStringUtils.Text(BoxedCharacterString(_configuration.EasternNamingConvention ? "D" : "M")),
+                GenericRole.Ranged => SeStringUtils.Text(BoxedCharacterString(_configuration.EasternNamingConvention ? "D" : "R")),
                 GenericRole.Healer => SeStringUtils.Text(BoxedCharacterString("H")),
+                GenericRole.Crafter => SeStringUtils.Text(BoxedCharacterString("C")),
+                GenericRole.Gatherer => SeStringUtils.Text(BoxedCharacterString("G")),
                 _ => SeIconChar.BoxedQuestionMark.ToIconString()
             };
     }

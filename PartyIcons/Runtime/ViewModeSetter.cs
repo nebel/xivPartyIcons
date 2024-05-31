@@ -97,19 +97,19 @@ public sealed class ViewModeSetter
 
             var memberType = content.ContentMemberType.Row;
 
-            if (content.RowId == 16 || content.RowId == 15)
-            {
-                // Praetorium and Castrum Meridianum
-                memberType = 2;
-            }
-
-            if (content.RowId == 735 || content.RowId == 778)
+            if (content.RowId is 735 or 778)
             {
                 // Bozja
                 memberType = 127;
             }
 
-            Service.Log.Verbose(
+            if (content.ContentType.Row == 26)
+            {
+                // Eureka
+                memberType = 127;
+            }
+
+            Service.Log.Debug(
                 $"Territory changed {content.Name} (id {content.RowId} type {content.ContentType.Row}, terr {Service.ClientState.TerritoryType}, memtype {content.ContentMemberType.Row}, overriden {memberType})");
 
             switch (memberType)
