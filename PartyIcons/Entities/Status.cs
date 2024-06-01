@@ -59,6 +59,13 @@ public enum Status : uint
     Online = 47
 }
 
+public enum StatusImportanceCategory : byte
+{
+    Overworld = 0,
+    Duty = 1,
+    Foray = 2,
+}
+
 public enum StatusImportance : byte
 {
     Hide = 0,
@@ -69,6 +76,18 @@ public enum StatusImportance : byte
 
 public static class StatusUtils
 {
+    public static class Defaults
+    {
+        public static StatusImportance[] ImportantCombatStatuses = ListsToArray(
+        [
+            Status.Disconnected,
+            Status.ViewingCutscene,
+            Status.AwayFromKeyboard,
+            Status.CameraMode
+        ],
+        []);
+    }
+
     public const int StatusCount = (int)(Status.Online + 1);
 
     public static StatusImportance[] DictToArray(Dictionary<Status, StatusImportance> dict)

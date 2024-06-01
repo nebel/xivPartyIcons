@@ -176,11 +176,6 @@ public sealed class NameplateUpdater : IDisposable
         var originalFcName = fcName;
         var originalPrefix = prefix;
 
-        if (context.Mode == NameplateMode.RoleLetters) {
-            context.ShowExIcon = true;
-            context.ShowStatusIcon = true;
-        }
-
         try {
             _view.ModifyParameters(context, ref isPrefixTitle, ref displayTitle, ref title, ref name, ref fcName,
                 ref prefix, ref iconID);
@@ -197,7 +192,8 @@ public sealed class NameplateUpdater : IDisposable
                 state.IsIconBlank = false;
             }
 
-            hookResult = _setNamePlateHook.Original(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name, fcName,
+            hookResult = _setNamePlateHook.Original(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name,
+                fcName,
                 prefix, iconID);
         }
         finally {
@@ -262,10 +258,6 @@ public sealed class NameplateUpdater : IDisposable
             stateCache[i] = new PlateState
             {
                 NamePlateObject = namePlateObjectPointer,
-                CollisionNode = collisionNode,
-                ResNode = resNode,
-                NameTextNode = textNode,
-                IconNode = iconNode,
                 ExIconNode = exNode,
                 SubIconNode = subNode,
                 IsIconBlank = false,
@@ -326,7 +318,8 @@ public sealed class NameplateUpdater : IDisposable
                             (NodeFlags.UseDepthBasedPriority | NodeFlags.Visible);
 
                     if (state.NeedsCollisionFix) {
-                        var colScale = obj->NameText->AtkResNode.ScaleX * obj->ResNode->ScaleX * 2 * state.CollisionScale;
+                        var colScale = obj->NameText->AtkResNode.ScaleX * obj->ResNode->ScaleX * 2 *
+                                       state.CollisionScale;
                         var colRes = &obj->CollisionNode1->AtkResNode;
                         colRes->OriginX = colRes->Width / 2f;
                         colRes->OriginY = colRes->Height;

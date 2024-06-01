@@ -21,7 +21,7 @@ public unsafe class UpdateContext
     public GenericRole GenericRole;
     public NameplateMode Mode;
     public bool ShowExIcon = true;
-    public bool ShowStatusIcon = true;
+    public bool ShowSubIcon = true;
 
     public UpdateContext(PlayerCharacter playerCharacter)
     {

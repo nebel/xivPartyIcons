@@ -50,6 +50,12 @@ public sealed class NameplateView : IDisposable
 
     public void UpdateViewData(ref UpdateContext context)
     {
+        var mode = GetModeForNameplate(context);
+        context.Mode = mode;
+        if (mode is NameplateMode.Default or NameplateMode.Hide) {
+            return;
+        }
+
         var genericRole = context.Job.GetRole();
         var iconSet = _stylesheet.GetGenericRoleIconGroupId(genericRole);
         var iconGroup = IconRegistrar.Get(iconSet);
@@ -58,7 +64,31 @@ public sealed class NameplateView : IDisposable
         context.JobIconId = iconGroup.GetJobIcon((uint)context.Job);
         context.StatusIconId = StatusUtils.OnlineStatusToIconId(context.Status);
         context.GenericRole = genericRole;
-        context.Mode = GetModeForNameplate(context);
+
+        switch (mode) {
+            case NameplateMode.SmallJobIcon:
+            case NameplateMode.SmallJobIconAndRole:
+                context.ShowSubIcon = false;
+                break;
+            case NameplateMode.BigJobIcon:
+            case NameplateMode.BigJobIconAndPartySlot:
+                break;
+            case NameplateMode.RoleLetters:
+                context.ShowExIcon = false;
+                break;
+            case NameplateMode.Default:
+            case NameplateMode.Hide:
+            default:
+                throw new ArgumentOutOfRangeException($"Unknown mode {mode}");
+        }
+
+        if (IsPriorityStatus(context.Status)) {
+            (context.JobIconId, context.StatusIconId) = (context.StatusIconId, context.JobIconId);
+            (context.JobIconGroup, context.StatusIconGroup) = (context.StatusIconGroup, context.JobIconGroup);
+            if (mode is not (NameplateMode.SmallJobIcon or NameplateMode.SmallJobIconAndRole)) {
+                (context.ShowExIcon, context.ShowSubIcon) = (context.ShowSubIcon, context.ShowExIcon);
+            }
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -88,11 +118,12 @@ public sealed class NameplateView : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void DoPriorityCheck(PlateState state, UpdateContext context)
+    public void DoPriorityCheck(UpdateContext context)
     {
-        if (IsPriorityStatus(context.Status) && state.UseExIcon) {
+        if (IsPriorityStatus(context.Status)) {
             (context.JobIconId, context.StatusIconId) = (context.StatusIconId, context.JobIconId);
             (context.JobIconGroup, context.StatusIconGroup) = (context.StatusIconGroup, context.JobIconGroup);
+            (context.ShowExIcon, context.ShowSubIcon) = (context.ShowSubIcon, context.ShowExIcon);
         }
     }
 
@@ -208,19 +239,18 @@ public sealed class NameplateView : IDisposable
 
     public void ModifyNodes(PlateState state, UpdateContext context)
     {
+        SetIconState(state, context.ShowExIcon, context.ShowSubIcon);
+
         state.CollisionScale = 1f;
         state.NeedsCollisionFix = true;
 
         switch (context.Mode) {
-            // case NameplateMode.Default:
-            // case NameplateMode.Hide:
-            //     SetIconState(state, false, false);
-            //     SetNameScale(state, 0.5f);
-            //     return;
+            case NameplateMode.Default:
+            case NameplateMode.Hide:
+                throw new Exception($"Illegal state, should not enter {nameof(ModifyNodes)} with mode {context.Mode}");
 
             case NameplateMode.SmallJobIcon:
             case NameplateMode.SmallJobIconAndRole:
-                SetIconState(state, true, false);
                 SetNameScale(state, 0.5f);
                 // DoPriorityCheck(state, context);
                 PrepareNodeInlineSmall(state, context);
@@ -228,25 +258,25 @@ public sealed class NameplateView : IDisposable
                 break;
 
             case NameplateMode.BigJobIcon:
-                SetIconState(state, true, true);
+                // SetIconState(state, context.ShowExIcon, context.ShowSubIcon);
                 SetNameScale(state, 1f);
-                DoPriorityCheck(state, context);
+                // DoPriorityCheck(state, context);
                 PrepareNodeCentered(state, context);
                 // state.NeedsCollisionFix = true;
                 break;
 
             case NameplateMode.BigJobIconAndPartySlot:
-                SetIconState(state, true, true);
+                // SetIconState(state, context.ShowExIcon, context.ShowSubIcon);
                 SetNameScale(state, 1f);
-                DoPriorityCheck(state, context);
+                // DoPriorityCheck(state, context);
                 PrepareNodeInlineLarge(state, context);
                 // state.NeedsCollisionFix = true;
                 break;
 
             case NameplateMode.RoleLetters:
-                SetIconState(state, context.ShowExIcon, context.ShowStatusIcon);
+                // DoPriorityCheck(state, context);
+                // SetIconState(state, context.ShowExIcon, context.ShowSubIcon);
                 SetNameScale(state, 1f);
-                DoPriorityCheck(state, context);
                 PrepareNodeInlineLarge(state, context);
                 // state.NeedsCollisionFix = true;
                 break;
@@ -379,7 +409,7 @@ public sealed class NameplateView : IDisposable
         if (Plugin.ModeSetter.InDuty)
             return StatusUtils.PriorityStatusesInDuty.Contains(status);
 
-        return false;
+        return StatusUtils.Defaults.ImportantCombatStatuses[(int)status] == StatusImportance.Important;
     }
 
     public unsafe void ModifyGlobalScale(PlateState state)
@@ -406,51 +436,5 @@ public sealed class NameplateView : IDisposable
                 state.IsGlobalScaleModified = false;
                 break;
         }
-    }
-}
-
-public class ModeConfigs
-{
-    public PositionConfig SmallJobIcon;
-    public PositionConfig SmallJobIconAndRole;
-    public PositionConfig BigJobIcon;
-    public PositionConfig BigJobIconAndPartySlot;
-    public PositionConfig RoleLetters;
-
-    public PositionConfig GetForMode(NameplateMode mode)
-    {
-        return mode switch
-        {
-            NameplateMode.Default => default,
-            NameplateMode.Hide => default,
-            NameplateMode.SmallJobIcon => SmallJobIcon,
-            NameplateMode.SmallJobIconAndRole => SmallJobIconAndRole,
-            NameplateMode.BigJobIcon => BigJobIcon,
-            NameplateMode.BigJobIconAndPartySlot => BigJobIconAndPartySlot,
-            NameplateMode.RoleLetters => RoleLetters,
-            _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
-        };
-    }
-}
-
-public struct PositionConfig
-{
-    public float GlobalScale = 1;
-    public IconConfig ExIconConfig = default;
-    public IconConfig SubIconConfig = default;
-
-    public PositionConfig()
-    {
-    }
-}
-
-public struct IconConfig
-{
-    public float Scale = 1f;
-    public short OffsetX = 0;
-    public short OffsetY = 0;
-
-    public IconConfig()
-    {
     }
 }
