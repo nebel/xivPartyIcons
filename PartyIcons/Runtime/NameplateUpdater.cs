@@ -166,6 +166,11 @@ public sealed class NameplateUpdater : IDisposable
         var context = new UpdateContext(playerCharacter);
         _view.UpdateViewData(ref context);
 
+        if (context.Mode == NameplateMode.Default) {
+            ResetNodes(state);
+            return;
+        }
+
         var originalTitle = title;
         var originalName = name;
         var originalFcName = fcName;
@@ -179,6 +184,21 @@ public sealed class NameplateUpdater : IDisposable
         try {
             _view.ModifyParameters(context, ref isPrefixTitle, ref displayTitle, ref title, ref name, ref fcName,
                 ref prefix, ref iconID);
+
+            if (iconID is EmptyIconId or 0) {
+                // Replace 0/-1 with empty dummy texture so the default icon is always positioned even for unselected
+                // targets (when unselected targets are hidden). If we don't do this, the icon node will only be
+                // positioned by the game after the target is selected for hidden nameplates, which would force us to
+                // re-position after the initial SetNamePlate call (which would be very annoying).
+                iconID = PlaceholderEmptyIconId;
+                state.IsIconBlank = true;
+            }
+            else {
+                state.IsIconBlank = false;
+            }
+
+            hookResult = _setNamePlateHook.Original(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name, fcName,
+                prefix, iconID);
         }
         finally {
             if (originalName != name)
@@ -191,26 +211,14 @@ public sealed class NameplateUpdater : IDisposable
                 SeStringUtils.FreePtr(prefix);
         }
 
-        // Service.Log.Info($"{state.NamePlateObject->NameText->NodeText} -> {state.NamePlateObject->TextW}");
-
-        if (iconID is EmptyIconId or 0) {
-            // Replace 0/-1 with empty dummy texture so the default icon is always positioned even for unselected
-            // targets (when unselected targets are hidden). If we don't do this, the icon node will only be positioned
-            // after the target is selected, which forces us to re-position.
-            iconID = PlaceholderEmptyIconId;
-            state.IsIconBlank = true;
+        if (context.Mode == NameplateMode.Hide) {
+            ResetNodes(state);
+            return;
         }
-        else {
-            state.IsIconBlank = false;
-        }
-
-        hookResult = _setNamePlateHook.Original(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name, fcName,
-            prefix, iconID);
 
         _view.ModifyGlobalScale(state);
         _view.ModifyNodes(state, context);
         state.IsModified = true;
-        state.IsCollisionFixed = false;
     }
 
     private static unsafe void CreateNodes(AddonNamePlate* addon)
@@ -317,17 +325,13 @@ public sealed class NameplateUpdater : IDisposable
                             (state.SubIconNode->AtkResNode.NodeFlags ^ nameFlags) &
                             (NodeFlags.UseDepthBasedPriority | NodeFlags.Visible);
 
-                    if (!state.IsCollisionFixed) {
-                        // var exIconScale = state.ExIconNode->AtkResNode.ScaleX;
-                        // var scaleAdjust = exIconScale / 1.55f;
-                        var scale = obj->NameText->AtkResNode.ScaleX * state.ResNode->ScaleX * 2 * state.AdditionalCollisionScale;
-                        // Service.Log.Info($"exIconScale {exIconScale} scaleAdjust {scaleAdjust}");
-
+                    if (state.NeedsCollisionFix) {
+                        var colScale = obj->NameText->AtkResNode.ScaleX * obj->ResNode->ScaleX * 2 * state.CollisionScale;
                         var colRes = &obj->CollisionNode1->AtkResNode;
                         colRes->OriginX = colRes->Width / 2f;
                         colRes->OriginY = colRes->Height;
-                        colRes->SetScale(scale, scale);
-                        state.IsCollisionFixed = true;
+                        colRes->SetScale(colScale, colScale);
+                        state.NeedsCollisionFix = false;
                     }
                 }
             }
@@ -367,16 +371,15 @@ public sealed class NameplateUpdater : IDisposable
     private static unsafe void ResetNodes(PlateState state)
     {
         if (state.IsGlobalScaleModified) {
-            state.ResNode->OriginX = 0;
-            state.ResNode->OriginY = 0;
-            state.ResNode->SetScale(1f, 1f);
+            state.NamePlateObject->ResNode->OriginX = 0;
+            state.NamePlateObject->ResNode->OriginY = 0;
+            state.NamePlateObject->ResNode->SetScale(1f, 1f);
         }
 
         state.ExIconNode->AtkResNode.ToggleVisibility(false);
         state.SubIconNode->AtkResNode.ToggleVisibility(false);
         state.NamePlateObject->NameText->AtkResNode.SetScale(0.5f, 0.5f);
 
-        // TODO needed?
         state.NamePlateObject->CollisionNode1->AtkResNode.SetScale(1f, 1f);
         state.NamePlateObject->CollisionNode1->AtkResNode.OriginX = 0;
         state.NamePlateObject->CollisionNode1->AtkResNode.OriginY = 0;

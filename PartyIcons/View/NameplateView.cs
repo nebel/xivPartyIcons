@@ -159,7 +159,7 @@ public sealed class NameplateView : IDisposable
             }
             case NameplateMode.BigJobIcon:
             {
-                name = SeStringUtils.FullwidthSpacePtr;
+                name = SeStringUtils.SeStringToPtr(SeStringUtils.Text(FullWidthSpace));
                 fcName = SeStringUtils.EmptyPtr;
                 prefix = SeStringUtils.EmptyPtr;
                 displayTitle = false;
@@ -208,12 +208,15 @@ public sealed class NameplateView : IDisposable
 
     public void ModifyNodes(PlateState state, UpdateContext context)
     {
+        state.CollisionScale = 1f;
+        state.NeedsCollisionFix = true;
+
         switch (context.Mode) {
-            case NameplateMode.Default:
-            case NameplateMode.Hide:
-                SetIconState(state, false, false);
-                SetNameScale(state, 0.5f);
-                return;
+            // case NameplateMode.Default:
+            // case NameplateMode.Hide:
+            //     SetIconState(state, false, false);
+            //     SetNameScale(state, 0.5f);
+            //     return;
 
             case NameplateMode.SmallJobIcon:
             case NameplateMode.SmallJobIconAndRole:
@@ -221,6 +224,7 @@ public sealed class NameplateView : IDisposable
                 SetNameScale(state, 0.5f);
                 // DoPriorityCheck(state, context);
                 PrepareNodeInlineSmall(state, context);
+                // state.NeedsCollisionFix = true;
                 break;
 
             case NameplateMode.BigJobIcon:
@@ -228,6 +232,7 @@ public sealed class NameplateView : IDisposable
                 SetNameScale(state, 1f);
                 DoPriorityCheck(state, context);
                 PrepareNodeCentered(state, context);
+                // state.NeedsCollisionFix = true;
                 break;
 
             case NameplateMode.BigJobIconAndPartySlot:
@@ -235,6 +240,7 @@ public sealed class NameplateView : IDisposable
                 SetNameScale(state, 1f);
                 DoPriorityCheck(state, context);
                 PrepareNodeInlineLarge(state, context);
+                // state.NeedsCollisionFix = true;
                 break;
 
             case NameplateMode.RoleLetters:
@@ -242,6 +248,7 @@ public sealed class NameplateView : IDisposable
                 SetNameScale(state, 1f);
                 DoPriorityCheck(state, context);
                 PrepareNodeInlineLarge(state, context);
+                // state.NeedsCollisionFix = true;
                 break;
         }
     }
@@ -258,7 +265,7 @@ public sealed class NameplateView : IDisposable
         var scale = iconGroup.Scale;
         exNode->AtkResNode.SetScale(scale, scale);
 
-        var iconNode = state.IconNode;
+        var iconNode = state.NamePlateObject->IconImageNode;
         if (state.IsIconBlank) {
             exNode->AtkResNode.SetPositionFloat(iconNode->AtkResNode.X - 6 + iconPaddingRight, iconNode->AtkResNode.Y);
         }
@@ -319,7 +326,7 @@ public sealed class NameplateView : IDisposable
 
         const short yAdjust = -5;
         const float iconScale = 2.1f;
-        state.AdditionalCollisionScale = iconScale / 1.55f;
+        state.CollisionScale = iconScale / 1.55f;
 
         var iconPaddingBottom = iconGroup.Padding.Bottom;
 

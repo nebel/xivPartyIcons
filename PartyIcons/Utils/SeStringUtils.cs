@@ -10,13 +10,11 @@ namespace PartyIcons.Utils;
 
 public static class SeStringUtils
 {
-    public static readonly IntPtr EmptyPtr = SeStringToPtr(Text(""));
-    public static readonly IntPtr FullwidthSpacePtr = SeStringToPtr(Text("　"));
+    public static IntPtr EmptyPtr;
 
     public static void Initialize()
     {
-        // EmptyPtr = SeStringToPtr(Text(""));
-        // FullwidthSpacePtr = SeStringToPtr(Text("　"));
+        EmptyPtr = SeStringToPtr(Text(""));
     }
 
     public static void Dispose() { }
