@@ -75,6 +75,16 @@ public sealed class NameplateView : IDisposable
     private static unsafe void SetNameScale(PlateState state, float scale)
     {
         state.NamePlateObject->NameText->AtkResNode.SetScale(scale, scale);
+
+        // var colScale = scale * 2;
+        // var col = &state.NamePlateObject->CollisionNode1->AtkResNode;
+        // // col->X = 0;
+        // // col->Y = 0;
+        // // col->X -= col->X * colScale;
+        // // col->Y -= col->Y * colScale;
+        // col->OriginX = col->Width / 2f;
+        // col->OriginY = col->Height;
+        // col->SetScale(colScale, colScale);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -83,144 +93,6 @@ public sealed class NameplateView : IDisposable
         if (IsPriorityStatus(context.Status) && state.UseExIcon) {
             (context.JobIconId, context.StatusIconId) = (context.StatusIconId, context.JobIconId);
             (context.JobIconGroup, context.StatusIconGroup) = (context.StatusIconGroup, context.JobIconGroup);
-        }
-    }
-
-    public void ModifyNodes(PlateState state, UpdateContext context)
-    {
-        switch (context.Mode) {
-            case NameplateMode.Default:
-            case NameplateMode.Hide:
-                SetIconState(state, false, false);
-                SetNameScale(state, 0.5f);
-                return;
-
-            case NameplateMode.SmallJobIcon:
-            case NameplateMode.SmallJobIconAndRole:
-                SetIconState(state, true, false);
-                SetNameScale(state, 0.5f);
-                // DoPriorityCheck(state, context);
-                PrepareNodeInlineSmall(state, context);
-                break;
-
-            case NameplateMode.BigJobIcon:
-            case NameplateMode.BigJobIconAndPartySlot:
-                SetIconState(state, true, true);
-                SetNameScale(state, 1f);
-                DoPriorityCheck(state, context);
-                PrepareNodeInlineLarge(state, context);
-                break;
-
-            case NameplateMode.RoleLetters:
-                SetIconState(state, false, true);
-                SetNameScale(state, 1f);
-                DoPriorityCheck(state, context);
-                PrepareNodeInlineLarge(state, context);
-                break;
-        }
-    }
-
-    private static unsafe void PrepareNodeInlineSmall(PlateState state, UpdateContext context)
-    {
-        var iconGroup = context.JobIconGroup;
-        var iconPaddingRight = iconGroup.Padding.Right;
-
-        var exNode = state.ExIconNode;
-        exNode->AtkResNode.OriginX = ExIconWidth - iconPaddingRight;
-        exNode->AtkResNode.OriginY = ExIconHeightHalf;
-
-        var scale = iconGroup.Scale;
-        exNode->AtkResNode.SetScale(scale, scale);
-
-        var iconNode = state.IconNode;
-        if (state.IsIconBlank) {
-            exNode->AtkResNode.SetPositionFloat(iconNode->AtkResNode.X - 6 + iconPaddingRight, iconNode->AtkResNode.Y);
-        }
-        else {
-            exNode->AtkResNode.SetPositionFloat(iconNode->AtkResNode.X - 28 + iconPaddingRight, iconNode->AtkResNode.Y);
-        }
-
-        exNode->LoadIconTexture((int)context.JobIconId, 0);
-    }
-
-    private static unsafe void PrepareNodeInlineLarge(PlateState state, UpdateContext context)
-    {
-        var textW = state.NamePlateObject->TextW;
-        if (textW == 0) {
-            PrepareNodeCentered(state, context);
-            return;
-        }
-
-        const short xAdjust = 2;
-        const short yAdjust = -13;
-        const float iconScale = 1.55f;
-
-        var iconGroup = context.JobIconGroup;
-        var iconPaddingRight = iconGroup.Padding.Right;
-
-        var exNode = state.ExIconNode;
-        exNode->AtkResNode.OriginX = ExIconWidth - iconPaddingRight;
-        exNode->AtkResNode.OriginY = ExIconHeightHalf;
-
-        var scale = iconGroup.Scale * iconScale;
-        exNode->AtkResNode.SetScale(scale, scale);
-        exNode->AtkResNode.SetPositionFloat(ResNodeCenter - ExIconWidth + iconPaddingRight + xAdjust, ResNodeBottom - ExIconHeight + yAdjust);
-
-        exNode->LoadIconTexture((int)context.JobIconId, 0);
-
-        if (state.UseSubIcon) {
-            const short subXAdjust = -10;
-            const short subYAdjust = -5;
-            const float subIconScale = 0.85f;
-
-            var subNode = state.SubIconNode;
-            var subIconGroup = context.StatusIconGroup;
-            var subScale = subIconGroup.Scale * subIconScale;
-            var subIconPaddingLeft = subIconGroup.Padding.Left;
-            var subIconPaddingBottom = subIconGroup.Padding.Bottom;
-
-            subNode->AtkResNode.OriginX = 0 + subIconPaddingLeft;
-            subNode->AtkResNode.OriginY = ExIconHeight - subIconPaddingBottom;
-            subNode->AtkResNode.SetScale(subScale, subScale);
-            subNode->AtkResNode.SetPositionFloat( ResNodeCenter + state.NamePlateObject->TextW - subIconPaddingLeft + subXAdjust, ResNodeBottom - ExIconHeight + subIconPaddingBottom + subYAdjust);
-            subNode->LoadIconTexture((int)context.StatusIconId, 0);
-        }
-    }
-
-    private static unsafe void PrepareNodeCentered(PlateState state, UpdateContext context)
-    {
-        var iconGroup = context.JobIconGroup;
-
-        const short yAdjust = -5;
-        const float iconScale = 2.1f;
-        var iconPaddingBottom = iconGroup.Padding.Bottom;
-
-        var exNode = state.ExIconNode;
-        exNode->AtkResNode.OriginX = ExIconWidthHalf;
-        exNode->AtkResNode.OriginY = ExIconHeight - iconPaddingBottom;
-
-        var scale = iconGroup.Scale * iconScale;
-        exNode->AtkResNode.SetScale(scale, scale);
-        exNode->AtkResNode.SetPositionFloat(ResNodeCenter - ExIconWidthHalf, ResNodeBottom - ExIconHeight + iconPaddingBottom + yAdjust);
-
-        exNode->LoadIconTexture((int)context.JobIconId, 0);
-
-        if (state.UseSubIcon) {
-            const short subXAdjust = 6;
-            const short subYAdjust = -5;
-            const float subIconScale = 0.85f;
-
-            var subNode = state.SubIconNode;
-            var subIconGroup = context.StatusIconGroup;
-            var subScale = subIconGroup.Scale * subIconScale;
-            var subIconPaddingLeft = subIconGroup.Padding.Left;
-            var subIconPaddingBottom = subIconGroup.Padding.Bottom;
-
-            subNode->AtkResNode.OriginX = 0 + subIconPaddingLeft;
-            subNode->AtkResNode.OriginY = ExIconHeight - subIconPaddingBottom;
-            subNode->AtkResNode.SetScale(subScale, subScale);
-            subNode->AtkResNode.SetPositionFloat(ResNodeCenter - subIconPaddingLeft + subXAdjust, ResNodeBottom - ExIconHeight + subIconPaddingBottom + subYAdjust);
-            subNode->LoadIconTexture((int)context.StatusIconId, 0);
         }
     }
 
@@ -234,6 +106,10 @@ public sealed class NameplateView : IDisposable
         ref uint iconID)
     {
         var mode = context.Mode;
+
+        var t = new SeString().Append("test");
+        title = SeStringUtils.SeStringToPtr(t);
+
 
         if (_configuration.HideLocalPlayerNameplate && context.IsLocalPlayer) {
             if (mode == NameplateMode.RoleLetters && (_configuration.TestingMode || context.IsPartyMember))
@@ -312,19 +188,165 @@ public sealed class NameplateView : IDisposable
             case NameplateMode.RoleLetters:
             {
                 var hasRole = _roleTracker.TryGetAssignedRole(playerCharacter.Name.TextValue, playerCharacter.HomeWorld.Id, out var roleId);
-                if (hasRole) {
-                    name = SeStringUtils.SeStringToPtr(_stylesheet.GetRolePlate(roleId));
-                }
-                else {
-                    name = SeStringUtils.SeStringToPtr(_stylesheet.GetGenericRolePlate(context.GenericRole));
+                var nameString = hasRole
+                    ? _stylesheet.GetRolePlate(roleId)
+                    : _stylesheet.GetGenericRolePlate(context.GenericRole);
+
+                if (context.ShowJobIcon) {
+                    nameString.Payloads.Insert(0, new TextPayload(FullWidthSpace));
                 }
 
+                name = SeStringUtils.SeStringToPtr(nameString);
                 prefix = SeStringUtils.emptyPtr;
                 fcName = SeStringUtils.emptyPtr;
                 displayTitle = false;
                 iconID = 0;
                 break;
             }
+        }
+    }
+
+    public void ModifyNodes(PlateState state, UpdateContext context)
+    {
+        switch (context.Mode) {
+            case NameplateMode.Default:
+            case NameplateMode.Hide:
+                SetIconState(state, false, false);
+                SetNameScale(state, 0.5f);
+                return;
+
+            case NameplateMode.SmallJobIcon:
+            case NameplateMode.SmallJobIconAndRole:
+                SetIconState(state, true, false);
+                SetNameScale(state, 1f);
+                // DoPriorityCheck(state, context);
+                PrepareNodeInlineSmall(state, context);
+                break;
+
+            case NameplateMode.BigJobIcon:
+            case NameplateMode.BigJobIconAndPartySlot:
+                SetIconState(state, true, true);
+                SetNameScale(state, 1f);
+                DoPriorityCheck(state, context);
+                PrepareNodeInlineLarge(state, context);
+                break;
+
+            case NameplateMode.RoleLetters:
+                SetIconState(state, context.ShowJobIcon, true);
+                SetNameScale(state, 1f);
+                DoPriorityCheck(state, context);
+                PrepareNodeInlineLarge(state, context);
+                break;
+        }
+    }
+
+    private static unsafe void PrepareNodeInlineSmall(PlateState state, UpdateContext context)
+    {
+        var iconGroup = context.JobIconGroup;
+        var iconPaddingRight = iconGroup.Padding.Right;
+
+        var exNode = state.ExIconNode;
+        exNode->AtkResNode.OriginX = ExIconWidth - iconPaddingRight;
+        exNode->AtkResNode.OriginY = ExIconHeightHalf;
+
+        var scale = iconGroup.Scale;
+        exNode->AtkResNode.SetScale(scale, scale);
+
+        var iconNode = state.IconNode;
+        if (state.IsIconBlank) {
+            exNode->AtkResNode.SetPositionFloat(iconNode->AtkResNode.X - 6 + iconPaddingRight, iconNode->AtkResNode.Y);
+        }
+        else {
+            exNode->AtkResNode.SetPositionFloat(iconNode->AtkResNode.X - 28 + iconPaddingRight, iconNode->AtkResNode.Y);
+        }
+
+        exNode->LoadIconTexture((int)context.JobIconId, 0);
+    }
+
+    private static unsafe void PrepareNodeInlineLarge(PlateState state, UpdateContext context)
+    {
+        var textW = state.NamePlateObject->TextW;
+        // Service.Log.Info($"textw {textW}");
+        if (textW == 0) {
+            PrepareNodeCentered(state, context);
+            return;
+        }
+
+        const short xAdjust = 2;
+        const short yAdjust = -13;
+        const float iconScale = 1.55f;
+
+        var xTextAdjust = ExIconWidth * 1.0f;
+        if (textW > 50) {
+            xTextAdjust *= 1.5f; // Move by an additional icon width if text is 3 characters
+        }
+
+        var iconGroup = context.JobIconGroup;
+        var iconPaddingRight = iconGroup.Padding.Right;
+
+        var exNode = state.ExIconNode;
+        exNode->AtkResNode.OriginX = ExIconWidth - iconPaddingRight;
+        exNode->AtkResNode.OriginY = ExIconHeightHalf;
+
+        var scale = iconGroup.Scale * iconScale;
+        exNode->AtkResNode.SetScale(scale, scale);
+        exNode->AtkResNode.SetPositionFloat(ResNodeCenter - xTextAdjust + iconPaddingRight + xAdjust, ResNodeBottom - ExIconHeight + yAdjust);
+
+        exNode->LoadIconTexture((int)context.JobIconId, 0);
+
+        if (state.UseSubIcon) {
+            const short subXAdjust = -10;
+            const short subYAdjust = -5;
+            const float subIconScale = 0.85f;
+
+            var subNode = state.SubIconNode;
+            var subIconGroup = context.StatusIconGroup;
+            var subScale = subIconGroup.Scale * subIconScale;
+            var subIconPaddingLeft = subIconGroup.Padding.Left;
+            var subIconPaddingBottom = subIconGroup.Padding.Bottom;
+
+            subNode->AtkResNode.OriginX = 0 + subIconPaddingLeft;
+            subNode->AtkResNode.OriginY = ExIconHeight - subIconPaddingBottom;
+            subNode->AtkResNode.SetScale(subScale, subScale);
+            subNode->AtkResNode.SetPositionFloat( ResNodeCenter + state.NamePlateObject->TextW - subIconPaddingLeft + subXAdjust, ResNodeBottom - ExIconHeight + subIconPaddingBottom + subYAdjust);
+            subNode->LoadIconTexture((int)context.StatusIconId, 0);
+        }
+    }
+
+    private static unsafe void PrepareNodeCentered(PlateState state, UpdateContext context)
+    {
+        var iconGroup = context.JobIconGroup;
+
+        const short yAdjust = -5;
+        const float iconScale = 2.1f;
+        var iconPaddingBottom = iconGroup.Padding.Bottom;
+
+        var exNode = state.ExIconNode;
+        exNode->AtkResNode.OriginX = ExIconWidthHalf;
+        exNode->AtkResNode.OriginY = ExIconHeight - iconPaddingBottom;
+
+        var scale = iconGroup.Scale * iconScale;
+        exNode->AtkResNode.SetScale(scale, scale);
+        exNode->AtkResNode.SetPositionFloat(ResNodeCenter - ExIconWidthHalf, ResNodeBottom - ExIconHeight + iconPaddingBottom + yAdjust);
+
+        exNode->LoadIconTexture((int)context.JobIconId, 0);
+
+        if (state.UseSubIcon) {
+            const short subXAdjust = 6;
+            const short subYAdjust = -5;
+            const float subIconScale = 0.85f;
+
+            var subNode = state.SubIconNode;
+            var subIconGroup = context.StatusIconGroup;
+            var subScale = subIconGroup.Scale * subIconScale;
+            var subIconPaddingLeft = subIconGroup.Padding.Left;
+            var subIconPaddingBottom = subIconGroup.Padding.Bottom;
+
+            subNode->AtkResNode.OriginX = 0 + subIconPaddingLeft;
+            subNode->AtkResNode.OriginY = ExIconHeight - subIconPaddingBottom;
+            subNode->AtkResNode.SetScale(subScale, subScale);
+            subNode->AtkResNode.SetPositionFloat(ResNodeCenter - subIconPaddingLeft + subXAdjust, ResNodeBottom - ExIconHeight + subIconPaddingBottom + subYAdjust);
+            subNode->LoadIconTexture((int)context.StatusIconId, 0);
         }
     }
 
@@ -353,24 +375,25 @@ public sealed class NameplateView : IDisposable
 
     public unsafe void ModifyGlobalScale(PlateState state)
     {
+        var resNode = state.NamePlateObject->ResNode;
         switch (_configuration.SizeMode) {
             case NameplateSizeMode.Smaller:
-                state.ResNode->OriginX = ResNodeCenter;
-                state.ResNode->OriginY = ResNodeBottom;
-                state.ResNode->SetScale(0.6f, 0.6f);
+                resNode->OriginX = ResNodeCenter;
+                resNode->OriginY = ResNodeBottom;
+                resNode->SetScale(0.6f, 0.6f);
                 state.IsGlobalScaleModified = true;
                 break;
             case NameplateSizeMode.Bigger:
-                state.ResNode->OriginX = ResNodeCenter;
-                state.ResNode->OriginY = ResNodeBottom;
-                state.ResNode->SetScale(1.5f, 1.5f);
+                resNode->OriginX = ResNodeCenter;
+                resNode->OriginY = ResNodeBottom;
+                resNode->SetScale(1.5f, 1.5f);
                 state.IsGlobalScaleModified = true;
                 break;
             case NameplateSizeMode.Medium:
             default:
-                state.ResNode->OriginX = 0;
-                state.ResNode->OriginY = 0;
-                state.ResNode->SetScale(1f, 1f);
+                resNode->OriginX = 0;
+                resNode->OriginY = 0;
+                resNode->SetScale(1f, 1f);
                 state.IsGlobalScaleModified = false;
                 break;
         }

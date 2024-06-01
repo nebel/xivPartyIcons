@@ -38,6 +38,7 @@ public sealed class NameplateUpdater : IDisposable
     private const uint EmptyIconId = 4294967295; // (uint)-1
     private const uint PlaceholderEmptyIconId = 61696;
 
+    private const int CollisionNodeId = 11;
     private const int NameTextNodeId = 3;
     private const int IconNodeId = 4;
     private const int ExNodeId = 8004;
@@ -170,6 +171,10 @@ public sealed class NameplateUpdater : IDisposable
         var originalFcName = fcName;
         var originalPrefix = prefix;
 
+        if (context.Mode == NameplateMode.RoleLetters) {
+            context.ShowJobIcon = false;
+        }
+
         try {
             _view.ModifyParameters(context, ref isPrefixTitle, ref displayTitle, ref title, ref name, ref fcName,
                 ref prefix, ref iconID);
@@ -184,6 +189,8 @@ public sealed class NameplateUpdater : IDisposable
             if (originalPrefix != prefix)
                 SeStringUtils.FreePtr(prefix);
         }
+
+        // Service.Log.Info($"{state.NamePlateObject->NameText->NodeText} -> {state.NamePlateObject->TextW}");
 
         if (iconID is EmptyIconId or 0) {
             // Replace 0/-1 with empty dummy texture so the default icon is always positioned even for unselected
@@ -202,6 +209,7 @@ public sealed class NameplateUpdater : IDisposable
         _view.ModifyGlobalScale(state);
         _view.ModifyNodes(state, context);
         state.IsModified = true;
+        state.IsCollisionFixed = false;
     }
 
     private static unsafe void CreateNodes(AddonNamePlate* addon)
@@ -218,20 +226,24 @@ public sealed class NameplateUpdater : IDisposable
             var np = arr[i];
             var resNode = np.ResNode;
             var componentNode = resNode->ParentNode->GetAsAtkComponentNode();
+            var uldManager = &componentNode->Component->UldManager;
+
+            var collisionNode =
+                UiHelper.GetNodeByID<AtkCollisionNode>(uldManager, CollisionNodeId, NodeType.Collision);
 
             var textNode =
-                UiHelper.GetNodeByID<AtkTextNode>(&componentNode->Component->UldManager, NameTextNodeId, NodeType.Text);
+                UiHelper.GetNodeByID<AtkTextNode>(uldManager, NameTextNodeId, NodeType.Text);
             var iconNode =
-                UiHelper.GetNodeByID<AtkImageNode>(&componentNode->Component->UldManager, IconNodeId, NodeType.Image);
+                UiHelper.GetNodeByID<AtkImageNode>(uldManager, IconNodeId, NodeType.Image);
 
             var exNode =
-                UiHelper.GetNodeByID<AtkImageNode>(&componentNode->Component->UldManager, ExNodeId, NodeType.Image);
+                UiHelper.GetNodeByID<AtkImageNode>(uldManager, ExNodeId, NodeType.Image);
             if (exNode == null) {
                 exNode = CreateImageNode(ExNodeId, componentNode, IconNodeId);
             }
 
             var subNode =
-                UiHelper.GetNodeByID<AtkImageNode>(&componentNode->Component->UldManager, SubNodeId, NodeType.Image);
+                UiHelper.GetNodeByID<AtkImageNode>(uldManager, SubNodeId, NodeType.Image);
             if (subNode == null) {
                 subNode = CreateImageNode(SubNodeId, componentNode, NameTextNodeId);
             }
@@ -241,6 +253,7 @@ public sealed class NameplateUpdater : IDisposable
             stateCache[i] = new PlateState
             {
                 NamePlateObject = namePlateObjectPointer,
+                CollisionNode = collisionNode,
                 ResNode = resNode,
                 NameTextNode = textNode,
                 IconNode = iconNode,
@@ -286,13 +299,14 @@ public sealed class NameplateUpdater : IDisposable
 
         foreach (var state in _stateCache) {
             if (state.IsModified) {
-                var kind = (NamePlateKind)state.NamePlateObject->NameplateKind;
-                if (kind != NamePlateKind.Player || (state.ResNode->NodeFlags & NodeFlags.Visible) == 0 || isPvP) {
+                var obj = state.NamePlateObject;
+                var kind = (NamePlateKind)obj->NameplateKind;
+                if (kind != NamePlateKind.Player || (obj->ResNode->NodeFlags & NodeFlags.Visible) == 0 || isPvP) {
                     ResetNodes(state);
                 }
                 else {
                     // Copy UseDepthBasedPriority and Visible flags from NameTextNode
-                    var nameFlags = state.NameTextNode->AtkResNode.NodeFlags;
+                    var nameFlags = obj->NameText->AtkResNode.NodeFlags;
                     if (state.UseExIcon)
                         state.ExIconNode->AtkResNode.NodeFlags ^=
                             (state.ExIconNode->AtkResNode.NodeFlags ^ nameFlags) &
@@ -301,6 +315,15 @@ public sealed class NameplateUpdater : IDisposable
                         state.SubIconNode->AtkResNode.NodeFlags ^=
                             (state.SubIconNode->AtkResNode.NodeFlags ^ nameFlags) &
                             (NodeFlags.UseDepthBasedPriority | NodeFlags.Visible);
+
+                    if (!state.IsCollisionFixed) {
+                        var scale = obj->NameText->AtkResNode.ScaleX * state.ResNode->ScaleX * 2;
+                        var colRes = &obj->CollisionNode1->AtkResNode;
+                        colRes->OriginX = colRes->Width / 2f;
+                        colRes->OriginY = colRes->Height;
+                        colRes->SetScale(scale, scale);
+                        state.IsCollisionFixed = true;
+                    }
                 }
             }
 
@@ -347,6 +370,11 @@ public sealed class NameplateUpdater : IDisposable
         state.ExIconNode->AtkResNode.ToggleVisibility(false);
         state.SubIconNode->AtkResNode.ToggleVisibility(false);
         state.NamePlateObject->NameText->AtkResNode.SetScale(0.5f, 0.5f);
+
+        // TODO needed?
+        state.NamePlateObject->CollisionNode1->AtkResNode.SetScale(1f, 1f);
+        state.NamePlateObject->CollisionNode1->AtkResNode.OriginX = 0;
+        state.NamePlateObject->CollisionNode1->AtkResNode.OriginY = 0;
 
         state.IsModified = false;
     }
