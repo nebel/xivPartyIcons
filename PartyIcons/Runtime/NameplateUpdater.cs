@@ -172,7 +172,8 @@ public sealed class NameplateUpdater : IDisposable
         var originalPrefix = prefix;
 
         if (context.Mode == NameplateMode.RoleLetters) {
-            context.ShowJobIcon = false;
+            context.ShowExIcon = true;
+            context.ShowStatusIcon = true;
         }
 
         try {
@@ -317,7 +318,11 @@ public sealed class NameplateUpdater : IDisposable
                             (NodeFlags.UseDepthBasedPriority | NodeFlags.Visible);
 
                     if (!state.IsCollisionFixed) {
-                        var scale = obj->NameText->AtkResNode.ScaleX * state.ResNode->ScaleX * 2;
+                        // var exIconScale = state.ExIconNode->AtkResNode.ScaleX;
+                        // var scaleAdjust = exIconScale / 1.55f;
+                        var scale = obj->NameText->AtkResNode.ScaleX * state.ResNode->ScaleX * 2 * state.AdditionalCollisionScale;
+                        // Service.Log.Info($"exIconScale {exIconScale} scaleAdjust {scaleAdjust}");
+
                         var colRes = &obj->CollisionNode1->AtkResNode;
                         colRes->OriginX = colRes->Width / 2f;
                         colRes->OriginY = colRes->Height;

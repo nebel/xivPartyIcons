@@ -115,9 +115,9 @@ public sealed class NameplateView : IDisposable
             if (mode == NameplateMode.RoleLetters && (_configuration.TestingMode || context.IsPartyMember))
                 return;
 
-            name = SeStringUtils.emptyPtr;
-            fcName = SeStringUtils.emptyPtr;
-            prefix = SeStringUtils.emptyPtr;
+            name = SeStringUtils.EmptyPtr;
+            fcName = SeStringUtils.EmptyPtr;
+            prefix = SeStringUtils.EmptyPtr;
             displayTitle = false;
             iconID = 0;
             return;
@@ -129,15 +129,15 @@ public sealed class NameplateView : IDisposable
             case NameplateMode.Default:
                 break;
             case NameplateMode.Hide:
-                name = SeStringUtils.emptyPtr;
-                fcName = SeStringUtils.emptyPtr;
-                prefix = SeStringUtils.emptyPtr;
+                name = SeStringUtils.EmptyPtr;
+                fcName = SeStringUtils.EmptyPtr;
+                prefix = SeStringUtils.EmptyPtr;
                 displayTitle = false;
                 iconID = 0;
                 return;
             case NameplateMode.SmallJobIcon:
             {
-                prefix = SeStringUtils.emptyPtr;
+                prefix = SeStringUtils.EmptyPtr;
                 iconID = context.StatusIconId;
                 break;
             }
@@ -151,7 +151,7 @@ public sealed class NameplateView : IDisposable
                     prefix = SeStringUtils.SeStringToPtr(prefixString);
                 }
                 else {
-                    prefix = SeStringUtils.emptyPtr;
+                    prefix = SeStringUtils.EmptyPtr;
                 }
 
                 iconID = context.StatusIconId;
@@ -159,9 +159,9 @@ public sealed class NameplateView : IDisposable
             }
             case NameplateMode.BigJobIcon:
             {
-                name = SeStringUtils.emptyPtr;
-                fcName = SeStringUtils.emptyPtr;
-                prefix = SeStringUtils.emptyPtr;
+                name = SeStringUtils.FullwidthSpacePtr;
+                fcName = SeStringUtils.EmptyPtr;
+                prefix = SeStringUtils.EmptyPtr;
                 displayTitle = false;
                 iconID = 0;
                 break;
@@ -175,11 +175,11 @@ public sealed class NameplateView : IDisposable
                     name = SeStringUtils.SeStringToPtr(slotString);
                 }
                 else {
-                    name = SeStringUtils.emptyPtr;
+                    name = SeStringUtils.EmptyPtr;
                 }
 
-                fcName = SeStringUtils.emptyPtr;
-                prefix = SeStringUtils.emptyPtr;
+                fcName = SeStringUtils.EmptyPtr;
+                prefix = SeStringUtils.EmptyPtr;
                 displayTitle = false;
                 iconID = 0;
 
@@ -192,13 +192,13 @@ public sealed class NameplateView : IDisposable
                     ? _stylesheet.GetRolePlate(roleId)
                     : _stylesheet.GetGenericRolePlate(context.GenericRole);
 
-                if (context.ShowJobIcon) {
+                if (context.ShowExIcon) {
                     nameString.Payloads.Insert(0, new TextPayload(FullWidthSpace));
                 }
 
                 name = SeStringUtils.SeStringToPtr(nameString);
-                prefix = SeStringUtils.emptyPtr;
-                fcName = SeStringUtils.emptyPtr;
+                prefix = SeStringUtils.EmptyPtr;
+                fcName = SeStringUtils.EmptyPtr;
                 displayTitle = false;
                 iconID = 0;
                 break;
@@ -218,12 +218,18 @@ public sealed class NameplateView : IDisposable
             case NameplateMode.SmallJobIcon:
             case NameplateMode.SmallJobIconAndRole:
                 SetIconState(state, true, false);
-                SetNameScale(state, 1f);
+                SetNameScale(state, 0.5f);
                 // DoPriorityCheck(state, context);
                 PrepareNodeInlineSmall(state, context);
                 break;
 
             case NameplateMode.BigJobIcon:
+                SetIconState(state, true, true);
+                SetNameScale(state, 1f);
+                DoPriorityCheck(state, context);
+                PrepareNodeCentered(state, context);
+                break;
+
             case NameplateMode.BigJobIconAndPartySlot:
                 SetIconState(state, true, true);
                 SetNameScale(state, 1f);
@@ -232,7 +238,7 @@ public sealed class NameplateView : IDisposable
                 break;
 
             case NameplateMode.RoleLetters:
-                SetIconState(state, context.ShowJobIcon, true);
+                SetIconState(state, context.ShowExIcon, context.ShowStatusIcon);
                 SetNameScale(state, 1f);
                 DoPriorityCheck(state, context);
                 PrepareNodeInlineLarge(state, context);
@@ -265,20 +271,14 @@ public sealed class NameplateView : IDisposable
 
     private static unsafe void PrepareNodeInlineLarge(PlateState state, UpdateContext context)
     {
-        var textW = state.NamePlateObject->TextW;
-        // Service.Log.Info($"textw {textW}");
-        if (textW == 0) {
-            PrepareNodeCentered(state, context);
-            return;
-        }
-
-        const short xAdjust = 2;
+        const short xAdjust = 4;
         const short yAdjust = -13;
         const float iconScale = 1.55f;
 
-        var xTextAdjust = ExIconWidth * 1.0f;
-        if (textW > 50) {
-            xTextAdjust *= 1.5f; // Move by an additional icon width if text is 3 characters
+        var xAdjust2 = xAdjust;
+        if (state.NamePlateObject->TextW > 50) {
+            // Name is 3-wide including spacer, subtract an extra scaled half-character width (+1 as a slight adjustment)
+            xAdjust2 -= 19;
         }
 
         var iconGroup = context.JobIconGroup;
@@ -290,7 +290,7 @@ public sealed class NameplateView : IDisposable
 
         var scale = iconGroup.Scale * iconScale;
         exNode->AtkResNode.SetScale(scale, scale);
-        exNode->AtkResNode.SetPositionFloat(ResNodeCenter - xTextAdjust + iconPaddingRight + xAdjust, ResNodeBottom - ExIconHeight + yAdjust);
+        exNode->AtkResNode.SetPositionFloat(ResNodeCenter - ExIconWidth + iconPaddingRight + xAdjust2 /*- iconWidthAdjust*/, ResNodeBottom - ExIconHeight + yAdjust);
 
         exNode->LoadIconTexture((int)context.JobIconId, 0);
 
@@ -319,6 +319,8 @@ public sealed class NameplateView : IDisposable
 
         const short yAdjust = -5;
         const float iconScale = 2.1f;
+        state.AdditionalCollisionScale = iconScale / 1.55f;
+
         var iconPaddingBottom = iconGroup.Padding.Bottom;
 
         var exNode = state.ExIconNode;

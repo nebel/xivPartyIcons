@@ -10,11 +10,13 @@ namespace PartyIcons.Utils;
 
 public static class SeStringUtils
 {
-    public static IntPtr emptyPtr;
+    public static readonly IntPtr EmptyPtr = SeStringToPtr(Text(""));
+    public static readonly IntPtr FullwidthSpacePtr = SeStringToPtr(Text("　"));
 
     public static void Initialize()
     {
-        emptyPtr = SeStringToPtr(Text(""));
+        // EmptyPtr = SeStringToPtr(Text(""));
+        // FullwidthSpacePtr = SeStringToPtr(Text("　"));
     }
 
     public static void Dispose() { }
@@ -50,7 +52,7 @@ public static class SeStringUtils
 
     public static void FreePtr(IntPtr seStringPtr)
     {
-        if (seStringPtr != emptyPtr)
+        if (seStringPtr != EmptyPtr)
         {
             Marshal.FreeHGlobal(seStringPtr);
         }

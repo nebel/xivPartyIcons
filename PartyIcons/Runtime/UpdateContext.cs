@@ -16,11 +16,12 @@ public unsafe class UpdateContext
     public readonly Status Status;
     public uint JobIconId;
     public IconGroup JobIconGroup = null!;
-    public bool ShowJobIcon = true;
     public uint StatusIconId;
     public IconGroup StatusIconGroup = IconRegistrar.Status;
     public GenericRole GenericRole;
     public NameplateMode Mode;
+    public bool ShowExIcon = true;
+    public bool ShowStatusIcon = true;
 
     public UpdateContext(PlayerCharacter playerCharacter)
     {

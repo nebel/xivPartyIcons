@@ -15,6 +15,8 @@ public unsafe class PlateState
 
     public bool IsModified = false;
     public bool IsGlobalScaleModified = false;
+
+    public float AdditionalCollisionScale = 1f;
     public bool IsCollisionFixed = true;
 
     public bool IsIconBlank = false;
