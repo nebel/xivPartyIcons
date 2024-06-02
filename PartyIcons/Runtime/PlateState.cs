@@ -11,13 +11,10 @@ public unsafe class PlateState
 
     public bool IsModified = false;
     public bool IsGlobalScaleModified = false;
-
-    public float CollisionScale = 1f;
-    public bool NeedsCollisionFix = false;
-
-    public bool IsIconBlank = false;
     public bool UseExIcon;
     public bool UseSubIcon;
+    public float CollisionScale = 1f;
+    public bool NeedsCollisionFix = false;
 
     public override string ToString()
     {

@@ -131,6 +131,9 @@ public sealed class PlayerStylesheet
             case IconSetId.Framed:
                 return IconGroupId.EmbossedFramed;
 
+            case IconSetId.FramedSmall:
+                return IconGroupId.EmbossedFramedSmall;
+
             case IconSetId.GlowingGold:
                 return IconGroupId.Glowing;
 

@@ -202,6 +202,7 @@ public sealed class NameplateSettings
         return id switch
         {
             IconSetId.Framed => "Framed, role colored",
+            IconSetId.FramedSmall => "Framed, role colored (small)",
             IconSetId.GlowingColored => "Glowing, role colored",
             IconSetId.GlowingGold => "Glowing, gold",
             IconSetId.PlainGold => "Plain gold",

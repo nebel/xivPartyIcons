@@ -131,7 +131,7 @@ public sealed class NameplateUpdater : IDisposable
     }
 
     private unsafe void SetNamePlate(IntPtr namePlateObjectPtr, bool isPrefixTitle, bool displayTitle, IntPtr title,
-        IntPtr name, IntPtr fcName, IntPtr prefix, uint iconID, ref IntPtr hookResult)
+        IntPtr name, IntPtr fcName, IntPtr prefix, uint iconId, ref IntPtr hookResult)
     {
         // var prefixByte = ((byte*)prefix)[0];
         // var prefixIcon = BitmapFontIcon.None;
@@ -178,23 +178,25 @@ public sealed class NameplateUpdater : IDisposable
 
         try {
             _view.ModifyParameters(context, ref isPrefixTitle, ref displayTitle, ref title, ref name, ref fcName,
-                ref prefix, ref iconID);
+                ref prefix, ref iconId);
 
-            if (iconID is EmptyIconId or 0) {
-                // Replace 0/-1 with empty dummy texture so the default icon is always positioned even for unselected
-                // targets (when unselected targets are hidden). If we don't do this, the icon node will only be
-                // positioned by the game after the target is selected for hidden nameplates, which would force us to
-                // re-position after the initial SetNamePlate call (which would be very annoying).
-                iconID = PlaceholderEmptyIconId;
-                state.IsIconBlank = true;
-            }
-            else {
-                state.IsIconBlank = false;
-            }
+            // if (iconId is EmptyIconId or 0 || !context.ShowNativeIcon) {
+            //     // Replace 0/-1 with empty dummy texture so the default icon is always positioned even for unselected
+            //     // targets (when unselected targets are hidden). If we don't do this, the icon node will only be
+            //     // positioned by the game after the target is selected for hidden nameplates, which would force us to
+            //     // re-position after the initial SetNamePlate call (which would be very annoying).
+            //     iconId = PlaceholderEmptyIconId;
+            //     state.IsIconBlank = true;
+            // }
+            // else {
+            //     state.IsIconBlank = false;
+            // }
+
+            iconId = PlaceholderEmptyIconId;
 
             hookResult = _setNamePlateHook.Original(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name,
                 fcName,
-                prefix, iconID);
+                prefix, iconId);
         }
         finally {
             if (originalName != name)
@@ -260,7 +262,6 @@ public sealed class NameplateUpdater : IDisposable
                 NamePlateObject = namePlateObjectPointer,
                 ExIconNode = exNode,
                 SubIconNode = subNode,
-                IsIconBlank = false,
                 UseExIcon = false,
                 UseSubIcon = true,
             };
@@ -318,8 +319,7 @@ public sealed class NameplateUpdater : IDisposable
                             (NodeFlags.UseDepthBasedPriority | NodeFlags.Visible);
 
                     if (state.NeedsCollisionFix) {
-                        var colScale = obj->NameText->AtkResNode.ScaleX * obj->ResNode->ScaleX * 2 *
-                                       state.CollisionScale;
+                        var colScale = obj->NameText->AtkResNode.ScaleX * 2 * obj->ResNode->ScaleX * state.CollisionScale;
                         var colRes = &obj->CollisionNode1->AtkResNode;
                         colRes->OriginX = colRes->Width / 2f;
                         colRes->OriginY = colRes->Height;
@@ -371,11 +371,12 @@ public sealed class NameplateUpdater : IDisposable
 
         state.ExIconNode->AtkResNode.ToggleVisibility(false);
         state.SubIconNode->AtkResNode.ToggleVisibility(false);
+
         state.NamePlateObject->NameText->AtkResNode.SetScale(0.5f, 0.5f);
 
-        state.NamePlateObject->CollisionNode1->AtkResNode.SetScale(1f, 1f);
         state.NamePlateObject->CollisionNode1->AtkResNode.OriginX = 0;
         state.NamePlateObject->CollisionNode1->AtkResNode.OriginY = 0;
+        state.NamePlateObject->CollisionNode1->AtkResNode.SetScale(1f, 1f);
 
         state.IsModified = false;
     }

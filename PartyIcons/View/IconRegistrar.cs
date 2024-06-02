@@ -25,7 +25,7 @@ public static class IconRegistrar
         ]);
 
         // Embossed gold/silver with gold frame and role-colored backdrop, smaller
-        Add(IconGroupId.EmbossedFramedSmall, 1, new Padding(0.5f), [
+        Add(IconGroupId.EmbossedFramedSmall, 1, new Padding(5f), [
             62226, 62227, 62228, 62229, 62230, 62231, 62232, 62233, 62234, 62235,
             62236, 62237, 62238, 62239, 62240, 62241, 62242, 62243, 62244, 62245,
             62246, 62247, 62248, 62249, 62250, 62251, 62252, 62253, 62254, 62255,

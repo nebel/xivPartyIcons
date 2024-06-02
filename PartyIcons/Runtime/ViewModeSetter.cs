@@ -14,7 +14,7 @@ public enum ZoneType
     Dungeon,
     Raid,
     AllianceRaid,
-    Foray,
+    Foray, // TODO: Rename to Field Operations
 }
 
 public sealed class ViewModeSetter

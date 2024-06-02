@@ -1,6 +1,5 @@
 ﻿using System;
 using PartyIcons.Configuration;
-using PartyIcons.Entities;
 
 namespace PartyIcons.View;
 
@@ -28,12 +27,22 @@ public class ModeConfigs
     }
 }
 
+public enum StatusSwapStyle
+{
+    None,
+    Swap,
+    Replace
+}
+
 public struct ModeConfig
 {
-    public float GlobalScale = 1;
-    public IconConfig ExIconConfig = default;
-    public IconConfig SubIconConfig = default;
-    public StatusImportance[] Importances = [];
+    public float Scale = 1;
+    public bool ShowStatusIcon = true;
+    public StatusSwapStyle SwapStyle = StatusSwapStyle.Swap;
+    // public StatusImportance[] Importances = [];
+
+    // public IconConfig ExIconConfig = default;
+    // public IconConfig SubIconConfig = default;
 
     public ModeConfig()
     {

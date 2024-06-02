@@ -3,6 +3,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
+using FFXIVClientStructs.FFXIV.Component.GUI;
 using PartyIcons.Configuration;
 using PartyIcons.Entities;
 using PartyIcons.Runtime;
@@ -56,6 +57,10 @@ public sealed class NameplateView : IDisposable
             return;
         }
 
+        var modeConfig = new ModeConfigs().GetForMode(mode);
+        modeConfig.SwapStyle = StatusSwapStyle.None;
+        modeConfig.ShowStatusIcon = true;
+
         var genericRole = context.Job.GetRole();
         var iconSet = _stylesheet.GetGenericRoleIconGroupId(genericRole);
         var iconGroup = IconRegistrar.Get(iconSet);
@@ -65,28 +70,29 @@ public sealed class NameplateView : IDisposable
         context.StatusIconId = StatusUtils.OnlineStatusToIconId(context.Status);
         context.GenericRole = genericRole;
 
-        switch (mode) {
-            case NameplateMode.SmallJobIcon:
-            case NameplateMode.SmallJobIconAndRole:
-                context.ShowSubIcon = false;
-                break;
-            case NameplateMode.BigJobIcon:
-            case NameplateMode.BigJobIconAndPartySlot:
-                break;
-            case NameplateMode.RoleLetters:
-                context.ShowExIcon = false;
-                break;
-            case NameplateMode.Default:
-            case NameplateMode.Hide:
-            default:
-                throw new ArgumentOutOfRangeException($"Unknown mode {mode}");
+        if (mode == NameplateMode.RoleLetters) {
+            context.ShowExIcon = false;
         }
 
-        if (IsPriorityStatus(context.Status)) {
-            (context.JobIconId, context.StatusIconId) = (context.StatusIconId, context.JobIconId);
-            (context.JobIconGroup, context.StatusIconGroup) = (context.StatusIconGroup, context.JobIconGroup);
-            if (mode is not (NameplateMode.SmallJobIcon or NameplateMode.SmallJobIconAndRole)) {
-                (context.ShowExIcon, context.ShowSubIcon) = (context.ShowSubIcon, context.ShowExIcon);
+        if (context.Status == Status.None) {
+            context.ShowSubIcon = false;
+        }
+        else if (IsPriorityStatus(context.Status)) {
+            switch (modeConfig.SwapStyle) {
+                case StatusSwapStyle.None:
+                    break;
+                case StatusSwapStyle.Swap:
+                    (context.JobIconId, context.StatusIconId) = (context.StatusIconId, context.JobIconId);
+                    (context.JobIconGroup, context.StatusIconGroup) = (context.StatusIconGroup, context.JobIconGroup);
+                    (context.ShowExIcon, context.ShowSubIcon) = (context.ShowSubIcon, context.ShowExIcon);
+                    break;
+                case StatusSwapStyle.Replace:
+                    context.JobIconId = context.StatusIconId;
+                    context.JobIconGroup = context.StatusIconGroup;
+                    context.ShowSubIcon = false;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException($"Unknown swap style {modeConfig.SwapStyle}");
             }
         }
     }
@@ -105,16 +111,6 @@ public sealed class NameplateView : IDisposable
     private static unsafe void SetNameScale(PlateState state, float scale)
     {
         state.NamePlateObject->NameText->AtkResNode.SetScale(scale, scale);
-
-        // var colScale = scale * 2;
-        // var col = &state.NamePlateObject->CollisionNode1->AtkResNode;
-        // // col->X = 0;
-        // // col->Y = 0;
-        // // col->X -= col->X * colScale;
-        // // col->Y -= col->Y * colScale;
-        // col->OriginX = col->Width / 2f;
-        // col->OriginY = col->Height;
-        // col->SetScale(colScale, colScale);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -134,47 +130,46 @@ public sealed class NameplateView : IDisposable
         ref IntPtr name,
         ref IntPtr fcName,
         ref IntPtr prefix,
-        ref uint iconID)
+        ref uint iconId)
     {
         var mode = context.Mode;
 
-        var t = new SeString().Append("test");
-        title = SeStringUtils.SeStringToPtr(t);
-
-
         if (_configuration.HideLocalPlayerNameplate && context.IsLocalPlayer) {
-            if (mode == NameplateMode.RoleLetters && (_configuration.TestingMode || context.IsPartyMember))
+            if (mode == NameplateMode.RoleLetters && (_configuration.TestingMode || Service.PartyList.Length > 0)) {
+                // Allow plate to draw since we're using RoleLetters and are in a party (or in testing mode)
+            }
+            else {
+                name = SeStringUtils.EmptyPtr;
+                fcName = SeStringUtils.EmptyPtr;
+                prefix = SeStringUtils.EmptyPtr;
+                displayTitle = false;
+                context.ShowExIcon = false;
+                context.ShowSubIcon = false;
                 return;
-
-            name = SeStringUtils.EmptyPtr;
-            fcName = SeStringUtils.EmptyPtr;
-            prefix = SeStringUtils.EmptyPtr;
-            displayTitle = false;
-            iconID = 0;
-            return;
+            }
         }
 
         var playerCharacter = context.PlayerCharacter;
 
         switch (mode) {
             case NameplateMode.Default:
-                break;
+                throw new Exception($"Illegal state, should not enter {nameof(ModifyParameters)} with mode {context.Mode}");
             case NameplateMode.Hide:
                 name = SeStringUtils.EmptyPtr;
                 fcName = SeStringUtils.EmptyPtr;
                 prefix = SeStringUtils.EmptyPtr;
                 displayTitle = false;
-                iconID = 0;
                 return;
             case NameplateMode.SmallJobIcon:
             {
                 prefix = SeStringUtils.EmptyPtr;
-                iconID = context.StatusIconId;
+                iconId = context.StatusIconId;
                 break;
             }
             case NameplateMode.SmallJobIconAndRole:
             {
-                var hasRole = _roleTracker.TryGetAssignedRole(playerCharacter.Name.TextValue, playerCharacter.HomeWorld.Id, out var roleId);
+                var hasRole = _roleTracker.TryGetAssignedRole(playerCharacter.Name.TextValue,
+                    playerCharacter.HomeWorld.Id, out var roleId);
                 if (hasRole) {
                     var prefixString = new SeString()
                         .Append(_stylesheet.GetRolePlate(roleId))
@@ -185,7 +180,7 @@ public sealed class NameplateView : IDisposable
                     prefix = SeStringUtils.EmptyPtr;
                 }
 
-                iconID = context.StatusIconId;
+                iconId = context.StatusIconId;
                 break;
             }
             case NameplateMode.BigJobIcon:
@@ -194,7 +189,6 @@ public sealed class NameplateView : IDisposable
                 fcName = SeStringUtils.EmptyPtr;
                 prefix = SeStringUtils.EmptyPtr;
                 displayTitle = false;
-                iconID = 0;
                 break;
             }
             case NameplateMode.BigJobIconAndPartySlot:
@@ -212,13 +206,13 @@ public sealed class NameplateView : IDisposable
                 fcName = SeStringUtils.EmptyPtr;
                 prefix = SeStringUtils.EmptyPtr;
                 displayTitle = false;
-                iconID = 0;
 
                 break;
             }
             case NameplateMode.RoleLetters:
             {
-                var hasRole = _roleTracker.TryGetAssignedRole(playerCharacter.Name.TextValue, playerCharacter.HomeWorld.Id, out var roleId);
+                var hasRole = _roleTracker.TryGetAssignedRole(playerCharacter.Name.TextValue,
+                    playerCharacter.HomeWorld.Id, out var roleId);
                 var nameString = hasRole
                     ? _stylesheet.GetRolePlate(roleId)
                     : _stylesheet.GetGenericRolePlate(context.GenericRole);
@@ -231,7 +225,6 @@ public sealed class NameplateView : IDisposable
                 prefix = SeStringUtils.EmptyPtr;
                 fcName = SeStringUtils.EmptyPtr;
                 displayTitle = false;
-                iconID = 0;
                 break;
             }
         }
@@ -252,33 +245,22 @@ public sealed class NameplateView : IDisposable
             case NameplateMode.SmallJobIcon:
             case NameplateMode.SmallJobIconAndRole:
                 SetNameScale(state, 0.5f);
-                // DoPriorityCheck(state, context);
                 PrepareNodeInlineSmall(state, context);
-                // state.NeedsCollisionFix = true;
                 break;
 
             case NameplateMode.BigJobIcon:
-                // SetIconState(state, context.ShowExIcon, context.ShowSubIcon);
                 SetNameScale(state, 1f);
-                // DoPriorityCheck(state, context);
                 PrepareNodeCentered(state, context);
-                // state.NeedsCollisionFix = true;
                 break;
 
             case NameplateMode.BigJobIconAndPartySlot:
-                // SetIconState(state, context.ShowExIcon, context.ShowSubIcon);
                 SetNameScale(state, 1f);
-                // DoPriorityCheck(state, context);
                 PrepareNodeInlineLarge(state, context);
-                // state.NeedsCollisionFix = true;
                 break;
 
             case NameplateMode.RoleLetters:
-                // DoPriorityCheck(state, context);
-                // SetIconState(state, context.ShowExIcon, context.ShowSubIcon);
                 SetNameScale(state, 1f);
                 PrepareNodeInlineLarge(state, context);
-                // state.NeedsCollisionFix = true;
                 break;
         }
     }
@@ -296,14 +278,32 @@ public sealed class NameplateView : IDisposable
         exNode->AtkResNode.SetScale(scale, scale);
 
         var iconNode = state.NamePlateObject->IconImageNode;
-        if (state.IsIconBlank) {
-            exNode->AtkResNode.SetPositionFloat(iconNode->AtkResNode.X - 6 + iconPaddingRight, iconNode->AtkResNode.Y);
+        if (context.ShowSubIcon) {
+            exNode->AtkResNode.SetPositionFloat(iconNode->AtkResNode.X - 28 + iconPaddingRight, iconNode->AtkResNode.Y);
         }
         else {
-            exNode->AtkResNode.SetPositionFloat(iconNode->AtkResNode.X - 28 + iconPaddingRight, iconNode->AtkResNode.Y);
+            exNode->AtkResNode.SetPositionFloat(iconNode->AtkResNode.X - 6 + iconPaddingRight, iconNode->AtkResNode.Y);
         }
 
         exNode->LoadIconTexture((int)context.JobIconId, 0);
+
+        if (state.UseSubIcon) {
+            const short subXAdjust = -4;
+            const short subYAdjust = 0;
+            const float subIconScale = 0.8f;
+
+            var subNode = state.SubIconNode;
+            var subIconGroup = context.StatusIconGroup;
+            var subScale = subIconGroup.Scale * subIconScale;
+            var subIconPaddingRight = subIconGroup.Padding.Right;
+
+            subNode->AtkResNode.OriginX = ExIconWidth - subIconPaddingRight;
+            subNode->AtkResNode.OriginY = ExIconHeight / 2f;
+            subNode->AtkResNode.SetScale(subScale, subScale);
+            subNode->AtkResNode.SetPositionFloat(iconNode->AtkResNode.X + subIconPaddingRight + subXAdjust,
+                iconNode->AtkResNode.Y + subYAdjust);
+            subNode->LoadIconTexture((int)context.StatusIconId, 0);
+        }
     }
 
     private static unsafe void PrepareNodeInlineLarge(PlateState state, UpdateContext context)
@@ -327,7 +327,9 @@ public sealed class NameplateView : IDisposable
 
         var scale = iconGroup.Scale * iconScale;
         exNode->AtkResNode.SetScale(scale, scale);
-        exNode->AtkResNode.SetPositionFloat(ResNodeCenter - ExIconWidth + iconPaddingRight + xAdjust2 /*- iconWidthAdjust*/, ResNodeBottom - ExIconHeight + yAdjust);
+        exNode->AtkResNode.SetPositionFloat(
+            ResNodeCenter - ExIconWidth + iconPaddingRight + xAdjust2 /*- iconWidthAdjust*/,
+            ResNodeBottom - ExIconHeight + yAdjust);
 
         exNode->LoadIconTexture((int)context.JobIconId, 0);
 
@@ -345,7 +347,9 @@ public sealed class NameplateView : IDisposable
             subNode->AtkResNode.OriginX = 0 + subIconPaddingLeft;
             subNode->AtkResNode.OriginY = ExIconHeight - subIconPaddingBottom;
             subNode->AtkResNode.SetScale(subScale, subScale);
-            subNode->AtkResNode.SetPositionFloat( ResNodeCenter + state.NamePlateObject->TextW - subIconPaddingLeft + subXAdjust, ResNodeBottom - ExIconHeight + subIconPaddingBottom + subYAdjust);
+            subNode->AtkResNode.SetPositionFloat(
+                ResNodeCenter + state.NamePlateObject->TextW - subIconPaddingLeft + subXAdjust,
+                ResNodeBottom - ExIconHeight + subIconPaddingBottom + subYAdjust);
             subNode->LoadIconTexture((int)context.StatusIconId, 0);
         }
     }
@@ -366,7 +370,8 @@ public sealed class NameplateView : IDisposable
 
         var scale = iconGroup.Scale * iconScale;
         exNode->AtkResNode.SetScale(scale, scale);
-        exNode->AtkResNode.SetPositionFloat(ResNodeCenter - ExIconWidthHalf, ResNodeBottom - ExIconHeight + iconPaddingBottom + yAdjust);
+        exNode->AtkResNode.SetPositionFloat(ResNodeCenter - ExIconWidthHalf,
+            ResNodeBottom - ExIconHeight + iconPaddingBottom + yAdjust);
 
         exNode->LoadIconTexture((int)context.JobIconId, 0);
 
@@ -384,7 +389,8 @@ public sealed class NameplateView : IDisposable
             subNode->AtkResNode.OriginX = 0 + subIconPaddingLeft;
             subNode->AtkResNode.OriginY = ExIconHeight - subIconPaddingBottom;
             subNode->AtkResNode.SetScale(subScale, subScale);
-            subNode->AtkResNode.SetPositionFloat(ResNodeCenter - subIconPaddingLeft + subXAdjust, ResNodeBottom - ExIconHeight + subIconPaddingBottom + subYAdjust);
+            subNode->AtkResNode.SetPositionFloat(ResNodeCenter - subIconPaddingLeft + subXAdjust,
+                ResNodeBottom - ExIconHeight + subIconPaddingBottom + subYAdjust);
             subNode->LoadIconTexture((int)context.StatusIconId, 0);
         }
     }

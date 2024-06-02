@@ -31,6 +31,5 @@ public unsafe class UpdateContext
         IsPartyMember = IsLocalPlayer || GroupManager.Instance()->IsObjectIDInParty(objectId);
         Job = (Job)((Character*)playerCharacter.Address)->CharacterData.ClassJob;
         Status = (Status)((Character*)playerCharacter.Address)->CharacterData.OnlineStatus;
-        // Service.Log.Info($"{playerCharacter.Name} -> {Status}");
     }
 }

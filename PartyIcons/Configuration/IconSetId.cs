@@ -5,5 +5,6 @@ public enum IconSetId
     GlowingColored,
     GlowingGold,
     Framed,
-    PlainGold
+    FramedSmall,
+    PlainGold,
 }
