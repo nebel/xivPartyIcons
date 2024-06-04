@@ -149,7 +149,7 @@ public sealed class NameplateSettings
         ImGui.Dummy(new Vector2(0, 2f));
         
         ImGui.PushStyleColor(0, ImGuiHelpers.DefaultColorPalette()[0]);
-        ImGui.Text("Forays");
+        ImGui.Text("Field Operations");
         ImGui.PopStyleColor();
         ImGui.Separator();
         ImGui.Dummy(new Vector2(0, separatorPadding));

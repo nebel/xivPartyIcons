@@ -149,8 +149,6 @@ public sealed class NameplateView : IDisposable
             }
         }
 
-        var playerCharacter = context.PlayerCharacter;
-
         switch (mode) {
             case NameplateMode.Default:
                 throw new Exception($"Illegal state, should not enter {nameof(ModifyParameters)} with mode {context.Mode}");
@@ -159,7 +157,7 @@ public sealed class NameplateView : IDisposable
                 fcName = SeStringUtils.EmptyPtr;
                 prefix = SeStringUtils.EmptyPtr;
                 displayTitle = false;
-                return;
+                break;
             case NameplateMode.SmallJobIcon:
             {
                 prefix = SeStringUtils.EmptyPtr;
@@ -168,8 +166,8 @@ public sealed class NameplateView : IDisposable
             }
             case NameplateMode.SmallJobIconAndRole:
             {
-                var hasRole = _roleTracker.TryGetAssignedRole(playerCharacter.Name.TextValue,
-                    playerCharacter.HomeWorld.Id, out var roleId);
+                var hasRole = _roleTracker.TryGetAssignedRole(context.PlayerCharacter, out var roleId);
+
                 if (hasRole) {
                     var prefixString = new SeString()
                         .Append(_stylesheet.GetRolePlate(roleId))
@@ -193,9 +191,8 @@ public sealed class NameplateView : IDisposable
             }
             case NameplateMode.BigJobIconAndPartySlot:
             {
-                var partySlot = _partyListHudView.GetPartySlotIndex(context.PlayerCharacter.ObjectId) + 1;
-                if (partySlot != null) {
-                    var slotString = _stylesheet.GetPartySlotNumber(partySlot.Value, context.GenericRole);
+                if (_partyListHudView.GetPartySlotIndex(context.PlayerCharacter.ObjectId) is {  } partySlot) {
+                    var slotString = _stylesheet.GetPartySlotNumber(partySlot + 1, context.GenericRole);
                     slotString.Payloads.Insert(0, new TextPayload(FullWidthSpace));
                     name = SeStringUtils.SeStringToPtr(slotString);
                 }
@@ -211,8 +208,7 @@ public sealed class NameplateView : IDisposable
             }
             case NameplateMode.RoleLetters:
             {
-                var hasRole = _roleTracker.TryGetAssignedRole(playerCharacter.Name.TextValue,
-                    playerCharacter.HomeWorld.Id, out var roleId);
+                var hasRole = _roleTracker.TryGetAssignedRole(context.PlayerCharacter, out var roleId);
                 var nameString = hasRole
                     ? _stylesheet.GetRolePlate(roleId)
                     : _stylesheet.GetGenericRolePlate(context.GenericRole);
@@ -254,10 +250,6 @@ public sealed class NameplateView : IDisposable
                 break;
 
             case NameplateMode.BigJobIconAndPartySlot:
-                SetNameScale(state, 1f);
-                PrepareNodeInlineLarge(state, context);
-                break;
-
             case NameplateMode.RoleLetters:
                 SetNameScale(state, 1f);
                 PrepareNodeInlineLarge(state, context);
@@ -409,8 +401,8 @@ public sealed class NameplateView : IDisposable
         if (_configuration.UsePriorityIcons == false && status != Status.Disconnected)
             return false;
 
-        if (Plugin.ModeSetter.ZoneType == ZoneType.Foray)
-            return StatusUtils.PriorityStatusesInForay.Contains(status);
+        if (Plugin.ModeSetter.ZoneType == ZoneType.FieldOperation)
+            return StatusUtils.PriorityStatusesInFieldOperations.Contains(status);
 
         if (Plugin.ModeSetter.InDuty)
             return StatusUtils.PriorityStatusesInDuty.Contains(status);

@@ -38,17 +38,23 @@ public sealed class NameplateUpdater : IDisposable
     private const uint EmptyIconId = 4294967295; // (uint)-1
     private const uint PlaceholderEmptyIconId = 61696;
 
-    private const int CollisionNodeId = 11;
     private const int NameTextNodeId = 3;
     private const int IconNodeId = 4;
     private const int ExNodeId = 8004;
     private const int SubNodeId = 8005;
 
-    private static nint _addonNamePlateAddr;
+    private static UpdaterState _updaterState = UpdaterState.Uninitialized;
     private static PlateState[] _stateCache = [];
     private static FrozenDictionary<nint, int> _indexMap = new Dictionary<nint, int>().ToFrozenDictionary();
 
     public int DebugIcon { get; set; } = -1;
+
+    enum UpdaterState
+    {
+        Uninitialized,
+        Ready,
+        Stopped
+    }
 
     public NameplateUpdater(Settings configuration, NameplateView view, ViewModeSetter modeSetter)
     {
@@ -65,14 +71,6 @@ public sealed class NameplateUpdater : IDisposable
         Service.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "NamePlate", OnPreFinalize);
     }
 
-    private static unsafe void OnPreFinalize(AddonEvent type, AddonArgs args)
-    {
-        Service.Log.Info($"OnPreFinalize (0x{args.Addon:X})");
-        ResetAllNodes();
-        DestroyNodes((AddonNamePlate*)args.Addon);
-        _addonNamePlateAddr = 0;
-    }
-
     public void Dispose()
     {
         _setNamePlateHook.Disable();
@@ -83,33 +81,23 @@ public sealed class NameplateUpdater : IDisposable
         Plugin.RoleTracker.OnAssignedRolesUpdated -= ForceRedrawNamePlates;
         Service.AddonLifecycle.UnregisterListener(OnPreFinalize);
 
+        _updaterState = UpdaterState.Stopped;
+
         unsafe {
             var addonPtr = (AddonNamePlate*)Service.GameGui.GetAddonByName("NamePlate");
             if (addonPtr != null) {
-                ResetAllNodes();
-                DestroyNodes(addonPtr);
+                ResetAllPlates();
+                DestroyAllNodes(addonPtr);
             }
         }
     }
 
-    public IntPtr SetNamePlateDetour(IntPtr namePlateObjectPtr, bool isPrefixTitle, bool displayTitle,
-        IntPtr title, IntPtr name, IntPtr fcName, IntPtr prefix, uint iconID)
+    private static unsafe void OnPreFinalize(AddonEvent type, AddonArgs args)
     {
-        var hookResult = IntPtr.MinValue;
-        if (_addonNamePlateAddr > 0) {
-            try {
-                SetNamePlate(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name, fcName, prefix, iconID,
-                    ref hookResult);
-            }
-            catch (Exception ex) {
-                Service.Log.Error(ex, "SetNamePlateDetour encountered a critical error");
-            }
-        }
-
-        return hookResult == IntPtr.MinValue
-            ? _setNamePlateHook.Original(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name, fcName, prefix,
-                iconID)
-            : hookResult;
+        Service.Log.Info($"OnPreFinalize (0x{args.Addon:X})");
+        _updaterState = UpdaterState.Uninitialized;
+        ResetAllPlates();
+        DestroyAllNodes((AddonNamePlate*)args.Addon);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -121,102 +109,12 @@ public sealed class NameplateUpdater : IDisposable
 
         foreach (var obj in Service.ObjectTable) {
             if (obj.ObjectId == objectId && obj is PlayerCharacter c) {
-                var job = ((Character*)c.Address)->CharacterData
-                    .ClassJob;
+                var job = ((Character*)c.Address)->CharacterData.ClassJob;
                 return job is < 1 or > JobConstants.MaxJob ? null : c;
             }
         }
 
         return null;
-    }
-
-    private unsafe void SetNamePlate(IntPtr namePlateObjectPtr, bool isPrefixTitle, bool displayTitle, IntPtr title,
-        IntPtr name, IntPtr fcName, IntPtr prefix, uint iconId, ref IntPtr hookResult)
-    {
-        // var prefixByte = ((byte*)prefix)[0];
-        // var prefixIcon = BitmapFontIcon.None;
-        // if (prefixByte != 0) {
-        //     prefixIcon = ((IconPayload)MemoryHelper.ReadSeStringNullTerminated(prefix).Payloads[1]).Icon;
-        // }
-        // Service.Log.Warning(
-        //     $"SetNamePlate @ 0x{namePlateObjectPtr:X}\nTitle: isPrefix=[{isPrefixTitle}] displayTitle=[{displayTitle}] title=[{SeStringUtils.PrintRawStringArg(title)}]\n" +
-        //     $"name=[{SeStringUtils.PrintRawStringArg(name)}] fcName=[{SeStringUtils.PrintRawStringArg(fcName)}] prefix=[{SeStringUtils.PrintRawStringArg(prefix)}] iconID=[{iconID}]\n" +
-        //     $"prefixByte=[0x{prefixByte:X}] prefixIcon=[{prefixIcon}({(int)prefixIcon})]");
-
-        var atkModule = RaptureAtkModule.Instance();
-        if (atkModule == null) {
-            throw new Exception("Unable to resolve NamePlate character as RaptureAtkModule was null");
-        }
-
-        var index = _indexMap[namePlateObjectPtr];
-        var state = _stateCache[index];
-        var info = atkModule->NamePlateInfoEntriesSpan.GetPointer(index);
-
-        if (Service.ClientState.IsPvP || info == null) {
-            ResetNodes(state);
-            return;
-        }
-
-        var objectId = info->ObjectID.ObjectID;
-        if (ResolvePlayerCharacter(objectId) is not { } playerCharacter) {
-            ResetNodes(state);
-            return;
-        }
-
-        var context = new UpdateContext(playerCharacter);
-        _view.UpdateViewData(ref context);
-
-        if (context.Mode == NameplateMode.Default) {
-            ResetNodes(state);
-            return;
-        }
-
-        var originalTitle = title;
-        var originalName = name;
-        var originalFcName = fcName;
-        var originalPrefix = prefix;
-
-        try {
-            _view.ModifyParameters(context, ref isPrefixTitle, ref displayTitle, ref title, ref name, ref fcName,
-                ref prefix, ref iconId);
-
-            // if (iconId is EmptyIconId or 0 || !context.ShowNativeIcon) {
-            //     // Replace 0/-1 with empty dummy texture so the default icon is always positioned even for unselected
-            //     // targets (when unselected targets are hidden). If we don't do this, the icon node will only be
-            //     // positioned by the game after the target is selected for hidden nameplates, which would force us to
-            //     // re-position after the initial SetNamePlate call (which would be very annoying).
-            //     iconId = PlaceholderEmptyIconId;
-            //     state.IsIconBlank = true;
-            // }
-            // else {
-            //     state.IsIconBlank = false;
-            // }
-
-            iconId = PlaceholderEmptyIconId;
-
-            hookResult = _setNamePlateHook.Original(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name,
-                fcName,
-                prefix, iconId);
-        }
-        finally {
-            if (originalName != name)
-                SeStringUtils.FreePtr(name);
-            if (originalTitle != title)
-                SeStringUtils.FreePtr(title);
-            if (originalFcName != fcName)
-                SeStringUtils.FreePtr(fcName);
-            if (originalPrefix != prefix)
-                SeStringUtils.FreePtr(prefix);
-        }
-
-        if (context.Mode == NameplateMode.Hide) {
-            ResetNodes(state);
-            return;
-        }
-
-        _view.ModifyGlobalScale(state);
-        _view.ModifyNodes(state, context);
-        state.IsModified = true;
     }
 
     private static unsafe void CreateNodes(AddonNamePlate* addon)
@@ -234,14 +132,6 @@ public sealed class NameplateUpdater : IDisposable
             var resNode = np.ResNode;
             var componentNode = resNode->ParentNode->GetAsAtkComponentNode();
             var uldManager = &componentNode->Component->UldManager;
-
-            var collisionNode =
-                UiHelper.GetNodeByID<AtkCollisionNode>(uldManager, CollisionNodeId, NodeType.Collision);
-
-            var textNode =
-                UiHelper.GetNodeByID<AtkTextNode>(uldManager, NameTextNodeId, NodeType.Text);
-            var iconNode =
-                UiHelper.GetNodeByID<AtkImageNode>(uldManager, IconNodeId, NodeType.Image);
 
             var exNode =
                 UiHelper.GetNodeByID<AtkImageNode>(uldManager, ExNodeId, NodeType.Image);
@@ -268,30 +158,22 @@ public sealed class NameplateUpdater : IDisposable
             indexMap[(nint)namePlateObjectPointer] = i;
         }
 
-        // for (var i = 0; i < infoArray.Length; i++) {
-        //     var info = infoArray[i];
-        //     if (info.ComponentNode->AtkResNode.IsVisible) {
-        //         Service.Log.Info(
-        //             $"  {i} -> {(info.ComponentNode->AtkResNode.IsVisible ? 'v' : 'i')} {info} ({info.NamePlateObject->NameText->NodeText.ToString().Replace("\n", "\\n")} / {info.NamePlateObject->NameplateKind})");
-        //     }
-        // }
-
         _stateCache = stateCache;
         _indexMap = indexMap.ToFrozenDictionary();
-        _addonNamePlateAddr = (nint)addon;
     }
 
     private unsafe void AddonNamePlateDrawDetour(AddonNamePlate* addon)
     {
         if (addon->NamePlateObjectArray == null) return;
 
-        if (_addonNamePlateAddr == 0) {
+        if (_updaterState == UpdaterState.Uninitialized) {
             try {
                 CreateNodes(addon);
+                _updaterState = UpdaterState.Ready;
             }
             catch (Exception e) {
                 Service.Log.Error(e, "Failed to create nameplate icon nodes, will not try again");
-                _addonNamePlateAddr = -1;
+                _updaterState = UpdaterState.Stopped;
             }
 
             Service.Framework.RunOnFrameworkThread(ForceRedrawNamePlates);
@@ -304,7 +186,7 @@ public sealed class NameplateUpdater : IDisposable
                 var obj = state.NamePlateObject;
                 var kind = (NamePlateKind)obj->NameplateKind;
                 if (kind != NamePlateKind.Player || (obj->ResNode->NodeFlags & NodeFlags.Visible) == 0 || isPvP) {
-                    ResetNodes(state);
+                    ResetPlate(state);
                 }
                 else {
                     // Copy UseDepthBasedPriority and Visible flags from NameTextNode
@@ -338,9 +220,109 @@ public sealed class NameplateUpdater : IDisposable
         _namePlateDrawHook.Original(addon);
     }
 
+    public IntPtr SetNamePlateDetour(IntPtr namePlateObjectPtr, bool isPrefixTitle, bool displayTitle,
+        IntPtr title, IntPtr name, IntPtr fcName, IntPtr prefix, uint iconID)
+    {
+        var hookResult = IntPtr.MinValue;
+        if (_updaterState == UpdaterState.Ready) {
+            try {
+                SetNamePlate(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name, fcName, prefix, iconID,
+                    ref hookResult);
+            }
+            catch (Exception ex) {
+                Service.Log.Error(ex, "SetNamePlateDetour encountered a critical error");
+            }
+        }
+
+        return hookResult == IntPtr.MinValue
+            ? _setNamePlateHook.Original(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name, fcName, prefix,
+                iconID)
+            : hookResult;
+    }
+
+    private unsafe void SetNamePlate(IntPtr namePlateObjectPtr, bool isPrefixTitle, bool displayTitle, IntPtr title,
+        IntPtr name, IntPtr fcName, IntPtr prefix, uint iconId, ref IntPtr hookResult)
+    {
+        // var prefixByte = ((byte*)prefix)[0];
+        // var prefixIcon = BitmapFontIcon.None;
+        // if (prefixByte != 0) {
+        //     prefixIcon = ((IconPayload)MemoryHelper.ReadSeStringNullTerminated(prefix).Payloads[1]).Icon;
+        // }
+        // Service.Log.Warning(
+        //     $"SetNamePlate @ 0x{namePlateObjectPtr:X}\nTitle: isPrefix=[{isPrefixTitle}] displayTitle=[{displayTitle}] title=[{SeStringUtils.PrintRawStringArg(title)}]\n" +
+        //     $"name=[{SeStringUtils.PrintRawStringArg(name)}] fcName=[{SeStringUtils.PrintRawStringArg(fcName)}] prefix=[{SeStringUtils.PrintRawStringArg(prefix)}] iconID=[{iconID}]\n" +
+        //     $"prefixByte=[0x{prefixByte:X}] prefixIcon=[{prefixIcon}({(int)prefixIcon})]");
+
+        var atkModule = RaptureAtkModule.Instance();
+        if (atkModule == null) {
+            throw new Exception("Unable to resolve NamePlate character as RaptureAtkModule was null");
+        }
+
+        var index = _indexMap[namePlateObjectPtr];
+        var state = _stateCache[index];
+        var info = atkModule->NamePlateInfoEntriesSpan.GetPointer(index);
+
+        if (Service.ClientState.IsPvP || info == null) {
+            ResetPlate(state);
+            return;
+        }
+
+        var objectId = info->ObjectID.ObjectID;
+        if (ResolvePlayerCharacter(objectId) is not { } playerCharacter) {
+            ResetPlate(state);
+            return;
+        }
+
+        var context = new UpdateContext(playerCharacter);
+        _view.UpdateViewData(ref context);
+
+        if (context.Mode == NameplateMode.Default) {
+            ResetPlate(state);
+            return;
+        }
+
+        var originalTitle = title;
+        var originalName = name;
+        var originalFcName = fcName;
+        var originalPrefix = prefix;
+
+        try {
+            _view.ModifyParameters(context, ref isPrefixTitle, ref displayTitle, ref title, ref name, ref fcName,
+                ref prefix, ref iconId);
+
+            // Replace 0/-1 with empty dummy texture so the default icon is always positioned even for unselected
+            // targets (when unselected targets are hidden). If we don't do this, the icon node will only be
+            // positioned by the game after the target is selected for hidden nameplates, which would force us to
+            // re-position after the initial SetNamePlate call (which would be very annoying).
+            iconId = PlaceholderEmptyIconId;
+
+            hookResult = _setNamePlateHook.Original(namePlateObjectPtr, isPrefixTitle, displayTitle, title, name,
+                fcName, prefix, iconId);
+        }
+        finally {
+            if (originalName != name)
+                SeStringUtils.FreePtr(name);
+            if (originalTitle != title)
+                SeStringUtils.FreePtr(title);
+            if (originalFcName != fcName)
+                SeStringUtils.FreePtr(fcName);
+            if (originalPrefix != prefix)
+                SeStringUtils.FreePtr(prefix);
+        }
+
+        if (context.Mode == NameplateMode.Hide) {
+            ResetPlate(state);
+            return;
+        }
+
+        _view.ModifyGlobalScale(state);
+        _view.ModifyNodes(state, context);
+        state.IsModified = true;
+    }
+
     public static unsafe void ForceRedrawNamePlates()
     {
-        Service.Log.Info("ForceRedrawNamePlates");
+        // Service.Log.Info("ForceRedrawNamePlates");
         var addon = (AddonNamePlate*)Service.GameGui.GetAddonByName("NamePlate");
         if (addon != null) {
             // Changing certain nameplate settings forces a call of the update function on the next frame, which checks
@@ -354,14 +336,14 @@ public sealed class NameplateUpdater : IDisposable
         }
     }
 
-    private static void ResetAllNodes()
+    private static void ResetAllPlates()
     {
         foreach (var state in _stateCache) {
-            ResetNodes(state);
+            ResetPlate(state);
         }
     }
 
-    private static unsafe void ResetNodes(PlateState state)
+    private static unsafe void ResetPlate(PlateState state)
     {
         if (state.IsGlobalScaleModified) {
             state.NamePlateObject->ResNode->OriginX = 0;
@@ -407,11 +389,9 @@ public sealed class NameplateUpdater : IDisposable
         return imageNode;
     }
 
-    private static unsafe void DestroyNodes(AddonNamePlate* addon)
+    private static unsafe void DestroyAllNodes(AddonNamePlate* addon)
     {
         Service.Log.Error("DestroyNodes");
-
-        _addonNamePlateAddr = 0;
 
         var arr = addon->NamePlateObjectArray;
         if (arr == null) return;
@@ -430,13 +410,13 @@ public sealed class NameplateUpdater : IDisposable
             var exNode =
                 UiHelper.GetNodeByID<AtkImageNode>(&parentComponentNodeComponent->UldManager, ExNodeId, NodeType.Image);
             if (exNode != null) {
-                UiHelper.UnlinkAndFreeImageNodeIndirect(exNode, parentComponentNodeComponent->UldManager);
+                UiHelper.UnlinkAndFreeImageNodeIndirect(exNode, &parentComponentNodeComponent->UldManager);
             }
 
             var subNode = UiHelper.GetNodeByID<AtkImageNode>(&parentComponentNodeComponent->UldManager, SubNodeId,
                 NodeType.Image);
             if (subNode != null) {
-                UiHelper.UnlinkAndFreeImageNodeIndirect(subNode, parentComponentNodeComponent->UldManager);
+                UiHelper.UnlinkAndFreeImageNodeIndirect(subNode, &parentComponentNodeComponent->UldManager);
             }
         }
     }

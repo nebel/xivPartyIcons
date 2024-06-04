@@ -266,7 +266,7 @@ public static class StatusUtils
         Status.CameraMode
     ];
 
-    public static readonly Status[] PriorityStatusesInForay =
+    public static readonly Status[] PriorityStatusesInFieldOperations =
     [
         Status.SharingDuty, // This allows you to see which players don't have a party
         Status.Disconnected,

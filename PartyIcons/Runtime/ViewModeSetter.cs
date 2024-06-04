@@ -14,7 +14,7 @@ public enum ZoneType
     Dungeon,
     Raid,
     AllianceRaid,
-    Foray, // TODO: Rename to Field Operations
+    FieldOperation, // TODO: Rename to Field Operations
 }
 
 public sealed class ViewModeSetter
@@ -139,7 +139,7 @@ public sealed class ViewModeSetter
                     break;
 
                 case 127:
-                    ZoneType = ZoneType.Foray;
+                    ZoneType = ZoneType.FieldOperation;
                     _nameplateView.PartyMode = _configuration.NameplateBozjaParty;
                     _nameplateView.OthersMode = _configuration.NameplateBozjaOthers;
                     _chatNameUpdater.PartyMode = _configuration.ChatOverworld;

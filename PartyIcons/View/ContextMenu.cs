@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.Gui.ContextMenu;
 using Dalamud.Game.Text;
 using PartyIcons.Configuration;
@@ -33,15 +34,24 @@ public sealed class ContextMenu : IDisposable
 
     private CharacterInfo? GetCharacterInfo(MenuOpenedArgs args)
     {
-        if (args is { MenuType: ContextMenuType.Default, Target: MenuTargetDefault { TargetCharacter: { } charData } }) {
-            var name = charData.Name;
-            var world = charData.HomeWorld.Id;
-            return new CharacterInfo(
-                name,
-                world,
-                _roleTracker.TryGetAssignedRole(name, world, out var assigned) ? assigned : null,
-                _roleTracker.TryGetSuggestedRole(name, world, out var suggested) ? suggested : null
-            );
+        if (args is { MenuType: ContextMenuType.Default, Target: MenuTargetDefault menuTarget }) {
+            if (menuTarget.TargetCharacter is { Name: {} tcName, HomeWorld.Id: var tcWorld }) {
+                return new CharacterInfo(
+                    tcName,
+                    tcWorld,
+                    _roleTracker.TryGetAssignedRole(tcName, tcWorld, out var assigned) ? assigned : null,
+                    _roleTracker.TryGetSuggestedRole(tcName, tcWorld, out var suggested) ? suggested : null
+                );
+            }
+
+            if (menuTarget.TargetObject is PlayerCharacter { Name.TextValue: {} pcName, HomeWorld.Id: var pcWorld }) {
+                return new CharacterInfo(
+                    pcName,
+                    pcWorld,
+                    _roleTracker.TryGetAssignedRole(pcName, pcWorld, out var assigned) ? assigned : null,
+                    _roleTracker.TryGetSuggestedRole(pcName, pcWorld, out var suggested) ? suggested : null
+                );
+            }
         }
 
         return null;

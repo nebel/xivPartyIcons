@@ -56,13 +56,13 @@ public static class UiHelper
         parent->Component->UldManager.UpdateDrawNodeList();
     }
 
-    public static unsafe void UnlinkAndFreeImageNodeIndirect(AtkImageNode* node, AtkUldManager uldManager)
+    public static unsafe void UnlinkAndFreeImageNodeIndirect(AtkImageNode* node, AtkUldManager* uldManager)
     {
         if ((IntPtr)node->AtkResNode.PrevSiblingNode != IntPtr.Zero)
             node->AtkResNode.PrevSiblingNode->NextSiblingNode = node->AtkResNode.NextSiblingNode;
         if ((IntPtr)node->AtkResNode.NextSiblingNode != IntPtr.Zero)
             node->AtkResNode.NextSiblingNode->PrevSiblingNode = node->AtkResNode.PrevSiblingNode;
-        uldManager.UpdateDrawNodeList();
+        uldManager->UpdateDrawNodeList();
         FreePartsList(node->PartsList);
         FreeImageNode(node);
     }

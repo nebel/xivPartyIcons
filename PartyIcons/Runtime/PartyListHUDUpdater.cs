@@ -179,7 +179,7 @@ public sealed class PartyListHUDUpdater : IDisposable
         {
             Service.Log.Verbose($"member {member.Name.ToString()}");
             
-            if (_roleTracker.TryGetAssignedRole(member.Name.ToString(), member.World.Id, out var roleId))
+            if (_roleTracker.TryGetAssignedRole(member, out var roleId))
             {
                 Service.Log.Verbose($"Updating party list hud: member {member.Name} to {roleId}");
                 _view.SetPartyMemberRole(member.Name.ToString(), member.ObjectId, roleId);

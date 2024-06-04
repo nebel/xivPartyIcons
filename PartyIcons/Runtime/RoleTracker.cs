@@ -4,11 +4,13 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using Dalamud.Game.ClientState.Conditions;
+using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.ClientState.Party;
 using Dalamud.Game.Gui.Toast;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
+using Dalamud.Memory;
 using Dalamud.Plugin.Services;
 using PartyIcons.Configuration;
 using PartyIcons.Entities;
@@ -82,6 +84,24 @@ public sealed class RoleTracker : IDisposable
     public bool TryGetAssignedRole(string name, uint worldId, out RoleId roleId)
     {
         // Service.Log.Verbose($"{_assignedRoles.Count}");
+        return _assignedRoles.TryGetValue(PlayerId(name, worldId), out roleId);
+    }
+
+    public unsafe bool TryGetAssignedRole(PlayerCharacter pc, out RoleId roleId)
+    {
+        // Cheating a lot for the sake of efficiency here
+        var name = MemoryHelper.ReadStringNullTerminated((IntPtr)((FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)pc.Address)->Name);
+        var worldId = ((FFXIVClientStructs.FFXIV.Client.Game.Character.Character*)pc.Address)->HomeWorld;
+
+        return _assignedRoles.TryGetValue(PlayerId(name, worldId), out roleId);
+    }
+
+    public unsafe bool TryGetAssignedRole(PartyMember pc, out RoleId roleId)
+    {
+        // Cheating a lot for the sake of efficiency here
+        var name = MemoryHelper.ReadStringNullTerminated((IntPtr)((FFXIVClientStructs.FFXIV.Client.Game.Group.PartyMember*)pc.Address)->Name);
+        var worldId = ((FFXIVClientStructs.FFXIV.Client.Game.Group.PartyMember*)pc.Address)->HomeWorld;
+
         return _assignedRoles.TryGetValue(PlayerId(name, worldId), out roleId);
     }
 
