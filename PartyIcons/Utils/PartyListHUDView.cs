@@ -27,29 +27,6 @@ public unsafe class PartyListHUDView : IDisposable
         RevertSlotNumbers();
     }
 
-    public void RevertSlotNumbers()
-    {
-        for (uint i = 0; i < 8; i++)
-        {
-            var memberStructOptional = GetPartyMemberStruct(i);
-
-            if (!memberStructOptional.HasValue)
-            {
-                Service.Log.Warning($"Failed to dispose member HUD changes - struct null!");
-
-                continue;
-            }
-
-            var memberStruct = memberStructOptional.Value;
-            var nameNode = memberStruct.Name;
-            nameNode->AtkResNode.SetPositionShort(19, 0);
-
-            var numberNode = nameNode->AtkResNode.PrevSiblingNode->GetAsAtkTextNode();
-            numberNode->AtkResNode.SetPositionShort(0, 0);
-            numberNode->SetText(_stylesheet.BoxedCharacterString((i + 1).ToString()));
-        }
-    }
-
     public uint? GetPartySlotIndex(uint objectId)
     {
         var hud =
@@ -85,49 +62,34 @@ public unsafe class PartyListHUDView : IDisposable
         return null;
     }
 
-    public void SetPartyMemberRole(string name, uint objectId, RoleId roleId)
+    public void RevertSlotNumbers()
     {
-        var index = GetPartySlotIndex(objectId);
-
-        for (uint i = 0; i < 8; i++)
+        var addonPartyList = (AddonPartyList*) Service.GameGui.GetAddonByName("_PartyList", 1);
+        if (addonPartyList == null)
         {
-            var memberStruct = GetPartyMemberStruct(i);
-
-            if (memberStruct.HasValue)
-            {
-                var nameString = memberStruct.Value.Name->NodeText.ToString();
-                var strippedName = StripSpecialCharactersFromName(nameString);
-
-                if (name.Contains(strippedName))
-                {
-                    if (!index.HasValue || index.Value != i)
-                    {
-                        Service.Log.Warning("PartyHUD and HUDAgent id's mismatch!");
-                        // Service.Log.Warning(GetDebugInfo());
-                    }
-
-                    SetPartyMemberRole(i, roleId);
-
-                    return;
-                }
-            }
-        }
-
-        Service.Log.Verbose($"Member struct by the name {name} not found.");
-    }
-
-    private void SetPartyMemberRole(uint index, RoleId roleId)
-    {
-        var memberStructOptional = GetPartyMemberStruct(index);
-
-        if (!memberStructOptional.HasValue)
-        {
-            Service.Log.Warning($"Failed to set party member HUD role to {roleId} - struct null!");
-
             return;
         }
 
-        var memberStruct = memberStructOptional.Value;
+        for (var i = 0; i < 8; i++) {
+            RevertPartyMemberRoleByIndex(addonPartyList, i);
+        }
+    }
+
+    public void RevertPartyMemberRoleByIndex(AddonPartyList* addonPartyList, int index)
+    {
+        var memberStruct = addonPartyList->PartyMember[index];
+
+        var nameNode = memberStruct.Name;
+        nameNode->AtkResNode.SetPositionShort(19, 0);
+
+        var numberNode = nameNode->AtkResNode.PrevSiblingNode->GetAsAtkTextNode();
+        numberNode->AtkResNode.SetPositionShort(0, 0);
+        numberNode->SetText(_stylesheet.BoxedCharacterString((index + 1).ToString()));
+    }
+
+    public void SetPartyMemberRoleByIndex(AddonPartyList* addonPartyList, int index, RoleId roleId)
+    {
+        var memberStruct = addonPartyList->PartyMember[index];
 
         var nameNode = memberStruct.Name;
         nameNode->AtkResNode.SetPositionShort(29, 0);
@@ -233,6 +195,22 @@ public unsafe class PartyListHUDView : IDisposable
             5 => partyListAddon->PartyMember.PartyMember5,
             6 => partyListAddon->PartyMember.PartyMember6,
             7 => partyListAddon->PartyMember.PartyMember7,
+            _ => throw new ArgumentException($"Invalid index: {idx}")
+        };
+    }
+
+    private AddonPartyList.PartyListMemberStruct? GetPartyMemberStruct(AddonPartyList* addon, uint idx)
+    {
+        return idx switch
+        {
+            0 => addon->PartyMember.PartyMember0,
+            1 => addon->PartyMember.PartyMember1,
+            2 => addon->PartyMember.PartyMember2,
+            3 => addon->PartyMember.PartyMember3,
+            4 => addon->PartyMember.PartyMember4,
+            5 => addon->PartyMember.PartyMember5,
+            6 => addon->PartyMember.PartyMember6,
+            7 => addon->PartyMember.PartyMember7,
             _ => throw new ArgumentException($"Invalid index: {idx}")
         };
     }

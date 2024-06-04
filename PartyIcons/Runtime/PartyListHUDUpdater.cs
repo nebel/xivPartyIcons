@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Linq;
-using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Hooking;
 using Dalamud.Memory;
 using Dalamud.Plugin.Services;
+using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Client.UI.Info;
+using FFXIVClientStructs.Interop;
 using PartyIcons.Configuration;
 using PartyIcons.Entities;
 using PartyIcons.Utils;
@@ -113,22 +114,17 @@ public sealed class PartyListHUDUpdater : IDisposable
 
         if (DateTime.Now - _lastUpdate > TimeSpan.FromSeconds(15))
         {
+            Service.Log.Verbose("PartyListHUDUpdater forcing update due to time");
             UpdatePartyListHUD();
             _lastUpdate = DateTime.Now;
         }
     }
 
-    private void UpdatePartyListHUD()
+    private unsafe void UpdatePartyListHUD()
     {
         if (!_configuration.DisplayRoleInPartyList)
         {
             return;
-        }
-
-        if (_configuration.TestingMode &&
-            Service.ClientState.LocalPlayer is { } localPlayer)
-        {
-            _view.SetPartyMemberRole(localPlayer.Name.ToString(), localPlayer.ObjectId, RoleId.M1);
         }
 
         if (!UpdateHUD)
@@ -141,53 +137,50 @@ public sealed class PartyListHUDUpdater : IDisposable
             return;
         }
 
-        Service.Log.Verbose($"Updating party list HUD. members = {Service.PartyList.Length}");
+        // Service.Log.Verbose($"Updating party list HUD. members = {Service.PartyList.Length}");
         _displayingRoles = true;
 
-        unsafe {
-            Service.Log.Info("======");
+        var addonPartyList = (AddonPartyList*) Service.GameGui.GetAddonByName("_PartyList");
+        if (addonPartyList == null)
+        {
+            return;
+        }
 
-            var agentHud = AgentHUD.Instance();
-            Service.Log.Info("Members (AgentHud):");
-            for (int i = 0; i < agentHud->PartyMemberListSpan.Length; i++) {
-                var hudPartyMember = agentHud->PartyMemberListSpan[i];
-                if (hudPartyMember.Name != null) {
-                    var name = MemoryHelper.ReadSeStringNullTerminated((nint)hudPartyMember.Name);
-                    Service.Log.Info($"  [{i}] {name} -> 0x{(nint)hudPartyMember.Object:X} ({(hudPartyMember.Object != null ? hudPartyMember.Object->Character.HomeWorld : "?")}) ");
+        var agentHud = AgentHUD.Instance();
+
+        for (var i = 0; i < 8; i++) {
+            var hudPartyMember = agentHud->PartyMemberListSpan.GetPointer(i);
+            if (hudPartyMember->ContentId > 0) {
+                var name = MemoryHelper.ReadStringNullTerminated((nint)hudPartyMember->Name);
+                var worldId = GetWorldId(hudPartyMember);
+                var hasRole = _roleTracker.TryGetAssignedRole(name, worldId, out var roleId);
+                if (hasRole) {
+                    // Service.Log.Info($"agentHud modify {i}");
+                    _view.SetPartyMemberRoleByIndex(addonPartyList, i, roleId);
+                    continue;
                 }
             }
 
+            // Service.Log.Info($"Reverting {i}");
+            _view.RevertPartyMemberRoleByIndex(addonPartyList, i);
+        }
+    }
 
-            Service.Log.Info($"Members (PartyList):");
-            for (int i = 0; i < Service.PartyList.Length; i++) {
-                var member = Service.PartyList[i];
-                Service.Log.Info($"  [{i}] {member?.Name.TextValue ?? "?"} ({member?.World.Id}) {member?.ContentId}");
-            }
+    private static unsafe uint GetWorldId(HudPartyMember* hudPartyMember)
+    {
+        var bc = hudPartyMember->Object;
+        if (bc != null) {
+            return bc->Character.HomeWorld;
+        }
 
-            var proxy = InfoProxyParty.Instance();
-            var list = proxy->InfoProxyCommonList;
-            Service.Log.Info($"Members (Proxy):");
-            for (int i = 0; i < list.CharDataSpan.Length; i++) {
-                var index = 0/*list.CharIndexSpan[i]*/;
-                var data = list.CharDataSpan[i];
-                var name = MemoryHelper.ReadSeStringNullTerminated((nint)data.Name);
-                Service.Log.Info($"  [{i}] {name} ({data.HomeWorld}) {data.ContentId}");
+        if (hudPartyMember->ContentId > 0) {
+            foreach (var partyMember in Service.PartyList) {
+                if (hudPartyMember->ContentId == (ulong)partyMember.ContentId) {
+                    return partyMember.World.Id;
+                }
             }
         }
 
-        foreach (var member in Service.PartyList)
-        {
-            Service.Log.Verbose($"member {member.Name.ToString()}");
-            
-            if (_roleTracker.TryGetAssignedRole(member, out var roleId))
-            {
-                Service.Log.Verbose($"Updating party list hud: member {member.Name} to {roleId}");
-                _view.SetPartyMemberRole(member.Name.ToString(), member.ObjectId, roleId);
-            }
-            else
-            {
-                Service.Log.Verbose($"Could not get assigned role for member {member.Name.ToString()}, {member.World.Id}");
-            }
-        }
+        return 65535;
     }
 }

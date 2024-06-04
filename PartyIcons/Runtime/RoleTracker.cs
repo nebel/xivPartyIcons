@@ -89,7 +89,7 @@ public sealed class RoleTracker : IDisposable
 
     public unsafe bool TryGetAssignedRole(PlayerCharacter pc, out RoleId roleId)
     {
-        // Cheating a lot for the sake of efficiency here
+        // Cheating a lot for small efficiency gains (avoid SeString creation and ExcelResolver allocation)
         var name = MemoryHelper.ReadStringNullTerminated((IntPtr)((FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)pc.Address)->Name);
         var worldId = ((FFXIVClientStructs.FFXIV.Client.Game.Character.Character*)pc.Address)->HomeWorld;
 
@@ -98,7 +98,7 @@ public sealed class RoleTracker : IDisposable
 
     public unsafe bool TryGetAssignedRole(PartyMember pc, out RoleId roleId)
     {
-        // Cheating a lot for the sake of efficiency here
+        // Cheating a lot for small efficiency gains (avoid SeString creation and ExcelResolver allocation)
         var name = MemoryHelper.ReadStringNullTerminated((IntPtr)((FFXIVClientStructs.FFXIV.Client.Game.Group.PartyMember*)pc.Address)->Name);
         var worldId = ((FFXIVClientStructs.FFXIV.Client.Game.Group.PartyMember*)pc.Address)->HomeWorld;
 
