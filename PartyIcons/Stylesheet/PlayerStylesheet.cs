@@ -68,16 +68,16 @@ public sealed class PlayerStylesheet
     public IconGroupId GetGenericRoleIconGroupId(GenericRole role)
     {
         switch (_configuration.IconSetId) {
-            case IconSetId.Framed:
+            case IconSetId.EmbossedFramed:
                 return IconGroupId.EmbossedFramed;
 
-            case IconSetId.FramedSmall:
+            case IconSetId.EmbossedFramedSmall:
                 return IconGroupId.EmbossedFramedSmall;
 
-            case IconSetId.GlowingGold:
+            case IconSetId.Glowing:
                 return IconGroupId.Glowing;
 
-            case IconSetId.GlowingColored:
+            case IconSetId.Gradient:
                 return role switch
                 {
                     GenericRole.Tank => IconGroupId.GradientBlue,
@@ -87,7 +87,7 @@ public sealed class PlayerStylesheet
                     _ => IconGroupId.GradientGrey
                 };
 
-            case IconSetId.PlainGold:
+            case IconSetId.Embossed:
                 return IconGroupId.Embossed;
 
             default:

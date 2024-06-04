@@ -46,7 +46,7 @@ public class SettingsV1
     public bool AssignFromChat = true;
     public bool UsePriorityIcons = true;
 
-    public IconSetId IconSetId { get; set; } = IconSetId.GlowingColored;
+    public IconSetId IconSetId { get; set; } = IconSetId.Gradient;
     public NameplateSizeMode SizeMode { get; set; } = NameplateSizeMode.Medium;
 
     public NameplateMode NameplateOverworld { get; set; } = NameplateMode.SmallJobIcon;

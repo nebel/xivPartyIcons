@@ -97,20 +97,14 @@ public sealed class ViewModeSetter
 
             var memberType = content.ContentMemberType.Row;
 
-            if (content.RowId is 735 or 778)
+            if (content.TerritoryType.Value is { TerritoryIntendedUse: 41 or 48 } )
             {
-                // Bozja
-                memberType = 127;
-            }
-
-            if (content.ContentType.Row == 26)
-            {
-                // Eureka
+                // Bozja/Eureka
                 memberType = 127;
             }
 
             Service.Log.Debug(
-                $"Territory changed {content.Name} (id {content.RowId} type {content.ContentType.Row}, terr {Service.ClientState.TerritoryType}, memtype {content.ContentMemberType.Row}, overriden {memberType})");
+                $"Territory changed {content.Name} (id {content.RowId} type {content.ContentType.Row}, terr {Service.ClientState.TerritoryType}, iu {content.TerritoryType.Value?.TerritoryIntendedUse}, memtype {content.ContentMemberType.Row}, overriden {memberType})");
 
             switch (memberType)
             {

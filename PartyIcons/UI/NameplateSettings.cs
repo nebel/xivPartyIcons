@@ -7,7 +7,6 @@ using System.Reflection;
 using Dalamud.Interface.Internal;
 using Dalamud.Interface.Utility;
 using ImGuiNET;
-using ImGuiScene;
 using PartyIcons.Configuration;
 
 namespace PartyIcons.UI;
@@ -189,7 +188,7 @@ public sealed class NameplateSettings
         }
     }
 
-    private void CollapsibleExampleImage(NameplateMode mode, IDalamudTextureWrap tex)
+    private static void CollapsibleExampleImage(NameplateMode mode, IDalamudTextureWrap tex)
     {
         if (ImGui.CollapsingHeader(NameplateModeToString(mode)))
         {
@@ -201,11 +200,11 @@ public sealed class NameplateSettings
     {
         return id switch
         {
-            IconSetId.Framed => "Framed, role colored",
-            IconSetId.FramedSmall => "Framed, role colored (small)",
-            IconSetId.GlowingColored => "Glowing, role colored",
-            IconSetId.GlowingGold => "Glowing, gold",
-            IconSetId.PlainGold => "Plain gold",
+            IconSetId.EmbossedFramed => "Framed, role colored",
+            IconSetId.EmbossedFramedSmall => "Framed, role colored (small)",
+            IconSetId.Gradient => "Gradient, role colored",
+            IconSetId.Glowing => "Glowing",
+            IconSetId.Embossed => "Embossed",
             _ => id.ToString()
         };
     }

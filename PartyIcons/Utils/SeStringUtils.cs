@@ -19,25 +19,6 @@ public static class SeStringUtils
 
     public static void Dispose() { }
 
-    public static SeString SeStringFromPtr(IntPtr seStringPtr)
-    {
-        byte b;
-        var offset = 0;
-
-        unsafe
-        {
-            while ((b = *(byte*) (seStringPtr + offset)) != 0)
-            {
-                offset++;
-            }
-        }
-
-        var bytes = new byte[offset];
-        Marshal.Copy(seStringPtr, bytes, 0, offset);
-
-        return SeString.Parse(bytes);
-    }
-
     public static IntPtr SeStringToPtr(SeString seString)
     {
         var bytes = seString.Encode();
@@ -67,25 +48,11 @@ public static class SeStringUtils
     public static SeString Text(string text, ushort color)
     {
         var seString = new SeString(new List<Payload>());
-        seString.Append(new UIForegroundPayload(color));
         seString.Append(new UIGlowPayload(51)); // Black glow
+        seString.Append(new UIForegroundPayload(color));
         seString.Append(new TextPayload(text));
-        seString.Append(UIGlowPayload.UIGlowOff);
         seString.Append(UIForegroundPayload.UIForegroundOff);
-
-        return seString;
-    }
-
-    public static SeString Icon(BitmapFontIcon icon, string? prefix = null)
-    {
-        var seString = new SeString(new List<Payload>());
-
-        if (prefix != null)
-        {
-            seString.Append(new TextPayload(prefix));
-        }
-
-        seString.Append(new IconPayload(icon));
+        seString.Append(UIGlowPayload.UIGlowOff);
 
         return seString;
     }

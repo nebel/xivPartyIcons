@@ -2,9 +2,9 @@
 
 public enum IconSetId
 {
-    GlowingColored,
-    GlowingGold,
-    Framed,
-    FramedSmall,
-    PlainGold,
+    Gradient,
+    Glowing,
+    EmbossedFramed,
+    EmbossedFramedSmall,
+    Embossed,
 }
