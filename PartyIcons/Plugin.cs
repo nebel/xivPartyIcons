@@ -35,9 +35,9 @@ public sealed class Plugin : IDalamudPlugin
 
         SeStringUtils.Initialize();
 
-        PartyHudView = new PartyListHUDView(Service.GameGui, PlayerStylesheet);
+        PartyHudView = new PartyListHUDView(PlayerStylesheet);
         RoleTracker = new RoleTracker(Settings);
-        NameplateView = new NameplateView(RoleTracker, Settings, PlayerStylesheet, PartyHudView);
+        NameplateView = new NameplateView(RoleTracker, Settings, PlayerStylesheet);
         ChatNameUpdater = new ChatNameUpdater(RoleTracker, PlayerStylesheet);
         PartyListHudUpdater = new PartyListHUDUpdater(PartyHudView, RoleTracker, Settings);
         ModeSetter = new ViewModeSetter(NameplateView, Settings, ChatNameUpdater, PartyListHudUpdater);

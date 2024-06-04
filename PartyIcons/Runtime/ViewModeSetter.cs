@@ -156,10 +156,10 @@ public sealed class ViewModeSetter
             }
         }
 
-        _partyListHudUpdater.UpdateHUD = _nameplateView.PartyMode == NameplateMode.RoleLetters ||
-                                         _nameplateView.PartyMode == NameplateMode.SmallJobIconAndRole;
+        var enableHud = _nameplateView.PartyMode is NameplateMode.RoleLetters or NameplateMode.SmallJobIconAndRole;
+        _partyListHudUpdater.EnableUpdates(enableHud);
 
-        Service.Log.Verbose($"Setting modes: nameplates party {_nameplateView.PartyMode} others {_nameplateView.OthersMode}, chat {_chatNameUpdater.PartyMode}, update HUD {_partyListHudUpdater.UpdateHUD}");
+        Service.Log.Verbose($"Setting modes: nameplates party {_nameplateView.PartyMode} others {_nameplateView.OthersMode}, chat {_chatNameUpdater.PartyMode}, update HUD {enableHud}");
         Service.Log.Debug($"Entered ZoneType {ZoneType.ToString()}");
 
         Service.Framework.RunOnFrameworkThread(NameplateUpdater.ForceRedrawNamePlates);

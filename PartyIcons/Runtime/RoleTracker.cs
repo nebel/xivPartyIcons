@@ -96,15 +96,6 @@ public sealed class RoleTracker : IDisposable
         return _assignedRoles.TryGetValue(PlayerId(name, worldId), out roleId);
     }
 
-    public unsafe bool TryGetAssignedRole(PartyMember pc, out RoleId roleId)
-    {
-        // Cheating a lot for small efficiency gains (avoid SeString creation and ExcelResolver allocation)
-        var name = MemoryHelper.ReadStringNullTerminated((IntPtr)((FFXIVClientStructs.FFXIV.Client.Game.Group.PartyMember*)pc.Address)->Name);
-        var worldId = ((FFXIVClientStructs.FFXIV.Client.Game.Group.PartyMember*)pc.Address)->HomeWorld;
-
-        return _assignedRoles.TryGetValue(PlayerId(name, worldId), out roleId);
-    }
-
     public void OccupyRole(string name, uint world, RoleId roleId)
     {
         foreach (var kv in _occupiedRoles.ToArray())
@@ -239,6 +230,13 @@ public sealed class RoleTracker : IDisposable
         foreach (var kv in _occupiedRoles)
         {
             sb.Append($"Role {kv.Value} occupied by {kv.Key}\n");
+        }
+
+        sb.Append("\nSuggested roles:\n");
+
+        foreach (var kv in _suggestedRoles)
+        {
+            sb.Append($"Role {kv.Value} suggested by {kv.Key}\n");
         }
 
         sb.Append("\nUnassigned roles:\n");

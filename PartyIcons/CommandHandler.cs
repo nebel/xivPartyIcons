@@ -36,6 +36,12 @@ public class CommandHandler : IDisposable
             Plugin.RoleTracker.CalculateUnassignedPartyRoles();
             Service.ChatGui.Print("Occupations are reset, roles are auto assigned.");
         }
+        else if (arguments == "dbg r")
+        {
+            Plugin.RoleTracker.ResetOccupations();
+            Plugin.RoleTracker.ResetAssignments();
+            Service.ChatGui.Print("Occupations/assignments are reset.");
+        }
         else if (arguments == "dbg state")
         {
             Service.ChatGui.Print($"Current mode is {Plugin.NameplateView.PartyMode}, party count {Service.PartyList.Length}");
@@ -43,7 +49,7 @@ public class CommandHandler : IDisposable
         }
         else if (arguments == "dbg party")
         {
-            Service.ChatGui.Print(Plugin.PartyHudView.GetDebugInfo());
+            Plugin.PartyHudView.DebugPartyData();
         }
         else if (arguments.Contains("set"))
         {

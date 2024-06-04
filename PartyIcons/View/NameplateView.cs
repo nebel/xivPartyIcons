@@ -20,7 +20,6 @@ public sealed class NameplateView : IDisposable
     private readonly Settings _configuration;
     private readonly PlayerStylesheet _stylesheet;
     private readonly RoleTracker _roleTracker;
-    private readonly PartyListHUDView _partyListHudView;
     private ModeConfigs _modeConfigs = new();
 
     private const short ExIconWidth = 32;
@@ -36,13 +35,11 @@ public sealed class NameplateView : IDisposable
     public NameplateMode PartyMode { get; set; }
     public NameplateMode OthersMode { get; set; }
 
-    public NameplateView(RoleTracker roleTracker, Settings configuration, PlayerStylesheet stylesheet,
-        PartyListHUDView partyListHudView)
+    public NameplateView(RoleTracker roleTracker, Settings configuration, PlayerStylesheet stylesheet)
     {
         _roleTracker = roleTracker;
         _configuration = configuration;
         _stylesheet = stylesheet;
-        _partyListHudView = partyListHudView;
     }
 
     public void Dispose()
@@ -191,7 +188,7 @@ public sealed class NameplateView : IDisposable
             }
             case NameplateMode.BigJobIconAndPartySlot:
             {
-                if (_partyListHudView.GetPartySlotIndex(context.PlayerCharacter.ObjectId) is {  } partySlot) {
+                if (PartyListHUDView.GetPartySlotIndex(context.PlayerCharacter.ObjectId) is {  } partySlot) {
                     var slotString = _stylesheet.GetPartySlotNumber(partySlot + 1, context.GenericRole);
                     slotString.Payloads.Insert(0, new TextPayload(FullWidthSpace));
                     name = SeStringUtils.SeStringToPtr(slotString);
