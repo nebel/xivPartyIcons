@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Linq;
-using Dalamud.Hooking;
 using Dalamud.Memory;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.UI;
@@ -8,7 +6,6 @@ using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Client.UI.Info;
 using FFXIVClientStructs.Interop;
 using PartyIcons.Configuration;
-using PartyIcons.Entities;
 using PartyIcons.Utils;
 
 namespace PartyIcons.Runtime;
@@ -31,7 +28,6 @@ public sealed class PartyListHUDUpdater : IDisposable
         _view = view;
         _roleTracker = roleTracker;
         _configuration = configuration;
-
     }
 
     public void Enable()
@@ -52,72 +48,79 @@ public sealed class PartyListHUDUpdater : IDisposable
         Service.ClientState.TerritoryChanged -= OnTerritoryChanged;
         _configuration.OnSave -= OnConfigurationSave;
         _roleTracker.OnAssignedRolesUpdated -= OnAssignedRolesUpdated;
+
+        RevertHud();
+    }
+
+    private unsafe void RevertHud()
+    {
+        var addonPartyList = (AddonPartyList*) Service.GameGui.GetAddonByName("_PartyList");
+        if (addonPartyList == null)
+        {
+            return;
+        }
+
+        for (var i = 0; i < 8; i++) {
+            _view.RevertPartyMemberRoleByIndex(addonPartyList, i);
+        }
+
+        _displayingRoles = false;
     }
 
     public void EnableUpdates(bool value)
     {
         if (!value && _enabled) {
-            _view.RevertSlotNumbers();
-            _displayingRoles = false;
+            RevertHud();
         }
 
         _enabled = value;
     }
 
-    private void Revert()
-    {
-        _displayingRoles = false;
-        _view.RevertSlotNumbers();
-    }
-
     private void OnTerritoryChanged(ushort id)
     {
         Service.Log.Verbose("PartyListHUDUpdater Forcing update due to territory change");
-        Update();
+        UpdateHud();
     }
 
     private void OnEnterPvP()
     {
-        if (_displayingRoles)
-        {
+        if (_displayingRoles) {
             Service.Log.Verbose("PartyListHUDUpdater: reverting party list due to entering a PvP zone");
-            Revert();
+            RevertHud();
         }
     }
 
     private void OnLeavePvP()
     {
         Service.Log.Verbose("PartyListHUDUpdater: updating party list due to leaving a PvP zone");
-        Update();
+        UpdateHud();
     }
 
     private void OnConfigurationSave()
     {
-        if (_displayingRoles)
-        {
+        if (_displayingRoles) {
             Service.Log.Verbose("PartyListHUDUpdater: reverting party list before the update due to config change");
-            Revert();
+            RevertHud();
         }
 
         Service.Log.Verbose("PartyListHUDUpdater forcing update due to changes in the config");
-        Update();
+        UpdateHud();
     }
 
     private void OnAssignedRolesUpdated()
     {
         Service.Log.Verbose("PartyListHUDUpdater forcing update due to assignments update");
-        Update();
+        UpdateHud();
     }
-    
+
     private void OnUpdate(IFramework framework)
     {
         var inParty = Service.PartyList.Length != 0 || _configuration.TestingMode;
 
-        if (!inParty && _previousInParty)
-        {
-            Service.Log.Verbose("No longer in party/testing mode, reverting party list HUD changes");
-            _displayingRoles = false;
-            _view.RevertSlotNumbers();
+        if (!inParty && _previousInParty) {
+            Service.Log.Verbose("No longer in party/testing mode, reverting/updating party list HUD changes");
+            RevertHud();
+            UpdateHud();
         }
 
         _previousInParty = inParty;
@@ -125,22 +128,20 @@ public sealed class PartyListHUDUpdater : IDisposable
         if (_updateQueued) {
             // Service.Log.Verbose("Running queued update");
             _updateQueued = false;
-            Update();
+            UpdateHud();
         }
     }
 
-    private unsafe void Update()
+    private unsafe void UpdateHud()
     {
         if (!_configuration.DisplayRoleInPartyList
             || !_enabled
-            || Service.ClientState.IsPvP)
-        {
+            || Service.ClientState.IsPvP) {
             return;
         }
 
-        var addonPartyList = (AddonPartyList*) Service.GameGui.GetAddonByName("_PartyList");
-        if (addonPartyList == null)
-        {
+        var addonPartyList = (AddonPartyList*)Service.GameGui.GetAddonByName("_PartyList");
+        if (addonPartyList == null) {
             return;
         }
 
@@ -190,5 +191,36 @@ public sealed class PartyListHUDUpdater : IDisposable
         }
 
         return 65535;
+    }
+
+    public static unsafe void DebugPartyData()
+    {
+        Service.Log.Info("======");
+
+        var agentHud = AgentHUD.Instance();
+        Service.Log.Info($"Members (AgentHud) [{agentHud->PartyMemberCount}]:");
+        for (var i = 0; i < agentHud->PartyMemberListSpan.Length; i++) {
+            var hudPartyMember = agentHud->PartyMemberListSpan[i];
+            if (hudPartyMember.Name != null) {
+                var name = MemoryHelper.ReadSeStringNullTerminated((nint)hudPartyMember.Name);
+                Service.Log.Info(
+                    $"  [{i}] {name} -> 0x{(nint)hudPartyMember.Object:X} ({(hudPartyMember.Object != null ? hudPartyMember.Object->Character.HomeWorld : "?")}) {hudPartyMember.ContentId} {hudPartyMember.ObjectId}");
+            }
+        }
+
+        Service.Log.Info($"Members (PartyList) [{Service.PartyList.Length}]:");
+        for (var i = 0; i < Service.PartyList.Length; i++) {
+            var member = Service.PartyList[i];
+            Service.Log.Info($"  [{i}] {member?.Name.TextValue ?? "?"} ({member?.World.Id}) {member?.ContentId}");
+        }
+
+        var proxy = InfoProxyParty.Instance();
+        var list = proxy->InfoProxyCommonList;
+        Service.Log.Info($"Members (Proxy) [{list.CharDataSpan.Length}]:");
+        for (var i = 0; i < list.CharDataSpan.Length; i++) {
+            var data = list.CharDataSpan[i];
+            var name = MemoryHelper.ReadSeStringNullTerminated((nint)data.Name);
+            Service.Log.Info($"  [{i}] {name} ({data.HomeWorld}) {data.ContentId}");
+        }
     }
 }

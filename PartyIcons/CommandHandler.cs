@@ -1,5 +1,6 @@
 using System;
 using Dalamud.Game.Command;
+using PartyIcons.Runtime;
 
 namespace PartyIcons;
 
@@ -49,7 +50,7 @@ public class CommandHandler : IDisposable
         }
         else if (arguments == "dbg party")
         {
-            Plugin.PartyHudView.DebugPartyData();
+            PartyListHUDUpdater.DebugPartyData();
         }
         else if (arguments.Contains("set"))
         {

@@ -1,15 +1,12 @@
 ﻿using System;
-using Dalamud.Game.Text;
-using Dalamud.Memory;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
-using FFXIVClientStructs.FFXIV.Client.UI.Info;
 using PartyIcons.Entities;
 using PartyIcons.Stylesheet;
 
 namespace PartyIcons.Utils;
 
-public unsafe class PartyListHUDView : IDisposable
+public sealed unsafe class PartyListHUDView : IDisposable
 {
     private readonly PlayerStylesheet _stylesheet;
 
@@ -20,7 +17,6 @@ public unsafe class PartyListHUDView : IDisposable
 
     public void Dispose()
     {
-        RevertSlotNumbers();
     }
 
     public static uint? GetPartySlotIndex(uint objectId)
@@ -56,31 +52,6 @@ public unsafe class PartyListHUDView : IDisposable
         return null;
     }
 
-    public void RevertSlotNumbers()
-    {
-        var addonPartyList = (AddonPartyList*) Service.GameGui.GetAddonByName("_PartyList", 1);
-        if (addonPartyList == null)
-        {
-            return;
-        }
-
-        for (var i = 0; i < 8; i++) {
-            RevertPartyMemberRoleByIndex(addonPartyList, i);
-        }
-    }
-
-    public void RevertPartyMemberRoleByIndex(AddonPartyList* addonPartyList, int index)
-    {
-        var memberStruct = addonPartyList->PartyMember[index];
-
-        var nameNode = memberStruct.Name;
-        nameNode->AtkResNode.SetPositionShort(19, 0);
-
-        var numberNode = nameNode->AtkResNode.PrevSiblingNode->GetAsAtkTextNode();
-        numberNode->AtkResNode.SetPositionShort(0, 0);
-        numberNode->SetText(_stylesheet.BoxedCharacterString((index + 1).ToString()));
-    }
-
     public void SetPartyMemberRoleByIndex(AddonPartyList* addonPartyList, int index, RoleId roleId)
     {
         var memberStruct = addonPartyList->PartyMember[index];
@@ -100,33 +71,15 @@ public unsafe class PartyListHUDView : IDisposable
         }
     }
 
-    public void DebugPartyData()
+    public void RevertPartyMemberRoleByIndex(AddonPartyList* addonPartyList, int index)
     {
-        Service.Log.Info("======");
+        var memberStruct = addonPartyList->PartyMember[index];
 
-        var agentHud = AgentHUD.Instance();
-        Service.Log.Info($"Members (AgentHud) [{agentHud->PartyMemberCount}]:");
-        for (var i = 0; i < agentHud->PartyMemberListSpan.Length; i++) {
-            var hudPartyMember = agentHud->PartyMemberListSpan[i];
-            if (hudPartyMember.Name != null) {
-                var name = MemoryHelper.ReadSeStringNullTerminated((nint)hudPartyMember.Name);
-                Service.Log.Info($"  [{i}] {name} -> 0x{(nint)hudPartyMember.Object:X} ({(hudPartyMember.Object != null ? hudPartyMember.Object->Character.HomeWorld : "?")}) {hudPartyMember.ContentId} {hudPartyMember.ObjectId}");
-            }
-        }
+        var nameNode = memberStruct.Name;
+        nameNode->AtkResNode.SetPositionShort(19, 0);
 
-        Service.Log.Info($"Members (PartyList) [{Service.PartyList.Length}]:");
-        for (var i = 0; i < Service.PartyList.Length; i++) {
-            var member = Service.PartyList[i];
-            Service.Log.Info($"  [{i}] {member?.Name.TextValue ?? "?"} ({member?.World.Id}) {member?.ContentId}");
-        }
-
-        var proxy = InfoProxyParty.Instance();
-        var list = proxy->InfoProxyCommonList;
-        Service.Log.Info($"Members (Proxy) [{list.CharDataSpan.Length}]:");
-        for (var i = 0; i < list.CharDataSpan.Length; i++) {
-            var data = list.CharDataSpan[i];
-            var name = MemoryHelper.ReadSeStringNullTerminated((nint)data.Name);
-            Service.Log.Info($"  [{i}] {name} ({data.HomeWorld}) {data.ContentId}");
-        }
+        var numberNode = nameNode->AtkResNode.PrevSiblingNode->GetAsAtkTextNode();
+        numberNode->AtkResNode.SetPositionShort(0, 0);
+        numberNode->SetText(_stylesheet.BoxedCharacterString((index + 1).ToString()));
     }
 }
