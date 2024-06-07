@@ -13,8 +13,10 @@ public class StatusResolver
     public StatusResolver(Settings settings)
     {
         _settings = settings;
-        _currentZoneType = ZoneType.FieldOperation;
-        SetZoneType(ZoneType.Overworld);
+        _currentZoneType = ZoneType.Overworld;
+        ReloadFromConfig();
+
+        _settings.OnSave += ReloadFromConfig;
     }
 
     public void SetZoneType(ZoneType zoneType)
@@ -24,8 +26,12 @@ public class StatusResolver
         }
 
         _currentZoneType = zoneType;
+        ReloadFromConfig();
+    }
 
-        switch (zoneType) {
+    private void ReloadFromConfig()
+    {
+        switch (_currentZoneType) {
             case ZoneType.Overworld:
                 LoadConfig(_settings.StatusConfigOverworld);
                 break;

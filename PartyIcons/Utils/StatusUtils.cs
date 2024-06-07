@@ -36,7 +36,7 @@ public static class StatusUtils
         Status.GameMasterBlue,
     ];
 
-    private static readonly Status[] SupportedStatuses =
+    public static readonly Status[] ConfigurableStatuses =
     [
         // Status.GameQA, // Always shown
         // Status.GameMasterRed, // Always shown
@@ -95,7 +95,7 @@ public static class StatusUtils
             if (FixedStatuses.Contains(status)) {
                 array[(int)status] = StatusDisplay.Important;
             }
-            else if (SupportedStatuses.Contains(status)) {
+            else if (ConfigurableStatuses.Contains(status)) {
                 if (important.Contains(status)) {
                     array[(int)status] = StatusDisplay.Important;
                 }
@@ -119,7 +119,7 @@ public static class StatusUtils
             if (FixedStatuses.Contains(status)) {
                 array[(int)status] = StatusDisplay.Important;
             }
-            else if (SupportedStatuses.Contains(status)) {
+            else if (ConfigurableStatuses.Contains(status)) {
                 if (dict.TryGetValue(status, out var importance)) {
                     array[(int)status] = importance;
                 }

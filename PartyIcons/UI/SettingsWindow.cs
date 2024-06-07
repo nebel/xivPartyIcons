@@ -95,6 +95,18 @@ public sealed class SettingsWindow : IDisposable
                     ImGui.EndTabItem();
                 }
 
+                if (ImGui.BeginTabItem("Statuses"))
+                {
+                    if (ImGui.BeginChild("##statuses_content"))
+                    {
+                        _statusSettings.DrawStatusSettings();
+
+                        ImGui.EndChild();
+                    }
+
+                    ImGui.EndTabItem();
+                }
+
                 if (ImGui.BeginTabItem("Chat Names"))
                 {
                     if (ImGui.BeginChild("##chat_names_content"))
@@ -163,6 +175,7 @@ public sealed class SettingsWindow : IDisposable
     private static WindowSizeHelper _windowSizeHelper = new();
     private readonly GeneralSettings _generalSettings = new();
     private readonly NameplateSettings _nameplateSettings = new();
+    private readonly StatusSettings _statusSettings = new();
     private readonly ChatNameSettings _chatNameSettings = new();
     private readonly StaticAssignmentsSettings _staticAssignmentsSettings = new StaticAssignmentsSettings();
     

@@ -48,10 +48,7 @@ public sealed class NameplateSettings
     {
         const float separatorPadding = 2f;
         
-        ImGui.Dummy(new Vector2(0, 1f));
-        ImGui.TextDisabled("Please note, it usually takes time for nameplates to reload.");
-        ImGui.Dummy(new Vector2(0, 10f));
-        
+        ImGui.Dummy(new Vector2(0, 2f));
         var iconSetId = Plugin.Settings.IconSetId;
         ImGui.Text("Icon set:");
         ImGui.SameLine();

@@ -8,12 +8,14 @@ namespace PartyIcons.Configuration;
 public class StatusConfig
 {
     public readonly StatusConfigBaseType BaseType;
+    public readonly string Id;
     public string Name;
-    public Dictionary<Status, StatusDisplay> DisplayMap;
+    public Dictionary<Status, StatusDisplay> DisplayMap = new();
 
     public StatusConfig(StatusConfigBaseType baseType)
     {
         BaseType = baseType;
+        Id = Guid.Empty.ToString();
         Name = baseType.ToString();
         Reset();
     }
@@ -73,10 +75,11 @@ public class StatusConfig
                 Status.ViewingCutscene,
                 Status.AwayFromKeyboard,
                 Status.CameraMode,
+            ],
+            [
                 Status.Returner,
                 Status.NewAdventurer,
-            ],
-            []);
+            ]);
 
         public static StatusDisplay[] FieldOperations => StatusUtils.ListsToArray([
                 Status.SharingDuty, // This allows you to see which players don't have a party (note: maybe?)
@@ -84,10 +87,11 @@ public class StatusConfig
                 Status.ViewingCutscene,
                 Status.AwayFromKeyboard,
                 Status.CameraMode,
+            ],
+            [
                 Status.Returner,
                 Status.NewAdventurer,
-            ],
-            []);
+            ]);
     }
 }
 
