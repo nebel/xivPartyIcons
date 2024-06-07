@@ -49,14 +49,15 @@ public sealed class NameplateUpdater : IDisposable
 
     public int DebugIcon { get; set; } = -1;
 
-    enum UpdaterState
+    private enum UpdaterState
     {
         Uninitialized,
+        Initializing,
         Ready,
         Stopped
     }
 
-    public NameplateUpdater(Settings configuration, NameplateView view, ViewModeSetter modeSetter)
+    public NameplateUpdater(NameplateView view)
     {
         _view = view;
         Service.GameInteropProvider.InitializeFromAttributes(this);
@@ -95,9 +96,13 @@ public sealed class NameplateUpdater : IDisposable
     private static unsafe void OnPreFinalize(AddonEvent type, AddonArgs args)
     {
         Service.Log.Info($"OnPreFinalize (0x{args.Addon:X})");
-        _updaterState = UpdaterState.Uninitialized;
+
         ResetAllPlates();
         DestroyAllNodes((AddonNamePlate*)args.Addon);
+
+        _updaterState = UpdaterState.Uninitialized;
+        _stateCache = [];
+        _indexMap = new Dictionary<nint, int>().ToFrozenDictionary();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -117,56 +122,19 @@ public sealed class NameplateUpdater : IDisposable
         return null;
     }
 
-    private static unsafe void CreateNodes(AddonNamePlate* addon)
-    {
-        Service.Log.Error("CreateNodes");
-
-        var stateCache = new PlateState[AddonNamePlate.NumNamePlateObjects];
-        var indexMap = new Dictionary<nint, int>();
-
-        var arr = addon->NamePlateObjectArray;
-        if (arr == null) return;
-
-        for (var i = 0; i < AddonNamePlate.NumNamePlateObjects; i++) {
-            var np = arr[i];
-            var resNode = np.ResNode;
-            var componentNode = resNode->ParentNode->GetAsAtkComponentNode();
-            var uldManager = &componentNode->Component->UldManager;
-
-            var exNode =
-                UiHelper.GetNodeByID<AtkImageNode>(uldManager, ExNodeId, NodeType.Image);
-            if (exNode == null) {
-                exNode = CreateImageNode(ExNodeId, componentNode, IconNodeId);
-            }
-
-            var subNode =
-                UiHelper.GetNodeByID<AtkImageNode>(uldManager, SubNodeId, NodeType.Image);
-            if (subNode == null) {
-                subNode = CreateImageNode(SubNodeId, componentNode, NameTextNodeId);
-            }
-
-            var namePlateObjectPointer = arr + i;
-
-            stateCache[i] = new PlateState
-            {
-                NamePlateObject = namePlateObjectPointer,
-                ExIconNode = exNode,
-                SubIconNode = subNode,
-                UseExIcon = false,
-                UseSubIcon = true,
-            };
-            indexMap[(nint)namePlateObjectPointer] = i;
-        }
-
-        _stateCache = stateCache;
-        _indexMap = indexMap.ToFrozenDictionary();
-    }
-
     private unsafe void AddonNamePlateDrawDetour(AddonNamePlate* addon)
     {
-        if (addon->NamePlateObjectArray == null) return;
+        if (addon->NamePlateObjectArray == null)
+            goto Original;
 
         if (_updaterState == UpdaterState.Uninitialized) {
+            // Don't modify on first call as some setup may still be happening (seems to be cases where some node
+            // siblings which shouldn't normally be null are null, usually when logging out/in during the same session)
+            _updaterState = UpdaterState.Initializing;
+            goto Original;
+        }
+
+        if (_updaterState is UpdaterState.Initializing) {
             try {
                 CreateNodes(addon);
                 _updaterState = UpdaterState.Ready;
@@ -174,6 +142,7 @@ public sealed class NameplateUpdater : IDisposable
             catch (Exception e) {
                 Service.Log.Error(e, "Failed to create nameplate icon nodes, will not try again");
                 _updaterState = UpdaterState.Stopped;
+                goto Original;
             }
 
             Service.Framework.RunOnFrameworkThread(ForceRedrawNamePlates);
@@ -201,7 +170,8 @@ public sealed class NameplateUpdater : IDisposable
                             (NodeFlags.UseDepthBasedPriority | NodeFlags.Visible);
 
                     if (state.NeedsCollisionFix) {
-                        var colScale = obj->NameText->AtkResNode.ScaleX * 2 * obj->ResNode->ScaleX * state.CollisionScale;
+                        var colScale = obj->NameText->AtkResNode.ScaleX * 2 * obj->ResNode->ScaleX *
+                                       state.CollisionScale;
                         var colRes = &obj->CollisionNode1->AtkResNode;
                         colRes->OriginX = colRes->Width / 2f;
                         colRes->OriginY = colRes->Height;
@@ -217,6 +187,7 @@ public sealed class NameplateUpdater : IDisposable
             // state.SubIconNode->AtkResNode.SetScale(scale, scale);
         }
 
+        Original:
         _namePlateDrawHook.Original(addon);
     }
 
@@ -361,6 +332,51 @@ public sealed class NameplateUpdater : IDisposable
         state.NamePlateObject->CollisionNode1->AtkResNode.SetScale(1f, 1f);
 
         state.IsModified = false;
+    }
+
+    private static unsafe void CreateNodes(AddonNamePlate* addon)
+    {
+        Service.Log.Error("CreateNodes");
+
+        var stateCache = new PlateState[AddonNamePlate.NumNamePlateObjects];
+        var indexMap = new Dictionary<nint, int>();
+
+        var arr = addon->NamePlateObjectArray;
+        if (arr == null) return;
+
+        for (var i = 0; i < AddonNamePlate.NumNamePlateObjects; i++) {
+            var np = &arr[i];
+            var resNode = np->ResNode;
+            var componentNode = resNode->ParentNode->GetAsAtkComponentNode();
+            var uldManager = &componentNode->Component->UldManager;
+
+            var exNode =
+                UiHelper.GetNodeByID<AtkImageNode>(uldManager, ExNodeId, NodeType.Image);
+            if (exNode == null) {
+                exNode = CreateImageNode(ExNodeId, componentNode, IconNodeId);
+            }
+
+            var subNode =
+                UiHelper.GetNodeByID<AtkImageNode>(uldManager, SubNodeId, NodeType.Image);
+            if (subNode == null) {
+                subNode = CreateImageNode(SubNodeId, componentNode, NameTextNodeId);
+            }
+
+            var namePlateObjectPointer = arr + i;
+
+            stateCache[i] = new PlateState
+            {
+                NamePlateObject = namePlateObjectPointer,
+                ExIconNode = exNode,
+                SubIconNode = subNode,
+                UseExIcon = false,
+                UseSubIcon = true,
+            };
+            indexMap[(nint)namePlateObjectPointer] = i;
+        }
+
+        _stateCache = stateCache;
+        _indexMap = indexMap.ToFrozenDictionary();
     }
 
     private static unsafe AtkImageNode* CreateImageNode(uint nodeId, AtkComponentNode* parent, uint targetNodeId)

@@ -42,6 +42,10 @@ public class Settings : IPluginConfiguration
     public ChatConfig ChatRaid { get; set; } = new (ChatMode.Role);
     public ChatConfig ChatOthers { get; set; } = new (ChatMode.Job);
 
+    public StatusConfig StatusConfigOverworld = new(StatusConfigBaseType.Overworld);
+    public StatusConfig StatusConfigInstances = new(StatusConfigBaseType.Instances);
+    public StatusConfig StatusConfigFieldOperations = new(StatusConfigBaseType.FieldOperations);
+
     public Dictionary<string, RoleId> StaticAssignments { get; set; } = new();
 
     public event Action OnSave;

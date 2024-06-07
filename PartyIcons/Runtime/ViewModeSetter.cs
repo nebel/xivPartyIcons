@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Linq;
-using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using Lumina.Excel;
 using Lumina.Excel.GeneratedSheets;
 using PartyIcons.Configuration;
@@ -14,7 +13,7 @@ public enum ZoneType
     Dungeon,
     Raid,
     AllianceRaid,
-    FieldOperation, // TODO: Rename to Field Operations
+    FieldOperation,
 }
 
 public sealed class ViewModeSetter
@@ -30,16 +29,18 @@ public sealed class ViewModeSetter
     private readonly Settings _configuration;
     private readonly ChatNameUpdater _chatNameUpdater;
     private readonly PartyListHUDUpdater _partyListHudUpdater;
+    private readonly StatusResolver _statusResolver;
 
     private ExcelSheet<ContentFinderCondition> _contentFinderConditionsSheet;
 
     public ViewModeSetter(NameplateView nameplateView, Settings configuration, ChatNameUpdater chatNameUpdater,
-        PartyListHUDUpdater partyListHudUpdater)
+        PartyListHUDUpdater partyListHudUpdater, StatusResolver statusResolver)
     {
         _nameplateView = nameplateView;
         _configuration = configuration;
         _chatNameUpdater = chatNameUpdater;
         _partyListHudUpdater = partyListHudUpdater;
+        _statusResolver = statusResolver;
         
         _configuration.OnSave += OnConfigurationSave;
     }
@@ -84,9 +85,11 @@ public sealed class ViewModeSetter
         if (content == null)
         {
             Service.Log.Verbose($"Content null {Service.ClientState.TerritoryType}");
-            _nameplateView.PartyMode = _configuration.NameplateOverworld;
-            _chatNameUpdater.PartyMode = _configuration.ChatOverworld;
             ZoneType = ZoneType.Overworld;
+            _nameplateView.PartyMode = _configuration.NameplateOverworld;
+            _nameplateView.OthersMode = _configuration.NameplateOthers;
+            _chatNameUpdater.PartyMode = _configuration.ChatOverworld;
+            _statusResolver.SetZoneType(ZoneType.Overworld);
         }
         else
         {
@@ -113,6 +116,7 @@ public sealed class ViewModeSetter
                     _nameplateView.PartyMode = _configuration.NameplateDungeon;
                     _nameplateView.OthersMode = _configuration.NameplateOthers;
                     _chatNameUpdater.PartyMode = _configuration.ChatDungeon;
+                    _statusResolver.SetZoneType(ZoneType.Dungeon);
 
                     break;
 
@@ -121,6 +125,7 @@ public sealed class ViewModeSetter
                     _nameplateView.PartyMode = _configuration.NameplateRaid;
                     _nameplateView.OthersMode = _configuration.NameplateOthers;
                     _chatNameUpdater.PartyMode = _configuration.ChatRaid;
+                    _statusResolver.SetZoneType(ZoneType.Raid);
 
                     break;
 
@@ -129,6 +134,7 @@ public sealed class ViewModeSetter
                     _nameplateView.PartyMode = _configuration.NameplateAllianceRaid;
                     _nameplateView.OthersMode = _configuration.NameplateOthers;
                     _chatNameUpdater.PartyMode = _configuration.ChatAllianceRaid;
+                    _statusResolver.SetZoneType(ZoneType.AllianceRaid);
 
                     break;
 
@@ -137,6 +143,7 @@ public sealed class ViewModeSetter
                     _nameplateView.PartyMode = _configuration.NameplateBozjaParty;
                     _nameplateView.OthersMode = _configuration.NameplateBozjaOthers;
                     _chatNameUpdater.PartyMode = _configuration.ChatOverworld;
+                    _statusResolver.SetZoneType(ZoneType.FieldOperation);
 
                     break;
 
@@ -145,6 +152,7 @@ public sealed class ViewModeSetter
                     _nameplateView.PartyMode = _configuration.NameplateDungeon;
                     _nameplateView.OthersMode = _configuration.NameplateOthers;
                     _chatNameUpdater.PartyMode = _configuration.ChatDungeon;
+                    _statusResolver.SetZoneType(ZoneType.Dungeon);
 
                     break;
             }

@@ -20,7 +20,7 @@ public sealed class NameplateView : IDisposable
     private readonly Settings _configuration;
     private readonly PlayerStylesheet _stylesheet;
     private readonly RoleTracker _roleTracker;
-    private ModeConfigs _modeConfigs = new();
+    private readonly StatusResolver _statusResolver;
 
     private const short ExIconWidth = 32;
     private const short ExIconWidthHalf = 16;
@@ -35,11 +35,13 @@ public sealed class NameplateView : IDisposable
     public NameplateMode PartyMode { get; set; }
     public NameplateMode OthersMode { get; set; }
 
-    public NameplateView(RoleTracker roleTracker, Settings configuration, PlayerStylesheet stylesheet)
+    public NameplateView(RoleTracker roleTracker, Settings configuration, PlayerStylesheet stylesheet,
+        StatusResolver statusResolver)
     {
         _roleTracker = roleTracker;
         _configuration = configuration;
         _stylesheet = stylesheet;
+        _statusResolver = statusResolver;
     }
 
     public void Dispose()
@@ -61,6 +63,7 @@ public sealed class NameplateView : IDisposable
         var genericRole = context.Job.GetRole();
         var iconSet = _stylesheet.GetGenericRoleIconGroupId(genericRole);
         var iconGroup = IconRegistrar.Get(iconSet);
+        var statusDisplay = _statusResolver.CheckStatusDisplay(context.Status);
 
         context.JobIconGroup = iconGroup;
         context.JobIconId = iconGroup.GetJobIcon((uint)context.Job);
@@ -71,10 +74,10 @@ public sealed class NameplateView : IDisposable
             context.ShowExIcon = false;
         }
 
-        if (context.Status == Status.None) {
+        if (context.Status == Status.None || statusDisplay == StatusDisplay.Hide) {
             context.ShowSubIcon = false;
         }
-        else if (IsPriorityStatus(context.Status)) {
+        else if (_statusResolver.CheckStatusDisplay(context.Status) >= StatusDisplay.Important) {
             switch (modeConfig.SwapStyle) {
                 case StatusSwapStyle.None:
                     break;
@@ -108,16 +111,6 @@ public sealed class NameplateView : IDisposable
     private static unsafe void SetNameScale(PlateState state, float scale)
     {
         state.NamePlateObject->NameText->AtkResNode.SetScale(scale, scale);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void DoPriorityCheck(UpdateContext context)
-    {
-        if (IsPriorityStatus(context.Status)) {
-            (context.JobIconId, context.StatusIconId) = (context.StatusIconId, context.JobIconId);
-            (context.JobIconGroup, context.StatusIconGroup) = (context.StatusIconGroup, context.JobIconGroup);
-            (context.ShowExIcon, context.ShowSubIcon) = (context.ShowSubIcon, context.ShowExIcon);
-        }
     }
 
     public void ModifyParameters(UpdateContext context,
@@ -391,20 +384,6 @@ public sealed class NameplateView : IDisposable
         }
 
         return OthersMode;
-    }
-
-    private bool IsPriorityStatus(Status status)
-    {
-        if (_configuration.UsePriorityIcons == false && status != Status.Disconnected)
-            return false;
-
-        if (Plugin.ModeSetter.ZoneType == ZoneType.FieldOperation)
-            return StatusUtils.PriorityStatusesInFieldOperations.Contains(status);
-
-        if (Plugin.ModeSetter.InDuty)
-            return StatusUtils.PriorityStatusesInDuty.Contains(status);
-
-        return StatusUtils.Defaults.ImportantCombatStatuses[(int)status] == StatusImportance.Important;
     }
 
     public unsafe void ModifyGlobalScale(PlateState state)

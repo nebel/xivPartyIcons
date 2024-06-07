@@ -47,6 +47,11 @@ public static class UiHelper
     public static unsafe void LinkNodeAfterTargetNode(AtkResNode* node, AtkComponentNode* parent,
         AtkResNode* targetNode)
     {
+        if (targetNode->PrevSiblingNode == null) {
+            throw new Exception(
+                $"LinkNodeAfterTargetNode: Failed to link 0x{(nint)node:X} (parent 0x{(nint)parent:X}, target 0x{(nint)targetNode:X} since PrevSiblingNode was null");
+        }
+
         var prevSiblingNode = targetNode->PrevSiblingNode;
         node->ParentNode = targetNode->ParentNode;
         targetNode->PrevSiblingNode = node;
@@ -176,6 +181,7 @@ public static class UiHelper
     public static unsafe T* GetNodeByID<T>(AtkUldManager* uldManager, uint nodeId, NodeType? type = null)
         where T : unmanaged
     {
+        // Service.Log.Warning($"GetNodeByID(0x{(nint)uldManager:X}, {nodeId}, {type})");
         if ((IntPtr)uldManager->NodeList == IntPtr.Zero)
             return null;
         for (var index = 0; index < uldManager->NodeListCount; ++index) {
