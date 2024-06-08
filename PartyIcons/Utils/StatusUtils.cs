@@ -78,8 +78,8 @@ public static class StatusUtils
         Status.PartyLeaderCrossworld,
         Status.PartyMemberCrossworld,
         // Status.AnotherWorld, // Not displayed in nameplates
-        // Status.SharingDuty, // Not displayed in nameplates(?)
-        // Status.SimilarDuty, // Not displayed in nameplates(?)
+        Status.SharingDuty, // When is this displayed?
+        Status.SimilarDuty, // When is this displayed?
         Status.InDuty,
         Status.TrialAdventurer,
         // Status.FreeCompany, // Not displayed in nameplates
