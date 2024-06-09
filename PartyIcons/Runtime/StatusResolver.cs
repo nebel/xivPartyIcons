@@ -8,7 +8,7 @@ public class StatusResolver
 {
     private readonly Settings _settings;
     private ZoneType _currentZoneType;
-    private StatusDisplay[] _display = null!;
+    private StatusVisibility[] _display = null!;
 
     public StatusResolver(Settings settings)
     {
@@ -31,25 +31,25 @@ public class StatusResolver
 
     private void ReloadFromConfig()
     {
-        switch (_currentZoneType) {
-            case ZoneType.Overworld:
-                LoadConfig(_settings.StatusConfigOverworld);
-                break;
-            case ZoneType.Dungeon:
-            case ZoneType.Raid:
-            case ZoneType.AllianceRaid:
-                LoadConfig(_settings.StatusConfigInstances);
-                break;
-            case ZoneType.FieldOperation:
-                LoadConfig(_settings.StatusConfigFieldOperations);
-                break;
-            default:
-                LoadConfig(_settings.StatusConfigOverworld);
-                break;
-        }
+        // switch (_currentZoneType) {
+        //     case ZoneType.Overworld:
+        //         LoadConfig(_settings.StatusConfigOverworld);
+        //         break;
+        //     case ZoneType.Dungeon:
+        //     case ZoneType.Raid:
+        //     case ZoneType.AllianceRaid:
+        //         LoadConfig(_settings.StatusConfigInstances);
+        //         break;
+        //     case ZoneType.FieldOperation:
+        //         LoadConfig(_settings.StatusConfigFieldOperations);
+        //         break;
+        //     default:
+        //         LoadConfig(_settings.StatusConfigOverworld);
+        //         break;
+        // }
     }
 
-    public StatusDisplay CheckStatusDisplay(Status status)
+    public StatusVisibility CheckStatusDisplay(Status status)
     {
         // Service.Log.Info($"z {_currentZoneType}");
         return _display[(int)status];

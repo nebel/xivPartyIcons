@@ -14,6 +14,7 @@ public class Settings : IPluginConfiguration
     public static int CurrentVersion = 2;
 
     public int Version { get; set; } = CurrentVersion;
+    public bool ImportedSelectors = false;
 
     public bool ChatContentMessage = true;
     public bool HideLocalPlayerNameplate = false;
@@ -36,15 +37,23 @@ public class Settings : IPluginConfiguration
     public NameplateMode NameplateRaid { get; set; } = NameplateMode.RoleLetters;
     public NameplateMode NameplateOthers { get; set; } = NameplateMode.SmallJobIcon;
 
+    public DisplaySelector SelectorOverworld { get; set; } = new(DisplayPreset.SmallJobIcon);
+    public DisplaySelector SelectorDungeon { get; set; } = new(DisplayPreset.BigJobIconAndPartySlot);
+    public DisplaySelector SelectorRaid { get; set; } = new(DisplayPreset.RoleLetters);
+    public DisplaySelector SelectorAllianceRaid { get; set; } = new(DisplayPreset.BigJobIconAndPartySlot);
+    public DisplaySelector SelectorFieldOperationParty { get; set; } = new(DisplayPreset.BigJobIconAndPartySlot);
+    public DisplaySelector SelectorFieldOperationOthers { get; set; } = new(DisplayPreset.SmallJobIcon);
+    public DisplaySelector SelectorOthers { get; set; } = new(DisplayPreset.SmallJobIcon);
+
+    public DisplayConfigs DisplaySettings = new();
+
+    public StatusConfigs StatusSettings = new();
+
     public ChatConfig ChatOverworld { get; set; } = new (ChatMode.Role);
     public ChatConfig ChatAllianceRaid { get; set; } = new (ChatMode.Role);
     public ChatConfig ChatDungeon { get; set; } = new (ChatMode.Job);
     public ChatConfig ChatRaid { get; set; } = new (ChatMode.Role);
     public ChatConfig ChatOthers { get; set; } = new (ChatMode.Job);
-
-    public StatusConfig StatusConfigOverworld = new(StatusConfigBaseType.Overworld);
-    public StatusConfig StatusConfigInstances = new(StatusConfigBaseType.Instances);
-    public StatusConfig StatusConfigFieldOperations = new(StatusConfigBaseType.FieldOperations);
 
     public Dictionary<string, RoleId> StaticAssignments { get; set; } = new();
 

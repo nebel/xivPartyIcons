@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
-using FFXIVClientStructs.FFXIV.Component.GUI;
 using PartyIcons.Configuration;
 using PartyIcons.Entities;
 using PartyIcons.Runtime;
@@ -32,8 +30,15 @@ public sealed class NameplateView : IDisposable
 
     private const string FullWidthSpace = "　";
 
+    public ZoneType ZoneType { get; set; }
     public NameplateMode PartyMode { get; set; }
     public NameplateMode OthersMode { get; set; }
+
+    public DisplayConfig PartyDisplay { get; set; }
+    public DisplayConfig OthersDisplay { get; set; }
+
+    public StatusVisibility[] PartyStatus { get; set; }
+    public StatusVisibility[] OthersStatus { get; set; }
 
     public NameplateView(RoleTracker roleTracker, Settings configuration, PlayerStylesheet stylesheet,
         StatusResolver statusResolver)
@@ -50,40 +55,42 @@ public sealed class NameplateView : IDisposable
 
     public void UpdateViewData(ref UpdateContext context)
     {
-        var mode = GetModeForNameplate(context);
+        var config = GetDisplayConfig(context);
+        context.DisplayConfig = config;
+        var mode = config.Mode;
         context.Mode = mode;
+
         if (mode is NameplateMode.Default or NameplateMode.Hide) {
             return;
         }
 
-        var modeConfig = new ModeConfigs().GetForMode(mode);
-        modeConfig.SwapStyle = StatusSwapStyle.None;
-        modeConfig.ShowStatusIcon = true;
-
         var genericRole = context.Job.GetRole();
         var iconSet = _stylesheet.GetGenericRoleIconGroupId(genericRole);
         var iconGroup = IconRegistrar.Get(iconSet);
-        var statusDisplay = _statusResolver.CheckStatusDisplay(context.Status);
 
         context.JobIconGroup = iconGroup;
         context.JobIconId = iconGroup.GetJobIcon((uint)context.Job);
         context.StatusIconId = StatusUtils.OnlineStatusToIconId(context.Status);
         context.GenericRole = genericRole;
 
-        if (mode == NameplateMode.RoleLetters) {
+        if (mode == NameplateMode.RoleLetters || !config.ExIcon.Show) {
             context.ShowExIcon = false;
         }
 
-        if (context.Status == Status.None || statusDisplay == StatusDisplay.Hide) {
+        var statusLookup = GetStatusVisibilityForNameplate(context);
+        var statusDisplay = statusLookup[(int)context.Status];
+
+        if (context.Status == Status.None || statusDisplay == StatusVisibility.Hide || !config.SubIcon.Show) {
             context.ShowSubIcon = false;
         }
-        else if (_statusResolver.CheckStatusDisplay(context.Status) >= StatusDisplay.Important) {
-            switch (modeConfig.SwapStyle) {
+        else if (statusDisplay >= StatusVisibility.Important) {
+            switch (config.SwapStyle) {
                 case StatusSwapStyle.None:
                     break;
                 case StatusSwapStyle.Swap:
                     (context.JobIconId, context.StatusIconId) = (context.StatusIconId, context.JobIconId);
-                    (context.JobIconGroup, context.StatusIconGroup) = (context.StatusIconGroup, context.JobIconGroup);
+                    (context.JobIconGroup, context.StatusIconGroup) =
+                        (context.StatusIconGroup, context.JobIconGroup);
                     (context.ShowExIcon, context.ShowSubIcon) = (context.ShowSubIcon, context.ShowExIcon);
                     break;
                 case StatusSwapStyle.Replace:
@@ -92,7 +99,7 @@ public sealed class NameplateView : IDisposable
                     context.ShowSubIcon = false;
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException($"Unknown swap style {modeConfig.SwapStyle}");
+                    throw new ArgumentOutOfRangeException($"Unknown swap style {config.SwapStyle}");
             }
         }
     }
@@ -141,7 +148,8 @@ public sealed class NameplateView : IDisposable
 
         switch (mode) {
             case NameplateMode.Default:
-                throw new Exception($"Illegal state, should not enter {nameof(ModifyParameters)} with mode {context.Mode}");
+                throw new Exception(
+                    $"Illegal state, should not enter {nameof(ModifyParameters)} with mode {context.Mode}");
             case NameplateMode.Hide:
                 name = SeStringUtils.EmptyPtr;
                 fcName = SeStringUtils.EmptyPtr;
@@ -181,7 +189,7 @@ public sealed class NameplateView : IDisposable
             }
             case NameplateMode.BigJobIconAndPartySlot:
             {
-                if (PartyListHUDView.GetPartySlotIndex(context.PlayerCharacter.ObjectId) is {  } partySlot) {
+                if (PartyListHUDView.GetPartySlotIndex(context.PlayerCharacter.ObjectId) is { } partySlot) {
                     var slotString = _stylesheet.GetPartySlotNumber(partySlot + 1, context.GenericRole);
                     slotString.Payloads.Insert(0, new TextPayload(FullWidthSpace));
                     name = SeStringUtils.SeStringToPtr(slotString);
@@ -249,6 +257,8 @@ public sealed class NameplateView : IDisposable
 
     private static unsafe void PrepareNodeInlineSmall(PlateState state, UpdateContext context)
     {
+        var exCustomize = context.DisplayConfig.ExIcon;
+
         var iconGroup = context.JobIconGroup;
         var iconPaddingRight = iconGroup.Padding.Right;
 
@@ -256,15 +266,21 @@ public sealed class NameplateView : IDisposable
         exNode->AtkResNode.OriginX = ExIconWidth - iconPaddingRight;
         exNode->AtkResNode.OriginY = ExIconHeightHalf;
 
-        var scale = iconGroup.Scale;
+        var scale = iconGroup.Scale * exCustomize.Scale;
         exNode->AtkResNode.SetScale(scale, scale);
 
         var iconNode = state.NamePlateObject->IconImageNode;
         if (context.ShowSubIcon) {
-            exNode->AtkResNode.SetPositionFloat(iconNode->AtkResNode.X - 28 + iconPaddingRight, iconNode->AtkResNode.Y);
+            exNode->AtkResNode.SetPositionFloat(
+                iconNode->AtkResNode.X - 28 + iconPaddingRight + exCustomize.OffsetX,
+                iconNode->AtkResNode.Y + exCustomize.OffsetY
+            );
         }
         else {
-            exNode->AtkResNode.SetPositionFloat(iconNode->AtkResNode.X - 6 + iconPaddingRight, iconNode->AtkResNode.Y);
+            exNode->AtkResNode.SetPositionFloat(
+                iconNode->AtkResNode.X - 6 + iconPaddingRight + exCustomize.OffsetX,
+                iconNode->AtkResNode.Y + exCustomize.OffsetY
+            );
         }
 
         exNode->LoadIconTexture((int)context.JobIconId, 0);
@@ -274,16 +290,20 @@ public sealed class NameplateView : IDisposable
             const short subYAdjust = 0;
             const float subIconScale = 0.8f;
 
+            var subCustomize = context.DisplayConfig.SubIcon;
+
             var subNode = state.SubIconNode;
             var subIconGroup = context.StatusIconGroup;
-            var subScale = subIconGroup.Scale * subIconScale;
+            var subScale = subIconGroup.Scale * subIconScale * subCustomize.Scale;
             var subIconPaddingRight = subIconGroup.Padding.Right;
 
             subNode->AtkResNode.OriginX = ExIconWidth - subIconPaddingRight;
             subNode->AtkResNode.OriginY = ExIconHeight / 2f;
             subNode->AtkResNode.SetScale(subScale, subScale);
-            subNode->AtkResNode.SetPositionFloat(iconNode->AtkResNode.X + subIconPaddingRight + subXAdjust,
-                iconNode->AtkResNode.Y + subYAdjust);
+            subNode->AtkResNode.SetPositionFloat(
+                iconNode->AtkResNode.X + subIconPaddingRight + subXAdjust + subCustomize.OffsetX,
+                iconNode->AtkResNode.Y + subYAdjust + subCustomize.OffsetY
+            );
             subNode->LoadIconTexture((int)context.StatusIconId, 0);
         }
     }
@@ -296,7 +316,7 @@ public sealed class NameplateView : IDisposable
 
         var xAdjust2 = xAdjust;
         if (state.NamePlateObject->TextW > 50) {
-            // Name is 3-wide including spacer, subtract an extra scaled half-character width (+1 as a slight adjustment)
+            // Name is 3-wide including spacer, subtract an extra 1f scaled half-character width (+1 as a slight adjustment)
             xAdjust2 -= 19;
         }
 
@@ -386,29 +406,52 @@ public sealed class NameplateView : IDisposable
         return OthersMode;
     }
 
-    public unsafe void ModifyGlobalScale(PlateState state)
+    private DisplayConfig GetDisplayConfig(UpdateContext context)
+    {
+        if (_configuration.TestingMode || context.IsPartyMember) {
+            return PartyDisplay;
+        }
+
+        return OthersDisplay;
+    }
+
+    private StatusVisibility[] GetStatusVisibilityForNameplate(UpdateContext context)
+    {
+        if (_configuration.TestingMode || context.IsPartyMember) {
+            return PartyStatus;
+        }
+
+        return OthersStatus;
+    }
+
+    public unsafe void ModifyGlobalScale(PlateState state, UpdateContext context)
     {
         var resNode = state.NamePlateObject->ResNode;
-        switch (_configuration.SizeMode) {
-            case NameplateSizeMode.Smaller:
-                resNode->OriginX = ResNodeCenter;
-                resNode->OriginY = ResNodeBottom;
-                resNode->SetScale(0.6f, 0.6f);
-                state.IsGlobalScaleModified = true;
-                break;
-            case NameplateSizeMode.Bigger:
-                resNode->OriginX = ResNodeCenter;
-                resNode->OriginY = ResNodeBottom;
-                resNode->SetScale(1.5f, 1.5f);
-                state.IsGlobalScaleModified = true;
-                break;
-            case NameplateSizeMode.Medium:
-            default:
-                resNode->OriginX = 0;
-                resNode->OriginY = 0;
-                resNode->SetScale(1f, 1f);
-                state.IsGlobalScaleModified = false;
-                break;
+
+        var scale = _configuration.SizeMode switch
+        {
+            NameplateSizeMode.Smaller => 0.6f,
+            NameplateSizeMode.Medium => 1f,
+            NameplateSizeMode.Bigger => 1.5f,
+            _ => 1f
+        };
+
+        scale *= context.DisplayConfig.Scale;
+
+        // ReSharper disable once CompareOfFloatsByEqualityOperator
+        if (scale == 1f) {
+            // Service.Log.Info("SetScale: None");
+            resNode->OriginX = 0;
+            resNode->OriginY = 0;
+            resNode->SetScale(1f, 1f);
+            state.IsGlobalScaleModified = false;
+        }
+        else {
+            // Service.Log.Info($"SetScale: {scale}");
+            resNode->OriginX = ResNodeCenter;
+            resNode->OriginY = ResNodeBottom;
+            resNode->SetScale(scale, scale);
+            state.IsGlobalScaleModified = true;
         }
     }
 }

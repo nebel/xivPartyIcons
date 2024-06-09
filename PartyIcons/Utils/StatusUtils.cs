@@ -87,37 +87,37 @@ public static class StatusUtils
         // Status.Online, // Not displayed in nameplates
     ];
 
-    public static StatusDisplay[] ListsToArray(List<Status> important, List<Status> show)
+    public static StatusVisibility[] ListsToArray(List<Status> important, List<Status> show)
     {
-        var array = new StatusDisplay[StatusLookupArrayLength];
+        var array = new StatusVisibility[StatusLookupArrayLength];
 
         foreach (var status in AllStatuses) {
             if (FixedStatuses.Contains(status)) {
-                array[(int)status] = StatusDisplay.Important;
+                array[(int)status] = StatusVisibility.Important;
             }
             else if (ConfigurableStatuses.Contains(status)) {
                 if (important.Contains(status)) {
-                    array[(int)status] = StatusDisplay.Important;
+                    array[(int)status] = StatusVisibility.Important;
                 }
                 else if (show.Contains(status)) {
-                    array[(int)status] = StatusDisplay.Show;
+                    array[(int)status] = StatusVisibility.Show;
                 }
             }
             else {
-                array[(int)status] = StatusDisplay.Unexpected;
+                array[(int)status] = StatusVisibility.Unexpected;
             }
         }
 
         return array;
     }
 
-    public static StatusDisplay[] DictToArray(Dictionary<Status, StatusDisplay> dict)
+    public static StatusVisibility[] DictToArray(Dictionary<Status, StatusVisibility> dict)
     {
-        var array = new StatusDisplay[StatusLookupArrayLength];
+        var array = new StatusVisibility[StatusLookupArrayLength];
 
         foreach (var status in AllStatuses) {
             if (FixedStatuses.Contains(status)) {
-                array[(int)status] = StatusDisplay.Important;
+                array[(int)status] = StatusVisibility.Important;
             }
             else if (ConfigurableStatuses.Contains(status)) {
                 if (dict.TryGetValue(status, out var importance)) {
@@ -125,20 +125,20 @@ public static class StatusUtils
                 }
             }
             else {
-                array[(int)status] = StatusDisplay.Unexpected;
+                array[(int)status] = StatusVisibility.Unexpected;
             }
         }
 
         foreach (var status in FixedStatuses) {
-            array[(int)status] = StatusDisplay.Important;
+            array[(int)status] = StatusVisibility.Important;
         }
 
         return array;
     }
 
-    public static Dictionary<Status, StatusDisplay> ArrayToDict(StatusDisplay[] array)
+    public static Dictionary<Status, StatusVisibility> ArrayToDict(StatusVisibility[] array)
     {
-        var dict = new Dictionary<Status, StatusDisplay>();
+        var dict = new Dictionary<Status, StatusVisibility>();
         for (var i = 0; i < array.Length; i++) {
             dict[(Status)i] = array[i];
         }

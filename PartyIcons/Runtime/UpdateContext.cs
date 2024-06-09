@@ -9,6 +9,12 @@ namespace PartyIcons.Runtime;
 
 public unsafe class UpdateContext
 {
+    public override string ToString()
+    {
+        return
+            $"{nameof(PlayerCharacter)}: {PlayerCharacter}, {nameof(IsLocalPlayer)}: {IsLocalPlayer}, {nameof(IsPartyMember)}: {IsPartyMember}, {nameof(Job)}: {Job}, {nameof(Status)}: {Status}, {nameof(JobIconId)}: {JobIconId}, {nameof(JobIconGroup)}: {JobIconGroup}, {nameof(StatusIconId)}: {StatusIconId}, {nameof(StatusIconGroup)}: {StatusIconGroup}, {nameof(GenericRole)}: {GenericRole}, {nameof(Mode)}: {Mode}, {nameof(DisplayConfig)}: {DisplayConfig}, {nameof(ShowExIcon)}: {ShowExIcon}, {nameof(ShowSubIcon)}: {ShowSubIcon}";
+    }
+
     public readonly PlayerCharacter PlayerCharacter;
     public readonly bool IsLocalPlayer;
     public readonly bool IsPartyMember;
@@ -20,6 +26,7 @@ public unsafe class UpdateContext
     public IconGroup StatusIconGroup = IconRegistrar.Status;
     public GenericRole GenericRole;
     public NameplateMode Mode;
+    public DisplayConfig DisplayConfig;
     public bool ShowExIcon = true;
     public bool ShowSubIcon = true;
 

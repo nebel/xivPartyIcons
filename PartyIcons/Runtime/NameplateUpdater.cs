@@ -136,8 +136,13 @@ public sealed class NameplateUpdater : IDisposable
 
         if (_updaterState is UpdaterState.Initializing) {
             try {
-                CreateNodes(addon);
-                _updaterState = UpdaterState.Ready;
+                if (CreateNodes(addon)) {
+                    _updaterState = UpdaterState.Ready;
+                }
+                else {
+                    // Not able to create nodes (yet)
+                    goto Original;
+                }
             }
             catch (Exception e) {
                 Service.Log.Error(e, "Failed to create nameplate icon nodes, will not try again");
@@ -286,7 +291,7 @@ public sealed class NameplateUpdater : IDisposable
             return;
         }
 
-        _view.ModifyGlobalScale(state);
+        _view.ModifyGlobalScale(state, context);
         _view.ModifyNodes(state, context);
         state.IsModified = true;
     }
@@ -334,7 +339,7 @@ public sealed class NameplateUpdater : IDisposable
         state.IsModified = false;
     }
 
-    private static unsafe void CreateNodes(AddonNamePlate* addon)
+    private static unsafe bool CreateNodes(AddonNamePlate* addon)
     {
         Service.Log.Error("CreateNodes");
 
@@ -342,13 +347,17 @@ public sealed class NameplateUpdater : IDisposable
         var indexMap = new Dictionary<nint, int>();
 
         var arr = addon->NamePlateObjectArray;
-        if (arr == null) return;
+        if (arr == null) return false;
 
         for (var i = 0; i < AddonNamePlate.NumNamePlateObjects; i++) {
             var np = &arr[i];
             var resNode = np->ResNode;
             var componentNode = resNode->ParentNode->GetAsAtkComponentNode();
             var uldManager = &componentNode->Component->UldManager;
+
+            if (uldManager->LoadedState != AtkLoadState.Loaded) {
+                return false;
+            }
 
             var exNode =
                 UiHelper.GetNodeByID<AtkImageNode>(uldManager, ExNodeId, NodeType.Image);
@@ -377,6 +386,8 @@ public sealed class NameplateUpdater : IDisposable
 
         _stateCache = stateCache;
         _indexMap = indexMap.ToFrozenDictionary();
+
+        return true;
     }
 
     private static unsafe AtkImageNode* CreateImageNode(uint nodeId, AtkComponentNode* parent, uint targetNodeId)

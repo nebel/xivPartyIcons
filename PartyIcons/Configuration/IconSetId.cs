@@ -7,4 +7,6 @@ public enum IconSetId
     EmbossedFramed,
     EmbossedFramedSmall,
     Embossed,
+
+    Inherit = 20_000,
 }

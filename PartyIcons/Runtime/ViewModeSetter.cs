@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Lumina.Excel;
 using Lumina.Excel.GeneratedSheets;
 using PartyIcons.Configuration;
+using PartyIcons.Utils;
 using PartyIcons.View;
 
 namespace PartyIcons.Runtime;
@@ -77,6 +79,95 @@ public sealed class ViewModeSetter
         Disable();
     }
 
+    public DisplayConfig GetDisplayConfig(DisplaySelector selector)
+    {
+        var configs = _configuration.DisplaySettings;
+        switch (selector.Preset) {
+            case DisplayPreset.Default:
+                return configs.Default;
+            case DisplayPreset.Hide:
+                return configs.Hide;
+            case DisplayPreset.SmallJobIcon:
+                return configs.SmallJobIcon;
+            case DisplayPreset.SmallJobIconAndRole:
+                return configs.SmallJobIconAndRole;
+            case DisplayPreset.BigJobIcon:
+                return configs.BigJobIcon;
+            case DisplayPreset.BigJobIconAndPartySlot:
+                return configs.BigJobIconAndPartySlot;
+            case DisplayPreset.RoleLetters:
+                return configs.RoleLetters;
+            case DisplayPreset.Custom:
+                foreach (var config in configs.Custom.Where(config => config.Id == selector.Id)) {
+                    return config;
+                }
+
+                Service.Log.Warning($"Couldn't find custom preset with id {selector.Id}, falling back to default");
+                return configs.Default;
+            default:
+                Service.Log.Warning($"Couldn't find preset of type {selector.Preset}, falling back to default");
+                return configs.Default;
+        }
+    }
+
+    public StatusConfig GetStatusConfig(StatusSelector selector)
+    {
+        var configs = _configuration.StatusSettings;
+        switch (selector.Preset) {
+            case StatusPreset.Overworld:
+                return configs.Overworld;
+            case StatusPreset.Instances:
+                return configs.Instances;
+            case StatusPreset.FieldOperations:
+                return configs.FieldOperations;
+            case StatusPreset.Custom:
+                foreach (var config in configs.Custom.Where(config => config.Id == selector.Id)) {
+                    return config;
+                }
+
+                Service.Log.Warning($"Couldn't find custom preset with id {selector.Id}, falling back to overworld");
+                return configs.Overworld;
+            default:
+                Service.Log.Warning($"Couldn't find preset of type {selector.Preset}, falling back to overworld");
+                return configs.Overworld;
+        }
+    }
+
+    private static StatusSelector DefaultStatusSelector = new(StatusPreset.Overworld);
+
+    private void SetNameplateViewZone(ZoneType zoneType)
+    {
+        var partyDisplay = GetDisplayConfig(zoneType switch
+        {
+            ZoneType.Overworld => _configuration.SelectorOverworld,
+            ZoneType.Dungeon => _configuration.SelectorDungeon,
+            ZoneType.Raid => _configuration.SelectorRaid,
+            ZoneType.AllianceRaid => _configuration.SelectorAllianceRaid,
+            ZoneType.FieldOperation => _configuration.SelectorFieldOperationParty,
+            _ => throw new ArgumentOutOfRangeException($"Unknown zone type {zoneType}")
+        });
+
+        var othersDisplay = GetDisplayConfig(zoneType switch
+        {
+            ZoneType.Overworld => _configuration.SelectorOthers,
+            ZoneType.Dungeon => _configuration.SelectorOthers,
+            ZoneType.Raid => _configuration.SelectorOthers,
+            ZoneType.AllianceRaid => _configuration.SelectorOthers,
+            ZoneType.FieldOperation => _configuration.SelectorFieldOperationOthers,
+            _ => throw new ArgumentOutOfRangeException($"Unknown zone type {zoneType}")
+        });
+
+        _nameplateView.ZoneType = zoneType;
+        _nameplateView.PartyDisplay = partyDisplay;
+        _nameplateView.PartyStatus = StatusUtils.DictToArray(
+            GetStatusConfig(partyDisplay.StatusSelectors.GetValueOrDefault(zoneType, DefaultStatusSelector))
+                .DisplayMap);
+        _nameplateView.OthersDisplay = othersDisplay;
+        _nameplateView.OthersStatus = StatusUtils.DictToArray(
+            GetStatusConfig(othersDisplay.StatusSelectors.GetValueOrDefault(zoneType, DefaultStatusSelector))
+                .DisplayMap);
+    }
+
     private void OnTerritoryChanged(ushort e)
     {
         var content =
@@ -90,6 +181,7 @@ public sealed class ViewModeSetter
             _nameplateView.OthersMode = _configuration.NameplateOthers;
             _chatNameUpdater.PartyMode = _configuration.ChatOverworld;
             _statusResolver.SetZoneType(ZoneType.Overworld);
+            SetNameplateViewZone(ZoneType);
         }
         else
         {
@@ -117,6 +209,7 @@ public sealed class ViewModeSetter
                     _nameplateView.OthersMode = _configuration.NameplateOthers;
                     _chatNameUpdater.PartyMode = _configuration.ChatDungeon;
                     _statusResolver.SetZoneType(ZoneType.Dungeon);
+                    SetNameplateViewZone(ZoneType);
 
                     break;
 
@@ -126,6 +219,7 @@ public sealed class ViewModeSetter
                     _nameplateView.OthersMode = _configuration.NameplateOthers;
                     _chatNameUpdater.PartyMode = _configuration.ChatRaid;
                     _statusResolver.SetZoneType(ZoneType.Raid);
+                    SetNameplateViewZone(ZoneType);
 
                     break;
 
@@ -135,6 +229,7 @@ public sealed class ViewModeSetter
                     _nameplateView.OthersMode = _configuration.NameplateOthers;
                     _chatNameUpdater.PartyMode = _configuration.ChatAllianceRaid;
                     _statusResolver.SetZoneType(ZoneType.AllianceRaid);
+                    SetNameplateViewZone(ZoneType);
 
                     break;
 
@@ -144,6 +239,7 @@ public sealed class ViewModeSetter
                     _nameplateView.OthersMode = _configuration.NameplateBozjaOthers;
                     _chatNameUpdater.PartyMode = _configuration.ChatOverworld;
                     _statusResolver.SetZoneType(ZoneType.FieldOperation);
+                    SetNameplateViewZone(ZoneType);
 
                     break;
 
@@ -153,6 +249,7 @@ public sealed class ViewModeSetter
                     _nameplateView.OthersMode = _configuration.NameplateOthers;
                     _chatNameUpdater.PartyMode = _configuration.ChatDungeon;
                     _statusResolver.SetZoneType(ZoneType.Dungeon);
+                    SetNameplateViewZone(ZoneType);
 
                     break;
             }

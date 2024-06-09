@@ -28,14 +28,14 @@ public sealed class StatusSettings
         return Service.TextureProvider.GetTextureFromGame(path);
     }
 
-    private static StatusDisplay ToggleStatusDisplay(StatusDisplay display)
+    private static StatusVisibility ToggleStatusDisplay(StatusVisibility visibility)
     {
-        return display switch
+        return visibility switch
         {
-            StatusDisplay.Hide => StatusDisplay.Show,
-            StatusDisplay.Show => StatusDisplay.Important,
-            StatusDisplay.Important => StatusDisplay.Hide,
-            _ => StatusDisplay.Hide
+            StatusVisibility.Hide => StatusVisibility.Show,
+            StatusVisibility.Show => StatusVisibility.Important,
+            StatusVisibility.Important => StatusVisibility.Hide,
+            _ => StatusVisibility.Hide
         };
     }
 
@@ -47,9 +47,9 @@ public sealed class StatusSettings
         ImGui.TextDisabled("Configure status icon visibility based on location");
         ImGui.Dummy(new Vector2(0, separatorPadding));
 
-        DrawStatusConfig(Plugin.Settings.StatusConfigOverworld);
-        DrawStatusConfig(Plugin.Settings.StatusConfigInstances);
-        DrawStatusConfig(Plugin.Settings.StatusConfigFieldOperations);
+        DrawStatusConfig(Plugin.Settings.StatusSettings.Overworld);
+        DrawStatusConfig(Plugin.Settings.StatusSettings.Instances);
+        DrawStatusConfig(Plugin.Settings.StatusSettings.FieldOperations);
     }
 
     private void DrawStatusConfig(StatusConfig config)
@@ -62,13 +62,13 @@ public sealed class StatusSettings
 
         var sheet = Service.DataManager.GameData.GetExcelSheet<OnlineStatus>()!;
 
-        using (ImRaii.PushId($"statusHeader@{config.BaseType}@{config.Id}")) {
+        using (ImRaii.PushId($"statusHeader@{config.Preset}@{config.Id}")) {
             if (!ImGui.CollapsingHeader(GetName(config))) return;
 
             using (ImRaii.PushIndent(15 * ImGuiHelpers.GlobalScale)) {
                 var textOffset = ImGui.GetStyle().FramePadding.X / 2;
                 ImGui.SetCursorPosY(ImGui.GetCursorPos().Y + textOffset);
-                if (config.BaseType != StatusConfigBaseType.Custom) {
+                if (config.Preset != StatusPreset.Custom) {
                     ImGui.TextDisabled("Other actions: ");
                     ImGui.SameLine();
                     ImGui.SetCursorPosY(ImGui.GetCursorPos().Y - textOffset);
@@ -81,7 +81,7 @@ public sealed class StatusSettings
 
             Status? clicked = null;
             foreach (var status in StatusUtils.ConfigurableStatuses) {
-                var display = config.DisplayMap.GetValueOrDefault(status, StatusDisplay.Hide);
+                var display = config.DisplayMap.GetValueOrDefault(status, StatusVisibility.Hide);
                 var row = sheet.GetRow((uint)status);
                 if (row == null) continue;
 
@@ -102,9 +102,9 @@ public sealed class StatusSettings
 
                 var color = display switch
                 {
-                    StatusDisplay.Hide => (0xFF555555, 0xFF666666, 0xFF777777),
-                    StatusDisplay.Show => (0xFF558855, 0xFF55AA55, 0xFF55CC55),
-                    StatusDisplay.Important => (0xFF5555AA, 0xFF5555CC, 0xFF5555FF),
+                    StatusVisibility.Hide => (0xFF555555, 0xFF666666, 0xFF777777),
+                    StatusVisibility.Show => (0xFF558855, 0xFF55AA55, 0xFF55CC55),
+                    StatusVisibility.Important => (0xFF5555AA, 0xFF5555CC, 0xFF5555FF),
                     _ => (0xFFAA00AA, 0xFFBB00BB, 0xFFFF00FF)
                 };
 
@@ -131,13 +131,13 @@ public sealed class StatusSettings
 
     private static string GetName(StatusConfig config)
     {
-        return config.BaseType switch
+        return config.Preset switch
         {
-            StatusConfigBaseType.Custom => config.Name,
-            StatusConfigBaseType.Overworld => "Overworld",
-            StatusConfigBaseType.Instances => "Instances",
-            StatusConfigBaseType.FieldOperations => "Field Operations",
-            _ => config.Id
+            StatusPreset.Custom => config.Name,
+            StatusPreset.Overworld => "Overworld",
+            StatusPreset.Instances => "Instances",
+            StatusPreset.FieldOperations => "Field Operations",
+            _ => config.Name
         };
     }
 }

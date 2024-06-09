@@ -82,10 +82,22 @@ public sealed class SettingsWindow : IDisposable
                     
                     ImGui.EndTabItem();
                 }
-                
+
                 if (ImGui.BeginTabItem("Nameplates"))
                 {
                     if (ImGui.BeginChild("##nameplates_content"))
+                    {
+                        _displaySettings.DrawDisplaySettings();
+
+                        ImGui.EndChild();
+                    }
+
+                    ImGui.EndTabItem();
+                }
+                
+                if (ImGui.BeginTabItem("Nameplates (OLD)"))
+                {
+                    if (ImGui.BeginChild("##nameplatesold_content"))
                     {
                         _nameplateSettings.DrawNameplateSettings();
                         
@@ -175,6 +187,7 @@ public sealed class SettingsWindow : IDisposable
     private static WindowSizeHelper _windowSizeHelper = new();
     private readonly GeneralSettings _generalSettings = new();
     private readonly NameplateSettings _nameplateSettings = new();
+    private readonly DisplaySettings _displaySettings = new();
     private readonly StatusSettings _statusSettings = new();
     private readonly ChatNameSettings _chatNameSettings = new();
     private readonly StaticAssignmentsSettings _staticAssignmentsSettings = new StaticAssignmentsSettings();
