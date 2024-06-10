@@ -4,15 +4,15 @@ using System.Linq;
 using Dalamud.Game.Text.SeStringHandling;
 using PartyIcons.Configuration;
 using PartyIcons.Entities;
+using OnlineStatus = Lumina.Excel.GeneratedSheets.OnlineStatus;
 
 namespace PartyIcons.Utils;
 
 public static class StatusUtils
 {
-    private const int StatusCount = (int)(Status.Online + 1);
-    private const int StatusLookupArrayLength = StatusCount + 10; // Adding some buffer for patches
-
+    private const Status LastKnownStatus = Status.Online;
     private static readonly Dictionary<Status, uint> IconIdCache = new();
+    private static List<OnlineStatus>? _excelStatus;
 
     public static uint OnlineStatusToIconId(Status status)
     {
@@ -20,14 +20,22 @@ public static class StatusUtils
             return cached;
         }
 
-        var lookupResult = Service.DataManager.GameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.OnlineStatus>()
-            ?.GetRow((uint)status)?.Icon;
-        if (lookupResult is not { } iconId) return 0;
+        var iconId = ExcelStatus
+            .Where(row => row.RowId == (uint)status)
+            .Select(row => row.Icon)
+            .FirstOrDefault();
         IconIdCache.Add(status, iconId);
         return iconId;
     }
 
-    private static readonly Status[] AllStatuses = Enum.GetValues<Status>();
+    public static List<OnlineStatus> ExcelStatus => _excelStatus ??= Service.DataManager.GameData.GetExcelSheet<OnlineStatus>()!.ToList();
+
+    public static Status ToStatus(this OnlineStatus onlineStatus)
+    {
+        return (Status)onlineStatus.RowId;
+    }
+
+    private static readonly Status[] KnownStatuses = Enum.GetValues<Status>();
 
     private static readonly Status[] FixedStatuses =
     [
@@ -89,9 +97,10 @@ public static class StatusUtils
 
     public static StatusVisibility[] ListsToArray(List<Status> important, List<Status> show)
     {
-        var array = new StatusVisibility[StatusLookupArrayLength];
+        var array = new StatusVisibility[ExcelStatus.Count];
+        Array.Fill(array, StatusVisibility.Unknown);
 
-        foreach (var status in AllStatuses) {
+        foreach (var status in KnownStatuses) {
             if (FixedStatuses.Contains(status)) {
                 array[(int)status] = StatusVisibility.Important;
             }
@@ -101,6 +110,9 @@ public static class StatusUtils
                 }
                 else if (show.Contains(status)) {
                     array[(int)status] = StatusVisibility.Show;
+                }
+                else {
+                    array[(int)status] = StatusVisibility.Hide;
                 }
             }
             else {
@@ -113,16 +125,15 @@ public static class StatusUtils
 
     public static StatusVisibility[] DictToArray(Dictionary<Status, StatusVisibility> dict)
     {
-        var array = new StatusVisibility[StatusLookupArrayLength];
+        var array = new StatusVisibility[ExcelStatus.Count];
+        Array.Fill(array, StatusVisibility.Unknown);
 
-        foreach (var status in AllStatuses) {
+        foreach (var status in KnownStatuses) {
             if (FixedStatuses.Contains(status)) {
                 array[(int)status] = StatusVisibility.Important;
             }
             else if (ConfigurableStatuses.Contains(status)) {
-                if (dict.TryGetValue(status, out var importance)) {
-                    array[(int)status] = importance;
-                }
+                array[(int)status] = dict.GetValueOrDefault(status, StatusVisibility.Unset);
             }
             else {
                 array[(int)status] = StatusVisibility.Unexpected;

@@ -10,14 +10,14 @@ namespace PartyIcons.Configuration;
 public class StatusConfig
 {
     public readonly StatusPreset Preset;
-    public readonly Guid Id;
+    public readonly Guid? Id;
     public string? Name;
     public Dictionary<Status, StatusVisibility> DisplayMap = new();
 
     public StatusConfig(StatusPreset preset)
     {
         Preset = preset;
-        Id = Guid.Empty;
+        Id = null;
         Name = null;
         Reset();
     }
@@ -141,6 +141,12 @@ public struct StatusSelector
         Preset = StatusPreset.Custom;
         Id = guid;
     }
+
+    public StatusSelector(StatusConfig config)
+    {
+        Preset = config.Preset;
+        Id = config.Id;
+    }
 }
 
 public enum StatusPreset
@@ -157,5 +163,7 @@ public enum StatusVisibility : byte
     Hide = 0,
     Show = 1,
     Important = 2,
-    Unexpected = 255
+    Unset = 253, // Value which is somehow missing from a dict
+    Unknown = 254, // Value which is unknown (e.g. new in patch)
+    Unexpected = 255 // Value which is known, but we don't think should actually be used as a nameplate status
 }

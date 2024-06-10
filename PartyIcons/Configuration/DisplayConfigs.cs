@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using Newtonsoft.Json;
 
 namespace PartyIcons.Configuration;
 
@@ -14,4 +17,32 @@ public class DisplayConfigs
     public DisplayConfig BigJobIconAndPartySlot { get; set; } = new(DisplayPreset.BigJobIconAndPartySlot);
     public DisplayConfig RoleLetters { get; set; } = new(DisplayPreset.RoleLetters);
     public List<DisplayConfig> Custom { get; set; } = [];
+
+    [JsonIgnore]
+    public IEnumerable<DisplayConfig> Configs => new Enumerable(this);
+
+    [JsonIgnore]
+    public IEnumerable<DisplaySelector> Selectors => Configs.Select(c => new DisplaySelector(c));
+
+    private class Enumerable(DisplayConfigs configs) : IEnumerable<DisplayConfig>
+    {
+        public IEnumerator<DisplayConfig> GetEnumerator()
+        {
+            yield return configs.Default;
+            yield return configs.Hide;
+            yield return configs.SmallJobIcon;
+            yield return configs.SmallJobIconAndRole;
+            yield return configs.BigJobIcon;
+            yield return configs.BigJobIconAndPartySlot;
+            yield return configs.RoleLetters;
+            foreach (var custom in configs.Custom) {
+                yield return custom;
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+    }
 }

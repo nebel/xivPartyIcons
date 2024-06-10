@@ -10,7 +10,7 @@ namespace PartyIcons.Configuration;
 public class DisplayConfig
 {
     public readonly DisplayPreset Preset;
-    public readonly Guid Id;
+    public readonly Guid? Id;
     public string? Name;
 
     public NameplateMode Mode;
@@ -26,7 +26,7 @@ public class DisplayConfig
     public DisplayConfig(DisplayPreset preset)
     {
         Preset = preset;
-        Id = Guid.Empty;
+        Id = null;
         Name = null;
         Mode = (NameplateMode)preset;
         SwapStyle = Mode is NameplateMode.BigJobIcon or NameplateMode.BigJobIconAndPartySlot or NameplateMode.RoleLetters ? StatusSwapStyle.Swap : StatusSwapStyle.None;
@@ -38,15 +38,19 @@ public class DisplayConfig
         Sanitize();
     }
 
-    private void Sanitize()
+    public bool Sanitize()
     {
-        if (Mode is NameplateMode.Default or NameplateMode.Hide) return;
+        if (Mode is NameplateMode.Default or NameplateMode.Hide) return false;
 
+        var sanitized = false;
         foreach (var zoneType in Enum.GetValues<ZoneType>()) {
             if (!StatusSelectors.ContainsKey(zoneType)) {
                 StatusSelectors[zoneType] = new StatusSelector(zoneType);
+                sanitized = true;
             }
         }
+
+        return sanitized;
     }
 }
 
@@ -66,6 +70,12 @@ public struct DisplaySelector
     {
         Preset = DisplayPreset.Custom;
         Id = guid;
+    }
+
+    public DisplaySelector(DisplayConfig config)
+    {
+        Preset = config.Preset;
+        Id = config.Id;
     }
 }
 

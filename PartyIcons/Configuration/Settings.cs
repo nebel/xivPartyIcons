@@ -131,13 +131,27 @@ public class Settings : IPluginConfiguration
             Service.Log.Error(e.ToString());
         }
 
-        if (config != null)
-        {
+        if (config != null) {
+            config.Sanitize();
             return config;
         }
 
         Service.Log.Information("Creating a new configuration.");
         return new Settings();
+    }
+
+    private void Sanitize()
+    {
+        var sanitized = false;
+
+        foreach (var displayConfig in DisplaySettings.Configs) {
+            sanitized |= displayConfig.Sanitize();
+        }
+
+        if (sanitized) {
+            Service.Log.Information($"Re-saving sanitized config");
+            Save();
+        }
     }
 
     public void Save()

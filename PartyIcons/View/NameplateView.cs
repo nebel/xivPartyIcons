@@ -83,7 +83,7 @@ public sealed class NameplateView : IDisposable
         if (context.Status == Status.None || statusDisplay == StatusVisibility.Hide || !config.SubIcon.Show) {
             context.ShowSubIcon = false;
         }
-        else if (statusDisplay >= StatusVisibility.Important) {
+        else if (statusDisplay == StatusVisibility.Important) {
             switch (config.SwapStyle) {
                 case StatusSwapStyle.None:
                     break;

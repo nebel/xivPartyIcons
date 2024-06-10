@@ -33,6 +33,8 @@ public sealed class ViewModeSetter
     private readonly PartyListHUDUpdater _partyListHudUpdater;
     private readonly StatusResolver _statusResolver;
 
+    private static readonly StatusSelector DefaultStatusSelector = new(ZoneType.Overworld);
+
     private ExcelSheet<ContentFinderCondition> _contentFinderConditionsSheet;
 
     public ViewModeSetter(NameplateView nameplateView, Settings configuration, ChatNameUpdater chatNameUpdater,
@@ -132,8 +134,6 @@ public sealed class ViewModeSetter
                 return configs.Overworld;
         }
     }
-
-    private static StatusSelector DefaultStatusSelector = new(StatusPreset.Overworld);
 
     private void SetNameplateViewZone(ZoneType zoneType)
     {
