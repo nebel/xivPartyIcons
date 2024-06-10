@@ -12,13 +12,17 @@ using ImGuiNET;
 using Lumina.Excel.GeneratedSheets;
 using PartyIcons.Configuration;
 using PartyIcons.Utils;
+using Action = System.Action;
 using Status = PartyIcons.Entities.Status;
 
 namespace PartyIcons.UI;
 
 public sealed class StatusSettings
 {
+    public string? RenameStatusName { get; set; }
+
     // private static readonly Vector2 IconSize = new(24, 24);
+
     private IDalamudTextureWrap? GetIconTexture(uint iconId)
     {
         var path = Service.TextureProvider.GetIconPath(iconId, ITextureProvider.IconFlags.None);
@@ -47,12 +51,41 @@ public sealed class StatusSettings
         ImGui.TextDisabled("Configure status icon visibility based on location");
         ImGui.Dummy(new Vector2(0, separatorPadding));
 
-        DrawStatusConfig(Plugin.Settings.StatusSettings.Overworld);
-        DrawStatusConfig(Plugin.Settings.StatusSettings.Instances);
-        DrawStatusConfig(Plugin.Settings.StatusSettings.FieldOperations);
+        ImGui.PushStyleColor(0, ImGuiHelpers.DefaultColorPalette()[0]);
+        ImGui.Text("Presets");
+        ImGui.PopStyleColor();
+        ImGui.Separator();
+        ImGui.Dummy(new Vector2(0, 2f));
+
+        List<Action> actions = [];
+
+        DrawStatusConfig(Plugin.Settings.StatusConfigs.Overworld, ref actions);
+        DrawStatusConfig(Plugin.Settings.StatusConfigs.Instances, ref actions);
+        DrawStatusConfig(Plugin.Settings.StatusConfigs.FieldOperations, ref actions);
+
+        ImGui.Dummy(new Vector2(0, 15f));
+        ImGui.PushStyleColor(0, ImGuiHelpers.DefaultColorPalette()[0]);
+        ImGui.Text("User-created");
+        ImGui.PopStyleColor();
+        ImGui.Separator();
+        ImGui.Dummy(new Vector2(0, 2f));
+
+        if (ImGui.Button("Create new")) {
+            Plugin.Settings.StatusConfigs.Custom.Add(
+                new StatusConfig($"Custom status list {Plugin.Settings.StatusConfigs.Custom.Count + 1}"));
+            Plugin.Settings.Save();
+        }
+
+        foreach (var statusConfig in Plugin.Settings.StatusConfigs.Custom) {
+            DrawStatusConfig(statusConfig, ref actions);
+        }
+
+        foreach (var action in actions) {
+            action();
+        }
     }
 
-    private void DrawStatusConfig(StatusConfig config)
+    private void DrawStatusConfig(StatusConfig config, ref List<Action> actions)
     {
         var textSize = ImGui.CalcTextSize("Important");
         var rowHeight = textSize.Y + ImGui.GetStyle().FramePadding.Y * 2;
@@ -62,20 +95,57 @@ public sealed class StatusSettings
 
         var sheet = Service.DataManager.GameData.GetExcelSheet<OnlineStatus>()!;
 
-        using (ImRaii.PushId($"statusHeader@{config.Preset}@{config.Id}")) {
-            if (!ImGui.CollapsingHeader(GetName(config))) return;
+        using (ImRaii.PushId($"status@{config.Preset}@{config.Id}")) {
+            if (!ImGui.CollapsingHeader($"{GetName(config)}###statusHeader@{config.Preset}@{config.Id}")) return;
 
-            using (ImRaii.PushIndent(15 * ImGuiHelpers.GlobalScale)) {
-                var textOffset = ImGui.GetStyle().FramePadding.X / 2;
-                ImGui.SetCursorPosY(ImGui.GetCursorPos().Y + textOffset);
-                if (config.Preset != StatusPreset.Custom) {
-                    ImGui.TextDisabled("Other actions: ");
+            using (ImRaii.PushIndent(iconSize.X + ImGui.GetStyle().FramePadding.X + ImGui.GetStyle().ItemSpacing.X)) {
+                if (config.Preset == StatusPreset.Custom) {
+                    ImGui.TextDisabled("Name: ");
+
                     ImGui.SameLine();
-                    ImGui.SetCursorPosY(ImGui.GetCursorPos().Y - textOffset);
-                    if (ImGui.Button("Reset to default")) {
+                    ImGui.PushItemWidth(ImGui.GetContentRegionAvail().X - 10);
+                    var name = config.Name ?? "";
+                    if (ImGui.InputText("##rename", ref name, 100, ImGuiInputTextFlags.EnterReturnsTrue)) {
+                        actions.Add(() =>
+                        {
+                            config.Name = name;
+                            Plugin.Settings.Save();
+                        });
+                    }
+                    ImGui.PopItemWidth();
+                }
+
+                ImGui.TextDisabled("Other actions: ");
+                if (config.Preset != StatusPreset.Custom) {
+                    ImGui.SameLine();
+                    if (ImGuiExt.ButtonEnabledWhen(ImGui.GetIO().KeyCtrl, "Reset to default")) {
                         config.Reset();
                         Plugin.Settings.Save();
                     }
+
+                    ImGuiExt.HoverTooltip("Hold Control to allow reset");
+                }
+                else {
+                    ImGui.SameLine();
+                    if (ImGuiExt.ButtonEnabledWhen(ImGui.GetIO().KeyCtrl, "Delete")) {
+                        actions.Add(() =>
+                        {
+                            Plugin.Settings.StatusConfigs.Custom.RemoveAll(c => c.Id == config.Id);
+                            Plugin.Settings.Save();
+                        });
+                    }
+
+                    ImGuiExt.HoverTooltip("Hold Control to allow deletion");
+                }
+
+                ImGui.SameLine();
+                if (ImGui.Button("Copy to new list")) {
+                    actions.Add(() =>
+                    {
+                        Plugin.Settings.StatusConfigs.Custom.Add(new StatusConfig(
+                            $"{GetName(config)} ({Plugin.Settings.StatusConfigs.Custom.Count + 1})", config));
+                        Plugin.Settings.Save();
+                    });
                 }
             }
 
@@ -133,11 +203,11 @@ public sealed class StatusSettings
     {
         return config.Preset switch
         {
-            StatusPreset.Custom => config.Name,
+            StatusPreset.Custom => config.Name ?? "<unnamed>",
             StatusPreset.Overworld => "Overworld",
             StatusPreset.Instances => "Instances",
             StatusPreset.FieldOperations => "Field Operations",
-            _ => config.Name
+            _ => config.Preset + "/" + config.Name + "/" + config.Id
         };
     }
 }

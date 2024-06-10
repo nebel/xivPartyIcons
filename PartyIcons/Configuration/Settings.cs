@@ -1,9 +1,13 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Text.Json;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Dalamud.Configuration;
+using Newtonsoft.Json.Serialization;
 using PartyIcons.Entities;
 
 namespace PartyIcons.Configuration;
@@ -37,29 +41,31 @@ public class Settings : IPluginConfiguration
     public NameplateMode NameplateRaid { get; set; } = NameplateMode.RoleLetters;
     public NameplateMode NameplateOthers { get; set; } = NameplateMode.SmallJobIcon;
 
-    public DisplaySelector SelectorOverworld { get; set; } = new(DisplayPreset.SmallJobIcon);
-    public DisplaySelector SelectorDungeon { get; set; } = new(DisplayPreset.BigJobIconAndPartySlot);
-    public DisplaySelector SelectorRaid { get; set; } = new(DisplayPreset.RoleLetters);
-    public DisplaySelector SelectorAllianceRaid { get; set; } = new(DisplayPreset.BigJobIconAndPartySlot);
-    public DisplaySelector SelectorFieldOperationParty { get; set; } = new(DisplayPreset.BigJobIconAndPartySlot);
-    public DisplaySelector SelectorFieldOperationOthers { get; set; } = new(DisplayPreset.SmallJobIcon);
-    public DisplaySelector SelectorOthers { get; set; } = new(DisplayPreset.SmallJobIcon);
+    public DisplaySelector DisplayOverworld { get; set; } = new(DisplayPreset.SmallJobIcon);
+    public DisplaySelector DisplayDungeon { get; set; } = new(DisplayPreset.BigJobIconAndPartySlot);
+    public DisplaySelector DisplayRaid { get; set; } = new(DisplayPreset.RoleLetters);
+    public DisplaySelector DisplayAllianceRaid { get; set; } = new(DisplayPreset.BigJobIconAndPartySlot);
+    public DisplaySelector DisplayFieldOperationParty { get; set; } = new(DisplayPreset.BigJobIconAndPartySlot);
+    public DisplaySelector DisplayFieldOperationOthers { get; set; } = new(DisplayPreset.SmallJobIcon);
+    public DisplaySelector DisplayOthers { get; set; } = new(DisplayPreset.SmallJobIcon);
 
-    public DisplayConfigs DisplaySettings = new();
+    public DisplayConfigs DisplayConfigs = new();
 
-    public StatusConfigs StatusSettings = new();
+    public StatusConfigs StatusConfigs = new();
 
-    public ChatConfig ChatOverworld { get; set; } = new (ChatMode.Role);
-    public ChatConfig ChatAllianceRaid { get; set; } = new (ChatMode.Role);
-    public ChatConfig ChatDungeon { get; set; } = new (ChatMode.Job);
-    public ChatConfig ChatRaid { get; set; } = new (ChatMode.Role);
-    public ChatConfig ChatOthers { get; set; } = new (ChatMode.Job);
+    public ChatConfig ChatOverworld { get; set; } = new(ChatMode.Role);
+    public ChatConfig ChatAllianceRaid { get; set; } = new(ChatMode.Role);
+    public ChatConfig ChatDungeon { get; set; } = new(ChatMode.Job);
+    public ChatConfig ChatRaid { get; set; } = new(ChatMode.Role);
+    public ChatConfig ChatOthers { get; set; } = new(ChatMode.Job);
 
     public Dictionary<string, RoleId> StaticAssignments { get; set; } = new();
 
     public event Action OnSave;
 
-    public Settings() {}
+    public Settings()
+    {
+    }
 
     public Settings(SettingsV1 configV1)
     {
@@ -71,7 +77,7 @@ public class Settings : IPluginConfiguration
         UseContextMenu = configV1.UseContextMenu;
         AssignFromChat = configV1.AssignFromChat;
         UsePriorityIcons = configV1.UsePriorityIcons;
-        
+
         IconSetId = configV1.IconSetId;
         SizeMode = configV1.SizeMode;
         NameplateOverworld = configV1.NameplateOverworld;
@@ -90,43 +96,37 @@ public class Settings : IPluginConfiguration
 
         StaticAssignments = configV1.StaticAssignments;
     }
-    
+
     public static Settings Load()
     {
         Settings? config = null;
-        
-        try
-        {
+
+        try {
             var configFileInfo = Service.PluginInterface.ConfigFile;
 
-            if (configFileInfo.Exists)
-            {
+            if (configFileInfo.Exists) {
                 var reader = new StreamReader(configFileInfo.FullName);
                 var fileText = reader.ReadToEnd();
                 reader.Dispose();
 
                 var versionNumber = GetConfigFileVersion(fileText);
 
-                if (versionNumber == Settings.CurrentVersion)
-                {
+                if (versionNumber == Settings.CurrentVersion) {
                     config = JsonConvert.DeserializeObject<Settings>(fileText);
                     Service.Log.Information($"Loaded configuration v{versionNumber} (current)");
                 }
-                else if (versionNumber == 1)
-                {
+                else if (versionNumber == 1) {
                     var configV1 = JsonConvert.DeserializeObject<SettingsV1>(fileText);
                     config = new Settings(configV1);
                     config.Save();
                     Service.Log.Information($"Converted configuration v{versionNumber} to v{Settings.CurrentVersion}");
                 }
-                else
-                {
+                else {
                     Service.Log.Error($"No reader available for configuration v{versionNumber}");
                 }
             }
         }
-        catch (Exception e)
-        {
+        catch (Exception e) {
             Service.Log.Error("Could not read configuration.");
             Service.Log.Error(e.ToString());
         }
@@ -144,7 +144,7 @@ public class Settings : IPluginConfiguration
     {
         var sanitized = false;
 
-        foreach (var displayConfig in DisplaySettings.Configs) {
+        foreach (var displayConfig in DisplayConfigs.Configs) {
             sanitized |= displayConfig.Sanitize();
         }
 
@@ -165,5 +165,73 @@ public class Settings : IPluginConfiguration
         var json = JObject.Parse(fileText);
 
         return json.GetValue("Version")?.Value<int>() ?? 0;
+    }
+
+    public StatusConfig GetStatusConfig(StatusSelector selector)
+    {
+        var configs = StatusConfigs;
+        switch (selector.Preset) {
+            case StatusPreset.Overworld:
+                return configs.Overworld;
+            case StatusPreset.Instances:
+                return configs.Instances;
+            case StatusPreset.FieldOperations:
+                return configs.FieldOperations;
+            case StatusPreset.Custom:
+                foreach (var config in configs.Custom.Where(config => config.Id == selector.Id)) {
+                    return config;
+                }
+
+                Service.Log.Warning($"Couldn't find custom preset with id {selector.Id}, falling back to overworld");
+                return configs.Overworld;
+            default:
+                Service.Log.Warning($"Couldn't find preset of type {selector.Preset}, falling back to overworld");
+                return configs.Overworld;
+        }
+    }
+
+    public DisplayConfig GetDisplayConfig(DisplaySelector selector)
+    {
+        var configs = DisplayConfigs;
+        switch (selector.Preset) {
+            case DisplayPreset.Default:
+                return configs.Default;
+            case DisplayPreset.Hide:
+                return configs.Hide;
+            case DisplayPreset.SmallJobIcon:
+                return configs.SmallJobIcon;
+            case DisplayPreset.SmallJobIconAndRole:
+                return configs.SmallJobIconAndRole;
+            case DisplayPreset.BigJobIcon:
+                return configs.BigJobIcon;
+            case DisplayPreset.BigJobIconAndPartySlot:
+                return configs.BigJobIconAndPartySlot;
+            case DisplayPreset.RoleLetters:
+                return configs.RoleLetters;
+            case DisplayPreset.Custom:
+                foreach (var config in configs.Custom.Where(config => config.Id == selector.Id)) {
+                    return config;
+                }
+
+                Service.Log.Warning($"Couldn't find custom preset with id {selector.Id}, falling back to default");
+                return configs.Default;
+            default:
+                Service.Log.Warning($"Couldn't find preset of type {selector.Preset}, falling back to default");
+                return configs.Default;
+        }
+    }
+
+    private class DictionaryAsArrayResolver : DefaultContractResolver
+    {
+        protected override JsonContract CreateContract(Type objectType)
+        {
+            if (objectType.GetInterfaces().Any(i =>
+                    i == typeof(IDictionary) ||
+                    (i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDictionary<,>)))) {
+                return base.CreateArrayContract(objectType);
+            }
+
+            return base.CreateContract(objectType);
+        }
     }
 }

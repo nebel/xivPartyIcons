@@ -4,8 +4,11 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
+using Dalamud.Interface.Colors;
 using Dalamud.Interface.Internal;
+using Dalamud.Interface.Style;
 using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 using ImGuiNET;
 using PartyIcons.Configuration;
 
@@ -111,12 +114,12 @@ public sealed class DisplaySettings
         ImGui.Dummy(new Vector2(0, separatorPadding));
         ImGui.Indent(15 * ImGuiHelpers.GlobalScale);
         {
-            NameplateModeSection("##np_overworld", () => Plugin.Settings.NameplateOverworld,
-                (mode) => Plugin.Settings.NameplateOverworld = mode,
+            NameplateModeSection("##np_overworld", () => Plugin.Settings.DisplayOverworld,
+                sel => Plugin.Settings.DisplayOverworld = sel,
                 "Party:");
 
-            NameplateModeSection("##np_others", () => Plugin.Settings.NameplateOthers,
-                (mode) => Plugin.Settings.NameplateOthers = mode,
+            NameplateModeSection("##np_others", () => Plugin.Settings.DisplayOthers,
+                sel => Plugin.Settings.DisplayOthers = sel,
                 "Others:");
         }
         ImGui.Indent(-15 * ImGuiHelpers.GlobalScale);
@@ -129,16 +132,16 @@ public sealed class DisplaySettings
         ImGui.Dummy(new Vector2(0, separatorPadding));
         ImGui.Indent(15 * ImGuiHelpers.GlobalScale);
         {
-            NameplateModeSection("##np_dungeon", () => Plugin.Settings.NameplateDungeon,
-                (mode) => Plugin.Settings.NameplateDungeon = mode,
+            NameplateModeSection("##np_dungeon", () => Plugin.Settings.DisplayDungeon,
+                (sel) => Plugin.Settings.DisplayDungeon = sel,
                 "Dungeon:");
 
-            NameplateModeSection("##np_raid", () => Plugin.Settings.NameplateRaid,
-                (mode) => Plugin.Settings.NameplateRaid = mode,
+            NameplateModeSection("##np_raid", () => Plugin.Settings.DisplayRaid,
+                sel => Plugin.Settings.DisplayRaid = sel,
                 "Raid:");
 
-            NameplateModeSection("##np_alliance", () => Plugin.Settings.NameplateAllianceRaid,
-                (mode) => Plugin.Settings.NameplateAllianceRaid = mode,
+            NameplateModeSection("##np_alliance", () => Plugin.Settings.DisplayAllianceRaid,
+                sel => Plugin.Settings.DisplayAllianceRaid = sel,
                 "Alliance:");
         }
         ImGui.Indent(-15 * ImGuiHelpers.GlobalScale);
@@ -153,11 +156,11 @@ public sealed class DisplaySettings
         {
             ImGui.TextDisabled("e.g. Eureka, Bozja");
 
-            NameplateModeSection("##np_bozja_party", () => Plugin.Settings.NameplateBozjaParty,
-                mode => Plugin.Settings.NameplateBozjaParty = mode, "Party:");
+            NameplateModeSection("##np_bozja_party", () => Plugin.Settings.DisplayFieldOperationParty,
+                sel => Plugin.Settings.DisplayFieldOperationParty = sel, "Party:");
 
-            NameplateModeSection("##np_bozja_others", () => Plugin.Settings.NameplateBozjaOthers,
-                mode => Plugin.Settings.NameplateBozjaOthers = mode, "Others:");
+            NameplateModeSection("##np_bozja_others", () => Plugin.Settings.DisplayFieldOperationOthers,
+                sel => Plugin.Settings.DisplayFieldOperationOthers = sel, "Others:");
         }
         ImGui.Indent(-15 * ImGuiHelpers.GlobalScale);
         ImGui.Dummy(new Vector2(0, 2f));
@@ -221,7 +224,17 @@ public sealed class DisplaySettings
         };
     }
 
-    private static void NameplateModeSection(string label, Func<NameplateMode> getter, Action<NameplateMode> setter, string title = "Nameplate: ")
+    private static string DisplaySelectorToString(DisplaySelector selector)
+    {
+        var config = Plugin.Settings.GetDisplayConfig(selector);
+        if (config.Preset == DisplayPreset.Custom) {
+            return $"{NameplateModeToString(config.Mode)} ({config.Name})";
+        }
+
+        return NameplateModeToString(config.Mode);
+    }
+
+    private static void NameplateModeSection(string label, Func<DisplaySelector> getter, Action<DisplaySelector> setter, string title = "Nameplate: ")
     {
         ImGui.SetCursorPosY(ImGui.GetCursorPos().Y + 3f);
         ImGui.Text(title);
@@ -230,24 +243,29 @@ public sealed class DisplaySettings
         SettingsWindow.SetComboWidth(Enum.GetValues<NameplateMode>().Select(x => x.ToString()));
 
         // hack to fix incorrect configurations
-        try
-        {
-            getter();
-        }
-        catch (ArgumentException ex)
-        {
-            setter(NameplateMode.Default);
-            Plugin.Settings.Save();
-        }
+        // try
+        // {
+        //     getter();
+        // }
+        // catch (ArgumentException ex)
+        // {
+        //     setter(new DisplaySelector(DisplayPreset.Default));
+        //     Plugin.Settings.Save();
+        // }
 
-        if (ImGui.BeginCombo(label, NameplateModeToString(getter())))
+        if (ImGui.BeginCombo(label, DisplaySelectorToString(getter())))
         {
-            foreach (var mode in Enum.GetValues<NameplateMode>())
-            {
-                if (ImGui.Selectable(NameplateModeToString(mode), mode == getter()))
+            foreach (var selector in Plugin.Settings.DisplayConfigs.Selectors) {
+                if (selector.Preset == DisplayPreset.Custom) {
+                    ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.HealerGreen);
+                }
+                if (ImGui.Selectable(DisplaySelectorToString(selector), selector == getter()))
                 {
-                    setter(mode);
+                    setter(selector);
                     Plugin.Settings.Save();
+                }
+                if (selector.Preset == DisplayPreset.Custom) {
+                    ImGui.PopStyleColor();
                 }
             }
 

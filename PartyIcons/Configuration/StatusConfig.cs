@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using PartyIcons.Entities;
 using PartyIcons.Runtime;
 using PartyIcons.Utils;
@@ -12,7 +13,16 @@ public class StatusConfig
     public readonly StatusPreset Preset;
     public readonly Guid? Id;
     public string? Name;
+
+    [JsonConverter(typeof(EnumKeyConverter<Status, StatusVisibility>))]
     public Dictionary<Status, StatusVisibility> DisplayMap = new();
+
+    [JsonConstructor]
+    private StatusConfig(StatusPreset preset, Guid? id)
+    {
+        Preset = preset;
+        Id = id;
+    }
 
     public StatusConfig(StatusPreset preset)
     {
@@ -30,18 +40,24 @@ public class StatusConfig
         Reset();
     }
 
+    public StatusConfig(string name, StatusConfig copyTarget)
+    {
+        Preset = StatusPreset.Custom;
+        Id = Guid.NewGuid();
+        Name = name;
+        DisplayMap = new Dictionary<Status, StatusVisibility>(copyTarget.DisplayMap);
+    }
+
     public void Reset()
     {
-        if (Preset != StatusPreset.Custom) {
-            DisplayMap = StatusUtils.ArrayToDict(Preset switch
-            {
-                StatusPreset.Custom => Defaults.Custom,
-                StatusPreset.Overworld => Defaults.Overworld,
-                StatusPreset.Instances => Defaults.Instances,
-                StatusPreset.FieldOperations => Defaults.FieldOperations,
-                _ => throw new Exception($"Cannot reset status config of unknown type {Preset}")
-            });
-        }
+        DisplayMap = StatusUtils.ArrayToDict(Preset switch
+        {
+            StatusPreset.Custom => Defaults.Custom,
+            StatusPreset.Overworld => Defaults.Overworld,
+            StatusPreset.Instances => Defaults.Instances,
+            StatusPreset.FieldOperations => Defaults.FieldOperations,
+            _ => throw new Exception($"Cannot reset status config of unknown type {Preset}")
+        });
     }
 
     private static class Defaults
@@ -111,7 +127,7 @@ public class StatusConfig
 }
 
 [Serializable]
-public struct StatusSelector
+public record struct StatusSelector
 {
     public StatusPreset Preset;
     public Guid? Id;

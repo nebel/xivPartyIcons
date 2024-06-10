@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq.Expressions;
-using Dalamud.Game.Text.Sanitizer;
+using Newtonsoft.Json;
 using PartyIcons.Runtime;
+using PartyIcons.Utils;
 
 namespace PartyIcons.Configuration;
 
@@ -16,12 +16,21 @@ public class DisplayConfig
     public NameplateMode Mode;
 
     public StatusSwapStyle SwapStyle;
-    public Dictionary<ZoneType, StatusSelector> StatusSelectors;
+
+    [JsonConverter(typeof(EnumKeyConverter<ZoneType, StatusSelector>))]
+    public Dictionary<ZoneType, StatusSelector> StatusSelectors = [];
 
     public float Scale;
     public IconSetId? IconSetId;
     public IconCustomizeConfig ExIcon;
     public IconCustomizeConfig SubIcon;
+
+    [JsonConstructor]
+    public DisplayConfig(DisplayPreset preset, Guid? id)
+    {
+        Preset = preset;
+        Id = id;
+    }
 
     public DisplayConfig(DisplayPreset preset)
     {
@@ -29,7 +38,10 @@ public class DisplayConfig
         Id = null;
         Name = null;
         Mode = (NameplateMode)preset;
-        SwapStyle = Mode is NameplateMode.BigJobIcon or NameplateMode.BigJobIconAndPartySlot or NameplateMode.RoleLetters ? StatusSwapStyle.Swap : StatusSwapStyle.None;
+        SwapStyle = Mode is NameplateMode.BigJobIcon or NameplateMode.BigJobIconAndPartySlot
+            or NameplateMode.RoleLetters
+            ? StatusSwapStyle.Swap
+            : StatusSwapStyle.None;
         StatusSelectors = [];
         Scale = 1f;
         ExIcon = new IconCustomizeConfig();
@@ -55,7 +67,7 @@ public class DisplayConfig
 }
 
 [Serializable]
-public struct DisplaySelector
+public record struct DisplaySelector
 {
     public DisplayPreset Preset;
     public Guid? Id;

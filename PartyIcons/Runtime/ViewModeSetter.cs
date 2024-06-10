@@ -83,7 +83,7 @@ public sealed class ViewModeSetter
 
     public DisplayConfig GetDisplayConfig(DisplaySelector selector)
     {
-        var configs = _configuration.DisplaySettings;
+        var configs = _configuration.DisplayConfigs;
         switch (selector.Preset) {
             case DisplayPreset.Default:
                 return configs.Default;
@@ -114,7 +114,7 @@ public sealed class ViewModeSetter
 
     public StatusConfig GetStatusConfig(StatusSelector selector)
     {
-        var configs = _configuration.StatusSettings;
+        var configs = _configuration.StatusConfigs;
         switch (selector.Preset) {
             case StatusPreset.Overworld:
                 return configs.Overworld;
@@ -139,21 +139,21 @@ public sealed class ViewModeSetter
     {
         var partyDisplay = GetDisplayConfig(zoneType switch
         {
-            ZoneType.Overworld => _configuration.SelectorOverworld,
-            ZoneType.Dungeon => _configuration.SelectorDungeon,
-            ZoneType.Raid => _configuration.SelectorRaid,
-            ZoneType.AllianceRaid => _configuration.SelectorAllianceRaid,
-            ZoneType.FieldOperation => _configuration.SelectorFieldOperationParty,
+            ZoneType.Overworld => _configuration.DisplayOverworld,
+            ZoneType.Dungeon => _configuration.DisplayDungeon,
+            ZoneType.Raid => _configuration.DisplayRaid,
+            ZoneType.AllianceRaid => _configuration.DisplayAllianceRaid,
+            ZoneType.FieldOperation => _configuration.DisplayFieldOperationParty,
             _ => throw new ArgumentOutOfRangeException($"Unknown zone type {zoneType}")
         });
 
         var othersDisplay = GetDisplayConfig(zoneType switch
         {
-            ZoneType.Overworld => _configuration.SelectorOthers,
-            ZoneType.Dungeon => _configuration.SelectorOthers,
-            ZoneType.Raid => _configuration.SelectorOthers,
-            ZoneType.AllianceRaid => _configuration.SelectorOthers,
-            ZoneType.FieldOperation => _configuration.SelectorFieldOperationOthers,
+            ZoneType.Overworld => _configuration.DisplayOthers,
+            ZoneType.Dungeon => _configuration.DisplayOthers,
+            ZoneType.Raid => _configuration.DisplayOthers,
+            ZoneType.AllianceRaid => _configuration.DisplayOthers,
+            ZoneType.FieldOperation => _configuration.DisplayFieldOperationOthers,
             _ => throw new ArgumentOutOfRangeException($"Unknown zone type {zoneType}")
         });
 
