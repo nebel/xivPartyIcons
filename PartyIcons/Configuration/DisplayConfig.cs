@@ -26,7 +26,7 @@ public class DisplayConfig
     public IconCustomizeConfig SubIcon;
 
     [JsonConstructor]
-    public DisplayConfig(DisplayPreset preset, Guid? id)
+    private DisplayConfig(DisplayPreset preset, Guid? id)
     {
         Preset = preset;
         Id = id;
@@ -37,7 +37,24 @@ public class DisplayConfig
         Preset = preset;
         Id = null;
         Name = null;
-        Mode = (NameplateMode)preset;
+
+        Mode = GetBaseModeForPreset(preset);
+        Reset();
+    }
+
+    public DisplayConfig(string name, NameplateMode mode)
+    {
+        Preset = DisplayPreset.Custom;
+        Id = Guid.NewGuid();
+        Name = name;
+
+        Mode = mode;
+        Reset();
+    }
+
+    public void Reset()
+    {
+        // Mode = (NameplateMode)Preset;
         SwapStyle = Mode is NameplateMode.BigJobIcon or NameplateMode.BigJobIconAndPartySlot
             or NameplateMode.RoleLetters
             ? StatusSwapStyle.Swap
@@ -64,6 +81,22 @@ public class DisplayConfig
 
         return sanitized;
     }
+
+    private static NameplateMode GetBaseModeForPreset(DisplayPreset preset)
+    {
+        return preset switch
+        {
+            DisplayPreset.Default => NameplateMode.Default,
+            DisplayPreset.Hide => NameplateMode.Hide,
+            DisplayPreset.SmallJobIcon => NameplateMode.SmallJobIcon,
+            DisplayPreset.SmallJobIconAndRole => NameplateMode.SmallJobIconAndRole,
+            DisplayPreset.BigJobIcon => NameplateMode.BigJobIcon,
+            DisplayPreset.BigJobIconAndPartySlot => NameplateMode.BigJobIconAndPartySlot,
+            DisplayPreset.RoleLetters => NameplateMode.RoleLetters,
+            DisplayPreset.Custom => throw new ArgumentException("DisplayPreset.Custom has no base mode"),
+            _ => throw new ArgumentOutOfRangeException(nameof(preset), preset, null)
+        };
+    }
 }
 
 [Serializable]
@@ -75,6 +108,22 @@ public record struct DisplaySelector
     public DisplaySelector(DisplayPreset preset)
     {
         Preset = preset;
+        Id = null;
+    }
+
+    public DisplaySelector(NameplateMode mode)
+    {
+        Preset = mode switch
+        {
+            NameplateMode.Default => DisplayPreset.Default,
+            NameplateMode.Hide => DisplayPreset.Hide,
+            NameplateMode.SmallJobIcon => DisplayPreset.SmallJobIcon,
+            NameplateMode.SmallJobIconAndRole => DisplayPreset.SmallJobIconAndRole,
+            NameplateMode.BigJobIcon => DisplayPreset.BigJobIcon,
+            NameplateMode.BigJobIconAndPartySlot => DisplayPreset.BigJobIconAndPartySlot,
+            NameplateMode.RoleLetters => DisplayPreset.RoleLetters,
+            _ => DisplayPreset.Default
+        };
         Id = null;
     }
 

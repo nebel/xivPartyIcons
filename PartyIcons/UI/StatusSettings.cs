@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using System.Numerics;
-using Dalamud.Interface.Colors;
 using Dalamud.Interface.Internal;
-using Dalamud.Interface.Style;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Plugin.Services;
@@ -19,10 +15,6 @@ namespace PartyIcons.UI;
 
 public sealed class StatusSettings
 {
-    public string? RenameStatusName { get; set; }
-
-    // private static readonly Vector2 IconSize = new(24, 24);
-
     private IDalamudTextureWrap? GetIconTexture(uint iconId)
     {
         var path = Service.TextureProvider.GetIconPath(iconId, ITextureProvider.IconFlags.None);
@@ -96,7 +88,7 @@ public sealed class StatusSettings
         var sheet = Service.DataManager.GameData.GetExcelSheet<OnlineStatus>()!;
 
         using (ImRaii.PushId($"status@{config.Preset}@{config.Id}")) {
-            if (!ImGui.CollapsingHeader($"{GetName(config)}###statusHeader@{config.Preset}@{config.Id}")) return;
+            if (!ImGui.CollapsingHeader($"{SettingsWindow.GetName(config)}###statusHeader@{config.Preset}@{config.Id}")) return;
 
             using (ImRaii.PushIndent(iconSize.X + ImGui.GetStyle().FramePadding.X + ImGui.GetStyle().ItemSpacing.X)) {
                 if (config.Preset == StatusPreset.Custom) {
@@ -108,7 +100,7 @@ public sealed class StatusSettings
                     if (ImGui.InputText("##rename", ref name, 100, ImGuiInputTextFlags.EnterReturnsTrue)) {
                         actions.Add(() =>
                         {
-                            config.Name = name;
+                            config.Name = name.Replace("%", "");
                             Plugin.Settings.Save();
                         });
                     }
@@ -130,6 +122,7 @@ public sealed class StatusSettings
                     if (ImGuiExt.ButtonEnabledWhen(ImGui.GetIO().KeyCtrl, "Delete")) {
                         actions.Add(() =>
                         {
+                            Plugin.Settings.DisplayConfigs.RemoveSelectors(config);
                             Plugin.Settings.StatusConfigs.Custom.RemoveAll(c => c.Id == config.Id);
                             Plugin.Settings.Save();
                         });
@@ -143,7 +136,7 @@ public sealed class StatusSettings
                     actions.Add(() =>
                     {
                         Plugin.Settings.StatusConfigs.Custom.Add(new StatusConfig(
-                            $"{GetName(config)} ({Plugin.Settings.StatusConfigs.Custom.Count + 1})", config));
+                            $"{SettingsWindow.GetName(config)} ({Plugin.Settings.StatusConfigs.Custom.Count + 1})", config));
                         Plugin.Settings.Save();
                     });
                 }
@@ -197,17 +190,5 @@ public sealed class StatusSettings
                 Plugin.Settings.Save();
             }
         }
-    }
-
-    private static string GetName(StatusConfig config)
-    {
-        return config.Preset switch
-        {
-            StatusPreset.Custom => config.Name ?? "<unnamed>",
-            StatusPreset.Overworld => "Overworld",
-            StatusPreset.Instances => "Instances",
-            StatusPreset.FieldOperations => "Field Operations",
-            _ => config.Preset + "/" + config.Name + "/" + config.Id
-        };
     }
 }

@@ -45,4 +45,26 @@ public class DisplayConfigs
             return GetEnumerator();
         }
     }
+
+    public void RemoveSelectors(StatusConfig statusConfig)
+    {
+        if (statusConfig.Id == null) {
+            Service.Log.Warning($"Unexpected null id for config {statusConfig.Preset}/{statusConfig.Name}");
+            return;
+        }
+
+        List<Action> actions = [];
+        foreach (var displayConfig in Configs) {
+            foreach (var (zoneType, candidateSelector) in displayConfig.StatusSelectors) {
+                if (candidateSelector.Id == statusConfig.Id) {
+                    Service.Log.Debug($"Resetting {zoneType}");
+                    actions.Add(() => displayConfig.StatusSelectors[zoneType] = new StatusSelector(zoneType));
+                }
+            }
+        }
+
+        foreach (var action in actions) {
+            action();
+        }
+    }
 }

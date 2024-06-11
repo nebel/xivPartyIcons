@@ -7,7 +7,7 @@ using FFXIVClientStructs.FFXIV.Component.GUI;
 namespace PartyIcons.Utils;
 
 // Blatantly copied from SimpleTweaks
-public static class UiHelper
+public static class AtkHelper
 {
     public static unsafe AtkImageNode* MakeImageNode(uint id, PartInfo partInfo)
     {

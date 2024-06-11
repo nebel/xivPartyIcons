@@ -40,19 +40,9 @@ public class Settings : IPluginConfiguration
     public NameplateMode NameplateBozjaOthers { get; set; } = NameplateMode.Default;
     public NameplateMode NameplateRaid { get; set; } = NameplateMode.RoleLetters;
     public NameplateMode NameplateOthers { get; set; } = NameplateMode.SmallJobIcon;
-
-    public DisplaySelector DisplayOverworld { get; set; } = new(DisplayPreset.SmallJobIcon);
-    public DisplaySelector DisplayDungeon { get; set; } = new(DisplayPreset.BigJobIconAndPartySlot);
-    public DisplaySelector DisplayRaid { get; set; } = new(DisplayPreset.RoleLetters);
-    public DisplaySelector DisplayAllianceRaid { get; set; } = new(DisplayPreset.BigJobIconAndPartySlot);
-    public DisplaySelector DisplayFieldOperationParty { get; set; } = new(DisplayPreset.BigJobIconAndPartySlot);
-    public DisplaySelector DisplayFieldOperationOthers { get; set; } = new(DisplayPreset.SmallJobIcon);
-    public DisplaySelector DisplayOthers { get; set; } = new(DisplayPreset.SmallJobIcon);
-
-    public DisplayConfigs DisplayConfigs = new();
-
-    public StatusConfigs StatusConfigs = new();
-
+    public DisplaySelections DisplaySelections { get; set; } = new();
+    public DisplayConfigs DisplayConfigs { get; set; } = new();
+    public StatusConfigs StatusConfigs { get; set; } = new();
     public ChatConfig ChatOverworld { get; set; } = new(ChatMode.Role);
     public ChatConfig ChatAllianceRaid { get; set; } = new(ChatMode.Role);
     public ChatConfig ChatDungeon { get; set; } = new(ChatMode.Job);
@@ -167,7 +157,7 @@ public class Settings : IPluginConfiguration
         return json.GetValue("Version")?.Value<int>() ?? 0;
     }
 
-    public StatusConfig SelectStatusConfig(StatusSelector selector)
+    public StatusConfig GetStatusConfig(StatusSelector selector)
     {
         var configs = StatusConfigs;
         switch (selector.Preset) {
@@ -190,7 +180,7 @@ public class Settings : IPluginConfiguration
         }
     }
 
-    public DisplayConfig SelectDisplayConfig(DisplaySelector selector)
+    public DisplayConfig GetDisplayConfig(DisplaySelector selector)
     {
         var configs = DisplayConfigs;
         switch (selector.Preset) {

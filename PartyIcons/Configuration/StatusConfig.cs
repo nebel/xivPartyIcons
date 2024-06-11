@@ -163,6 +163,7 @@ public record struct StatusSelector
         Preset = config.Preset;
         Id = config.Id;
     }
+
 }
 
 public enum StatusPreset

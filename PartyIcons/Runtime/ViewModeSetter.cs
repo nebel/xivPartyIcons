@@ -137,35 +137,43 @@ public sealed class ViewModeSetter
 
     private void SetNameplateViewZone(ZoneType zoneType)
     {
-        var partyDisplay = _configuration.SelectDisplayConfig(zoneType switch
+        var selectors = _configuration.DisplaySelections;
+
+        var partyDisplay = _configuration.GetDisplayConfig(zoneType switch
         {
-            ZoneType.Overworld => _configuration.DisplayOverworld,
-            ZoneType.Dungeon => _configuration.DisplayDungeon,
-            ZoneType.Raid => _configuration.DisplayRaid,
-            ZoneType.AllianceRaid => _configuration.DisplayAllianceRaid,
-            ZoneType.FieldOperation => _configuration.DisplayFieldOperationParty,
+            ZoneType.Overworld => selectors.DisplayOverworld,
+            ZoneType.Dungeon => selectors.DisplayDungeon,
+            ZoneType.Raid => selectors.DisplayRaid,
+            ZoneType.AllianceRaid => selectors.DisplayAllianceRaid,
+            ZoneType.FieldOperation => selectors.DisplayFieldOperationParty,
             _ => throw new ArgumentOutOfRangeException($"Unknown zone type {zoneType}")
         });
 
-        var othersDisplay = _configuration.SelectDisplayConfig(zoneType switch
+        var othersDisplay = _configuration.GetDisplayConfig(zoneType switch
         {
-            ZoneType.Overworld => _configuration.DisplayOthers,
-            ZoneType.Dungeon => _configuration.DisplayOthers,
-            ZoneType.Raid => _configuration.DisplayOthers,
-            ZoneType.AllianceRaid => _configuration.DisplayOthers,
-            ZoneType.FieldOperation => _configuration.DisplayFieldOperationOthers,
+            ZoneType.Overworld => selectors.DisplayOthers,
+            ZoneType.Dungeon => selectors.DisplayOthers,
+            ZoneType.Raid => selectors.DisplayOthers,
+            ZoneType.AllianceRaid => selectors.DisplayOthers,
+            ZoneType.FieldOperation => selectors.DisplayFieldOperationOthers,
             _ => throw new ArgumentOutOfRangeException($"Unknown zone type {zoneType}")
         });
 
         _nameplateView.ZoneType = zoneType;
+
         _nameplateView.PartyDisplay = partyDisplay;
-        _nameplateView.PartyStatus = StatusUtils.DictToArray(
-            _configuration.SelectStatusConfig(partyDisplay.StatusSelectors.GetValueOrDefault(zoneType, DefaultStatusSelector))
-                .DisplayMap);
+        if (!partyDisplay.StatusSelectors.TryGetValue(zoneType, out var partyStatusSelector)) {
+            Service.Log.Warning($"Couldn't find status selector for zoneType {zoneType} in config {partyDisplay.Preset}/{partyDisplay.Id}");
+            partyStatusSelector = DefaultStatusSelector;
+        }
+        _nameplateView.PartyStatus = StatusUtils.DictToArray(_configuration.GetStatusConfig(partyStatusSelector).DisplayMap);
+
         _nameplateView.OthersDisplay = othersDisplay;
-        _nameplateView.OthersStatus = StatusUtils.DictToArray(
-            _configuration.SelectStatusConfig(othersDisplay.StatusSelectors.GetValueOrDefault(zoneType, DefaultStatusSelector))
-                .DisplayMap);
+        if (!othersDisplay.StatusSelectors.TryGetValue(zoneType, out var othersStatusSelector)) {
+            Service.Log.Warning($"Couldn't find status selector for zoneType {zoneType} in config {othersDisplay.Preset}/{othersDisplay.Id}");
+            othersStatusSelector = DefaultStatusSelector;
+        }
+        _nameplateView.OthersStatus = StatusUtils.DictToArray(_configuration.GetStatusConfig(othersStatusSelector).DisplayMap);
     }
 
     private void OnTerritoryChanged(ushort e)

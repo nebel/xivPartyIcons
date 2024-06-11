@@ -360,13 +360,13 @@ public sealed class NameplateUpdater : IDisposable
             }
 
             var exNode =
-                UiHelper.GetNodeByID<AtkImageNode>(uldManager, ExNodeId, NodeType.Image);
+                AtkHelper.GetNodeByID<AtkImageNode>(uldManager, ExNodeId, NodeType.Image);
             if (exNode == null) {
                 exNode = CreateImageNode(ExNodeId, componentNode, IconNodeId);
             }
 
             var subNode =
-                UiHelper.GetNodeByID<AtkImageNode>(uldManager, SubNodeId, NodeType.Image);
+                AtkHelper.GetNodeByID<AtkImageNode>(uldManager, SubNodeId, NodeType.Image);
             if (subNode == null) {
                 subNode = CreateImageNode(SubNodeId, componentNode, NameTextNodeId);
             }
@@ -392,7 +392,7 @@ public sealed class NameplateUpdater : IDisposable
 
     private static unsafe AtkImageNode* CreateImageNode(uint nodeId, AtkComponentNode* parent, uint targetNodeId)
     {
-        var imageNode = UiHelper.MakeImageNode(nodeId, new UiHelper.PartInfo(0, 0, 32, 32));
+        var imageNode = AtkHelper.MakeImageNode(nodeId, new AtkHelper.PartInfo(0, 0, 32, 32));
         if (imageNode == null) {
             throw new Exception($"Failed to create image node {nodeId}");
         }
@@ -406,12 +406,12 @@ public sealed class NameplateUpdater : IDisposable
         imageNode->Flags = (byte)ImageNodeFlags.AutoFit;
         imageNode->LoadIconTexture(60071, 0);
 
-        var targetNode = UiHelper.GetNodeByID<AtkResNode>(&parent->Component->UldManager, targetNodeId);
+        var targetNode = AtkHelper.GetNodeByID<AtkResNode>(&parent->Component->UldManager, targetNodeId);
         if (targetNode == null) {
             throw new Exception($"Failed to find link target ({targetNodeId}) for image node {nodeId}");
         }
 
-        UiHelper.LinkNodeAfterTargetNode((AtkResNode*)imageNode, parent, targetNode);
+        AtkHelper.LinkNodeAfterTargetNode((AtkResNode*)imageNode, parent, targetNode);
 
         return imageNode;
     }
@@ -435,15 +435,15 @@ public sealed class NameplateUpdater : IDisposable
             if (parentComponentNodeComponent == null) continue;
 
             var exNode =
-                UiHelper.GetNodeByID<AtkImageNode>(&parentComponentNodeComponent->UldManager, ExNodeId, NodeType.Image);
+                AtkHelper.GetNodeByID<AtkImageNode>(&parentComponentNodeComponent->UldManager, ExNodeId, NodeType.Image);
             if (exNode != null) {
-                UiHelper.UnlinkAndFreeImageNodeIndirect(exNode, &parentComponentNodeComponent->UldManager);
+                AtkHelper.UnlinkAndFreeImageNodeIndirect(exNode, &parentComponentNodeComponent->UldManager);
             }
 
-            var subNode = UiHelper.GetNodeByID<AtkImageNode>(&parentComponentNodeComponent->UldManager, SubNodeId,
+            var subNode = AtkHelper.GetNodeByID<AtkImageNode>(&parentComponentNodeComponent->UldManager, SubNodeId,
                 NodeType.Image);
             if (subNode != null) {
-                UiHelper.UnlinkAndFreeImageNodeIndirect(subNode, &parentComponentNodeComponent->UldManager);
+                AtkHelper.UnlinkAndFreeImageNodeIndirect(subNode, &parentComponentNodeComponent->UldManager);
             }
         }
     }
