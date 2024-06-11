@@ -111,12 +111,12 @@ public class StatusConfig
 
         public static StatusVisibility[] FieldOperations => StatusUtils.ListsToArray([
                 Status.Disconnected,
-            ],
-            [
-                Status.SharingDuty, // This allows you to see which players don't have a party (note: when?)
                 Status.ViewingCutscene,
                 Status.AwayFromKeyboard,
                 Status.CameraMode,
+                Status.SharingDuty, // This allows you to see which players don't have a party (note: when?)
+            ],
+            [
                 Status.Returner,
                 Status.NewAdventurer,
             ]);

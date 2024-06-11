@@ -1,13 +1,10 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.Json;
+using Dalamud.Configuration;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Dalamud.Configuration;
-using Newtonsoft.Json.Serialization;
 using PartyIcons.Entities;
 
 namespace PartyIcons.Configuration;
@@ -102,7 +99,7 @@ public class Settings : IPluginConfiguration
 
                 var versionNumber = GetConfigFileVersion(fileText);
 
-                if (versionNumber == Settings.CurrentVersion) {
+                if (versionNumber == CurrentVersion) {
                     config = JsonConvert.DeserializeObject<Settings>(fileText);
                     Service.Log.Information($"Loaded configuration v{versionNumber} (current)");
                 }
@@ -110,7 +107,7 @@ public class Settings : IPluginConfiguration
                     var configV1 = JsonConvert.DeserializeObject<SettingsV1>(fileText);
                     config = new Settings(configV1);
                     config.Save();
-                    Service.Log.Information($"Converted configuration v{versionNumber} to v{Settings.CurrentVersion}");
+                    Service.Log.Information($"Converted configuration v{versionNumber} to v{CurrentVersion}");
                 }
                 else {
                     Service.Log.Error($"No reader available for configuration v{versionNumber}");
