@@ -13,23 +13,24 @@ public class DisplayConfig
     public readonly Guid? Id;
     public string? Name;
 
-    public NameplateMode Mode;
+    public readonly NameplateMode Mode;
 
+    public float Scale;
+    public IconSetId IconSetId;
     public StatusSwapStyle SwapStyle;
 
     [JsonConverter(typeof(EnumKeyConverter<ZoneType, StatusSelector>))]
     public Dictionary<ZoneType, StatusSelector> StatusSelectors = [];
 
-    public float Scale;
-    public IconSetId? IconSetId;
     public IconCustomizeConfig ExIcon;
     public IconCustomizeConfig SubIcon;
 
     [JsonConstructor]
-    private DisplayConfig(DisplayPreset preset, Guid? id)
+    private DisplayConfig(DisplayPreset preset, Guid? id, NameplateMode mode)
     {
         Preset = preset;
         Id = id;
+        Mode = mode;
     }
 
     public DisplayConfig(DisplayPreset preset)
@@ -55,14 +56,19 @@ public class DisplayConfig
     public void Reset()
     {
         // Mode = (NameplateMode)Preset;
+        Scale = 1f;
+        IconSetId = IconSetId.Inherit;
         SwapStyle = Mode is NameplateMode.BigJobIcon or NameplateMode.BigJobIconAndPartySlot
             or NameplateMode.RoleLetters
             ? StatusSwapStyle.Swap
             : StatusSwapStyle.None;
         StatusSelectors = [];
-        Scale = 1f;
         ExIcon = new IconCustomizeConfig();
         SubIcon = new IconCustomizeConfig();
+
+        if (Mode is NameplateMode.RoleLetters) {
+            ExIcon = ExIcon with { Show = false };
+        }
 
         Sanitize();
     }

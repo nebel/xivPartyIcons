@@ -65,34 +65,24 @@ public sealed class PlayerStylesheet
         }
     }
 
-    public IconGroupId GetGenericRoleIconGroupId(GenericRole role)
+    public IconGroupId GetGenericRoleIconGroupId(IconSetId iconSetId, GenericRole role)
     {
-        switch (_configuration.IconSetId) {
-            case IconSetId.EmbossedFramed:
-                return IconGroupId.EmbossedFramed;
-
-            case IconSetId.EmbossedFramedSmall:
-                return IconGroupId.EmbossedFramedSmall;
-
-            case IconSetId.Glowing:
-                return IconGroupId.Glowing;
-
-            case IconSetId.Gradient:
-                return role switch
-                {
-                    GenericRole.Tank => IconGroupId.GradientBlue,
-                    GenericRole.Melee => IconGroupId.GradientRed,
-                    GenericRole.Ranged => IconGroupId.GradientOrange,
-                    GenericRole.Healer => IconGroupId.GradientGreen,
-                    _ => IconGroupId.GradientGrey
-                };
-
-            case IconSetId.Embossed:
-                return IconGroupId.Embossed;
-
-            default:
-                throw new ArgumentException($"Unknown icon set id: {_configuration.IconSetId}");
-        }
+        return iconSetId switch
+        {
+            IconSetId.EmbossedFramed => IconGroupId.EmbossedFramed,
+            IconSetId.EmbossedFramedSmall => IconGroupId.EmbossedFramedSmall,
+            IconSetId.Glowing => IconGroupId.Glowing,
+            IconSetId.Gradient => role switch
+            {
+                GenericRole.Tank => IconGroupId.GradientBlue,
+                GenericRole.Melee => IconGroupId.GradientRed,
+                GenericRole.Ranged => IconGroupId.GradientOrange,
+                GenericRole.Healer => IconGroupId.GradientGreen,
+                _ => IconGroupId.GradientGrey
+            },
+            IconSetId.Embossed => IconGroupId.Embossed,
+            _ => throw new ArgumentException($"Unknown icon set id: {_configuration.IconSetId}")
+        };
     }
 
     public string GetRoleName(RoleId roleId)

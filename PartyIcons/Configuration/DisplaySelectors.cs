@@ -4,7 +4,7 @@ using System.Linq;
 namespace PartyIcons.Configuration;
 
 [Serializable]
-public class DisplaySelections
+public class DisplaySelectors
 {
     public DisplaySelector DisplayOverworld { get; set; } = new(DisplayPreset.SmallJobIcon);
     public DisplaySelector DisplayDungeon { get; set; } = new(DisplayPreset.BigJobIconAndPartySlot);

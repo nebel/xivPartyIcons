@@ -4,5 +4,6 @@ public enum NameplateSizeMode
 {
     Smaller,
     Medium,
-    Bigger
+    Bigger,
+    Custom
 }

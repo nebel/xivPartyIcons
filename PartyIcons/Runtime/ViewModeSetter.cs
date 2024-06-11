@@ -137,7 +137,7 @@ public sealed class ViewModeSetter
 
     private void SetNameplateViewZone(ZoneType zoneType)
     {
-        var selectors = _configuration.DisplaySelections;
+        var selectors = _configuration.DisplaySelectors;
 
         var partyDisplay = _configuration.GetDisplayConfig(zoneType switch
         {

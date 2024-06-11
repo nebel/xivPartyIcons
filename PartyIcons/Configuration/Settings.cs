@@ -22,7 +22,7 @@ public class Settings : IPluginConfiguration
 
     public bool ChatContentMessage = true;
     public bool HideLocalPlayerNameplate = false;
-    public bool TestingMode = true;
+    public bool TestingMode = false;
     public bool EasternNamingConvention = false;
     public bool DisplayRoleInPartyList = false;
     public bool UseContextMenu = false;
@@ -32,6 +32,7 @@ public class Settings : IPluginConfiguration
 
     public IconSetId IconSetId { get; set; } = IconSetId.Gradient;
     public NameplateSizeMode SizeMode { get; set; } = NameplateSizeMode.Medium;
+    public float SizeModeCustom { get; set; } = 1f;
 
     public NameplateMode NameplateOverworld { get; set; } = NameplateMode.SmallJobIcon;
     public NameplateMode NameplateAllianceRaid { get; set; } = NameplateMode.BigJobIconAndPartySlot;
@@ -40,7 +41,7 @@ public class Settings : IPluginConfiguration
     public NameplateMode NameplateBozjaOthers { get; set; } = NameplateMode.Default;
     public NameplateMode NameplateRaid { get; set; } = NameplateMode.RoleLetters;
     public NameplateMode NameplateOthers { get; set; } = NameplateMode.SmallJobIcon;
-    public DisplaySelections DisplaySelections { get; set; } = new();
+    public DisplaySelectors DisplaySelectors { get; set; } = new();
     public DisplayConfigs DisplayConfigs { get; set; } = new();
     public StatusConfigs StatusConfigs { get; set; } = new();
     public ChatConfig ChatOverworld { get; set; } = new(ChatMode.Role);
@@ -121,13 +122,30 @@ public class Settings : IPluginConfiguration
             Service.Log.Error(e.ToString());
         }
 
-        if (config != null) {
+        if (config == null) {
+            Service.Log.Information("Creating a new configuration.");
+            config = new Settings
+            {
+                ImportedSelectors = true
+            };
+        }
+        else {
             config.Sanitize();
-            return config;
         }
 
-        Service.Log.Information("Creating a new configuration.");
-        return new Settings();
+        if (!config.ImportedSelectors) {
+            config.DisplaySelectors.DisplayOverworld = new DisplaySelector(config.NameplateOverworld);
+            config.DisplaySelectors.DisplayDungeon = new DisplaySelector(config.NameplateDungeon);
+            config.DisplaySelectors.DisplayRaid = new DisplaySelector(config.NameplateRaid);
+            config.DisplaySelectors.DisplayAllianceRaid = new DisplaySelector(config.NameplateAllianceRaid);
+            config.DisplaySelectors.DisplayFieldOperationParty = new DisplaySelector(config.NameplateBozjaParty);
+            config.DisplaySelectors.DisplayFieldOperationOthers = new DisplaySelector(config.NameplateBozjaOthers);
+            config.DisplaySelectors.DisplayOthers = new DisplaySelector(config.NameplateOthers);
+            config.ImportedSelectors = true;
+            config.Save();
+        }
+
+        return config;
     }
 
     private void Sanitize()

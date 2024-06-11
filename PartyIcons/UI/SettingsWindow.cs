@@ -96,17 +96,17 @@ public sealed class SettingsWindow : IDisposable
                     ImGui.EndTabItem();
                 }
                 
-                if (ImGui.BeginTabItem("(OLD)"))
-                {
-                    if (ImGui.BeginChild("##nameplatesold_content"))
-                    {
-                        _oldNameplateSettings.DrawNameplateSettings();
-                        
-                        ImGui.EndChild();
-                    }
-                    
-                    ImGui.EndTabItem();
-                }
+                // if (ImGui.BeginTabItem("(OLD)"))
+                // {
+                //     if (ImGui.BeginChild("##nameplatesold_content"))
+                //     {
+                //         _oldNameplateSettings.DrawNameplateSettings();
+                //
+                //         ImGui.EndChild();
+                //     }
+                //
+                //     ImGui.EndTabItem();
+                // }
 
                 if (ImGui.BeginTabItem("Appearance"))
                 {
@@ -261,5 +261,19 @@ public sealed class SettingsWindow : IDisposable
     public static string GetName(StatusSelector selector)
     {
         return GetName(Plugin.Settings.GetStatusConfig(selector));
+    }
+
+    public static string GetName(IconSetId id)
+    {
+        return id switch
+        {
+            IconSetId.EmbossedFramed => "Framed, role colored",
+            IconSetId.EmbossedFramedSmall => "Framed, role colored (small)",
+            IconSetId.Gradient => "Gradient, role colored",
+            IconSetId.Glowing => "Glowing",
+            IconSetId.Embossed => "Embossed",
+            IconSetId.Inherit => "<Use global setting>",
+            _ => id.ToString()
+        };
     }
 }

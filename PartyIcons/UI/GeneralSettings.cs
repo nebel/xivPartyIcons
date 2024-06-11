@@ -5,7 +5,9 @@ using System.Numerics;
 using System.Text.RegularExpressions;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Components;
+using Dalamud.Interface.Style;
 using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 using ImGuiNET;
 using PartyIcons.UI.Controls;
 
@@ -26,17 +28,19 @@ public sealed class GeneralSettings
     {
         ImGui.Dummy(new Vector2(0, 2f));
 
-        var usePriorityIcons = Plugin.Settings.UsePriorityIcons;
-        
-        if (ImGui.Checkbox("##usePriorityIcons", ref usePriorityIcons))
-        {
-            Plugin.Settings.UsePriorityIcons = usePriorityIcons;
-            Plugin.Settings.Save();
+        using (ImRaii.PushColor(ImGuiCol.CheckMark, 0xFF888888)) {
+            var usePriorityIcons = true;
+            ImGui.Checkbox("##usePriorityIcons", ref usePriorityIcons);
+            ImGui.SameLine();
+            ImGui.Text("Prioritize status icons");
+            using (ImRaii.PushIndent())
+            using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudOrange)) {
+                ImGui.TextWrapped(
+                    "Note: Priority status icons are now configured per nameplate type from the 'Appearance' tab via the 'Swap Style' option. You can also configure which icons are considered important enough to prioritize in the 'Status Icons' tab.");
+            }
+            ImGui.Dummy(new Vector2(0, 3));
         }
-
-        ImGui.SameLine();
-        ImGui.Text("Prioritize status icons");
-        ImGuiComponents.HelpMarker("Prioritizes certain status icons over job icons.\n\nInside of a duty, the only status icons that take priority are Disconnecting, Viewing Cutscene, Idle, and Group Pose.\n\nEven if this is unchecked, the Disconnecting icon will always take priority.");
+        // ImGuiComponents.HelpMarker("Prioritizes certain status icons over job icons.\n\nInside of a duty, the only status icons that take priority are Disconnecting, Viewing Cutscene, Idle, and Group Pose.\n\nEven if this is unchecked, the Disconnecting icon will always take priority.");
 
         /*
         // Sample code for later when we want to incorporate icon previews into the UI.

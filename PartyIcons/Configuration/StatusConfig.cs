@@ -93,6 +93,8 @@ public class StatusConfig
                 Status.PartyLeaderCrossworld,
                 Status.PartyMemberCrossworld,
                 Status.InDuty,
+                Status.SharingDuty,
+                Status.SimilarDuty,
                 Status.TrialAdventurer,
             ]);
 
