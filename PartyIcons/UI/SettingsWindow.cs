@@ -36,7 +36,7 @@ public sealed class SettingsWindow : IDisposable
         Service.PluginInterface.UiBuilder.OpenConfigUi += OpenSettingsWindow;
         
         _generalSettings.Initialize();
-        _oldNameplateSettings.Initialize();
+        _nameplateSettings.Initialize();
     }
 
     public void Dispose()
@@ -200,7 +200,6 @@ public sealed class SettingsWindow : IDisposable
     private static WindowSizeHelper _windowSizeHelper = new();
     private readonly GeneralSettings _generalSettings = new();
     private readonly NameplateSettings _nameplateSettings = new();
-    private readonly OldNameplateSettings _oldNameplateSettings = new();
     private readonly AppearanceSettings _appearanceSettings = new();
     private readonly StatusSettings _statusSettings = new();
     private readonly ChatNameSettings _chatNameSettings = new();
