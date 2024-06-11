@@ -81,63 +81,63 @@ public sealed class ViewModeSetter
         Disable();
     }
 
-    public DisplayConfig GetDisplayConfig(DisplaySelector selector)
-    {
-        var configs = _configuration.DisplayConfigs;
-        switch (selector.Preset) {
-            case DisplayPreset.Default:
-                return configs.Default;
-            case DisplayPreset.Hide:
-                return configs.Hide;
-            case DisplayPreset.SmallJobIcon:
-                return configs.SmallJobIcon;
-            case DisplayPreset.SmallJobIconAndRole:
-                return configs.SmallJobIconAndRole;
-            case DisplayPreset.BigJobIcon:
-                return configs.BigJobIcon;
-            case DisplayPreset.BigJobIconAndPartySlot:
-                return configs.BigJobIconAndPartySlot;
-            case DisplayPreset.RoleLetters:
-                return configs.RoleLetters;
-            case DisplayPreset.Custom:
-                foreach (var config in configs.Custom.Where(config => config.Id == selector.Id)) {
-                    return config;
-                }
-
-                Service.Log.Warning($"Couldn't find custom preset with id {selector.Id}, falling back to default");
-                return configs.Default;
-            default:
-                Service.Log.Warning($"Couldn't find preset of type {selector.Preset}, falling back to default");
-                return configs.Default;
-        }
-    }
-
-    public StatusConfig GetStatusConfig(StatusSelector selector)
-    {
-        var configs = _configuration.StatusConfigs;
-        switch (selector.Preset) {
-            case StatusPreset.Overworld:
-                return configs.Overworld;
-            case StatusPreset.Instances:
-                return configs.Instances;
-            case StatusPreset.FieldOperations:
-                return configs.FieldOperations;
-            case StatusPreset.Custom:
-                foreach (var config in configs.Custom.Where(config => config.Id == selector.Id)) {
-                    return config;
-                }
-
-                Service.Log.Warning($"Couldn't find custom preset with id {selector.Id}, falling back to overworld");
-                return configs.Overworld;
-            default:
-                Service.Log.Warning($"Couldn't find preset of type {selector.Preset}, falling back to overworld");
-                return configs.Overworld;
-        }
-    }
+    // public DisplayConfig GetDisplayConfig(DisplaySelector selector)
+    // {
+    //     var configs = _configuration.DisplayConfigs;
+    //     switch (selector.Preset) {
+    //         case DisplayPreset.Default:
+    //             return configs.Default;
+    //         case DisplayPreset.Hide:
+    //             return configs.Hide;
+    //         case DisplayPreset.SmallJobIcon:
+    //             return configs.SmallJobIcon;
+    //         case DisplayPreset.SmallJobIconAndRole:
+    //             return configs.SmallJobIconAndRole;
+    //         case DisplayPreset.BigJobIcon:
+    //             return configs.BigJobIcon;
+    //         case DisplayPreset.BigJobIconAndPartySlot:
+    //             return configs.BigJobIconAndPartySlot;
+    //         case DisplayPreset.RoleLetters:
+    //             return configs.RoleLetters;
+    //         case DisplayPreset.Custom:
+    //             foreach (var config in configs.Custom.Where(config => config.Id == selector.Id)) {
+    //                 return config;
+    //             }
+    //
+    //             Service.Log.Warning($"Couldn't find custom preset with id {selector.Id}, falling back to default");
+    //             return configs.Default;
+    //         default:
+    //             Service.Log.Warning($"Couldn't find preset of type {selector.Preset}, falling back to default");
+    //             return configs.Default;
+    //     }
+    // }
+    //
+    // public StatusConfig GetStatusConfig(StatusSelector selector)
+    // {
+    //     var configs = _configuration.StatusConfigs;
+    //     switch (selector.Preset) {
+    //         case StatusPreset.Overworld:
+    //             return configs.Overworld;
+    //         case StatusPreset.Instances:
+    //             return configs.Instances;
+    //         case StatusPreset.FieldOperations:
+    //             return configs.FieldOperations;
+    //         case StatusPreset.Custom:
+    //             foreach (var config in configs.Custom.Where(config => config.Id == selector.Id)) {
+    //                 return config;
+    //             }
+    //
+    //             Service.Log.Warning($"Couldn't find custom preset with id {selector.Id}, falling back to overworld");
+    //             return configs.Overworld;
+    //         default:
+    //             Service.Log.Warning($"Couldn't find preset of type {selector.Preset}, falling back to overworld");
+    //             return configs.Overworld;
+    //     }
+    // }
 
     private void SetNameplateViewZone(ZoneType zoneType)
     {
-        var partyDisplay = GetDisplayConfig(zoneType switch
+        var partyDisplay = _configuration.SelectDisplayConfig(zoneType switch
         {
             ZoneType.Overworld => _configuration.DisplayOverworld,
             ZoneType.Dungeon => _configuration.DisplayDungeon,
@@ -147,7 +147,7 @@ public sealed class ViewModeSetter
             _ => throw new ArgumentOutOfRangeException($"Unknown zone type {zoneType}")
         });
 
-        var othersDisplay = GetDisplayConfig(zoneType switch
+        var othersDisplay = _configuration.SelectDisplayConfig(zoneType switch
         {
             ZoneType.Overworld => _configuration.DisplayOthers,
             ZoneType.Dungeon => _configuration.DisplayOthers,
@@ -160,11 +160,11 @@ public sealed class ViewModeSetter
         _nameplateView.ZoneType = zoneType;
         _nameplateView.PartyDisplay = partyDisplay;
         _nameplateView.PartyStatus = StatusUtils.DictToArray(
-            GetStatusConfig(partyDisplay.StatusSelectors.GetValueOrDefault(zoneType, DefaultStatusSelector))
+            _configuration.SelectStatusConfig(partyDisplay.StatusSelectors.GetValueOrDefault(zoneType, DefaultStatusSelector))
                 .DisplayMap);
         _nameplateView.OthersDisplay = othersDisplay;
         _nameplateView.OthersStatus = StatusUtils.DictToArray(
-            GetStatusConfig(othersDisplay.StatusSelectors.GetValueOrDefault(zoneType, DefaultStatusSelector))
+            _configuration.SelectStatusConfig(othersDisplay.StatusSelectors.GetValueOrDefault(zoneType, DefaultStatusSelector))
                 .DisplayMap);
     }
 

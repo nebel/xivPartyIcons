@@ -179,7 +179,8 @@ public enum StatusVisibility : byte
     Hide = 0,
     Show = 1,
     Important = 2,
+
     Unset = 253, // Value which is somehow missing from a dict
     Unknown = 254, // Value which is unknown (e.g. new in patch)
-    Unexpected = 255 // Value which is known, but we don't think should actually be used as a nameplate status
+    Unexpected = 255 // Value which is known, but we don't think can actually appear as a nameplate status
 }

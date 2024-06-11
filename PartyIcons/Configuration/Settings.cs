@@ -167,7 +167,7 @@ public class Settings : IPluginConfiguration
         return json.GetValue("Version")?.Value<int>() ?? 0;
     }
 
-    public StatusConfig GetStatusConfig(StatusSelector selector)
+    public StatusConfig SelectStatusConfig(StatusSelector selector)
     {
         var configs = StatusConfigs;
         switch (selector.Preset) {
@@ -190,7 +190,7 @@ public class Settings : IPluginConfiguration
         }
     }
 
-    public DisplayConfig GetDisplayConfig(DisplaySelector selector)
+    public DisplayConfig SelectDisplayConfig(DisplaySelector selector)
     {
         var configs = DisplayConfigs;
         switch (selector.Preset) {
@@ -218,20 +218,6 @@ public class Settings : IPluginConfiguration
             default:
                 Service.Log.Warning($"Couldn't find preset of type {selector.Preset}, falling back to default");
                 return configs.Default;
-        }
-    }
-
-    private class DictionaryAsArrayResolver : DefaultContractResolver
-    {
-        protected override JsonContract CreateContract(Type objectType)
-        {
-            if (objectType.GetInterfaces().Any(i =>
-                    i == typeof(IDictionary) ||
-                    (i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDictionary<,>)))) {
-                return base.CreateArrayContract(objectType);
-            }
-
-            return base.CreateContract(objectType);
         }
     }
 }

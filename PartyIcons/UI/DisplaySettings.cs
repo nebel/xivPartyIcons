@@ -226,7 +226,7 @@ public sealed class DisplaySettings
 
     private static string DisplaySelectorToString(DisplaySelector selector)
     {
-        var config = Plugin.Settings.GetDisplayConfig(selector);
+        var config = Plugin.Settings.SelectDisplayConfig(selector);
         if (config.Preset == DisplayPreset.Custom) {
             return $"{NameplateModeToString(config.Mode)} ({config.Name})";
         }
