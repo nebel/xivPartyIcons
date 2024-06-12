@@ -6,7 +6,7 @@ using Newtonsoft.Json.Linq;
 namespace PartyIcons.Utils;
 
 // Serialize/deserialize dictionaries with enum keys using the integer-as-a-string for the key, rather than the enum
-// variant name. Pro: allows us to rename enum variants, smaller file size. Con: we can't change enum order.
+// variant name. Pro: allows us to rename enum variants. Con: we can't change enum order.
 public class EnumKeyConverter<TEnum, TValue> : JsonConverter<Dictionary<TEnum, TValue>> where TEnum : Enum
 {
     public override Dictionary<TEnum, TValue> ReadJson(JsonReader reader, Type objectType,

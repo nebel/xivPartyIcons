@@ -95,7 +95,7 @@ public sealed class NameplateUpdater : IDisposable
 
     private static unsafe void OnPreFinalize(AddonEvent type, AddonArgs args)
     {
-        Service.Log.Info($"OnPreFinalize (0x{args.Addon:X})");
+        Service.Log.Debug($"OnPreFinalize (0x{args.Addon:X})");
 
         ResetAllPlates();
         DestroyAllNodes((AddonNamePlate*)args.Addon);
@@ -341,7 +341,7 @@ public sealed class NameplateUpdater : IDisposable
 
     private static unsafe bool CreateNodes(AddonNamePlate* addon)
     {
-        Service.Log.Error("CreateNodes");
+        Service.Log.Debug("CreateNodes");
 
         var stateCache = new PlateState[AddonNamePlate.NumNamePlateObjects];
         var indexMap = new Dictionary<nint, int>();
@@ -418,7 +418,7 @@ public sealed class NameplateUpdater : IDisposable
 
     private static unsafe void DestroyAllNodes(AddonNamePlate* addon)
     {
-        Service.Log.Error("DestroyNodes");
+        Service.Log.Debug("DestroyNodes");
 
         var arr = addon->NamePlateObjectArray;
         if (arr == null) return;

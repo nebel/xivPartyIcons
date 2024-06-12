@@ -115,8 +115,7 @@ public class Settings : IPluginConfiguration
             }
         }
         catch (Exception e) {
-            Service.Log.Error("Could not read configuration.");
-            Service.Log.Error(e.ToString());
+            Service.Log.Error(e, "Could not read configuration.");
         }
 
         if (config == null) {
