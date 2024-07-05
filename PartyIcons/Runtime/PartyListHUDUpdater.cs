@@ -147,7 +147,7 @@ public sealed class PartyListHUDUpdater : IDisposable
 
         var roleSet = false;
         for (var i = 0; i < 8; i++) {
-            var hudPartyMember = agentHud->PartyMemberListSpan.GetPointer(i);
+            var hudPartyMember = agentHud->PartyMembers.GetPointer(i);
             if (hudPartyMember->ContentId > 0) {
                 var name = MemoryHelper.ReadStringNullTerminated((nint)hudPartyMember->Name);
                 var worldId = GetWorldId(hudPartyMember);
@@ -188,9 +188,9 @@ public sealed class PartyListHUDUpdater : IDisposable
 
         if (hudPartyMember->ContentId > 0) {
             var gm = GroupManager.Instance();
-            for (var i = 0; i < gm->MemberCount; i++) {
-                var member = gm->PartyMembersSpan.GetPointer(i);
-                if (hudPartyMember->ContentId == (ulong)member->ContentID) {
+            for (var i = 0; i < gm->MainGroup.MemberCount; i++) {
+                var member = gm->MainGroup.PartyMembers.GetPointer(i);
+                if (hudPartyMember->ContentId == member->ContentId) {
                     return member->HomeWorld;
                 }
             }
@@ -205,12 +205,12 @@ public sealed class PartyListHUDUpdater : IDisposable
 
         var agentHud = AgentHUD.Instance();
         Service.Log.Info($"Members (AgentHud) [{agentHud->PartyMemberCount}] (0x{(nint)agentHud:X}):");
-        for (var i = 0; i < agentHud->PartyMemberListSpan.Length; i++) {
-            var member = agentHud->PartyMemberListSpan.GetPointer(i);
+        for (var i = 0; i < agentHud->PartyMembers.Length; i++) {
+            var member = agentHud->PartyMembers.GetPointer(i);
             if (member->Name != null) {
                 var name = MemoryHelper.ReadSeStringNullTerminated((nint)member->Name);
                 Service.Log.Info(
-                    $"  [{i}] {name} -> 0x{(nint)member->Object:X} ({(member->Object != null ? member->Object->Character.HomeWorld : "?")}) {member->ContentId} {member->ObjectId:X}");
+                    $"  [{i}] {name} -> 0x{(nint)member->Object:X} ({(member->Object != null ? member->Object->Character.HomeWorld : "?")}) {member->ContentId} {member->EntityId:X}");
             }
         }
 
@@ -222,23 +222,21 @@ public sealed class PartyListHUDUpdater : IDisposable
         }
 
         var gm = GroupManager.Instance();
-        Service.Log.Info($"Members (GroupManager) [{gm->MemberCount}] (0x{(nint)gm:X}):");
-        for (var i = 0; i < gm->MemberCount; i++) {
-            var member = gm->PartyMembersSpan.GetPointer(i);
+        Service.Log.Info($"Members (GroupManager) [{gm->MainGroup.MemberCount}] (0x{(nint)gm:X}):");
+        for (var i = 0; i < gm->MainGroup.MemberCount; i++) {
+            var member = gm->MainGroup.PartyMembers.GetPointer(i);
             if (member->HomeWorld != 65535) {
-                var name = MemoryHelper.ReadSeStringNullTerminated((nint)member->Name);
                 Service.Log.Info(
-                    $"  [{i}] {name} -> 0x{(nint)member->ObjectID:X} ({member->HomeWorld}) {member->ContentID} [job={member->ClassJob}]");
+                    $"  [{i}] {member->NameString} -> 0x{(nint)member->EntityId:X} ({member->HomeWorld}) {member->ContentId} [job={member->ClassJob}]");
             }
         }
 
-        var proxy = InfoProxyParty.Instance();
+        var proxy = InfoProxyPartyMember.Instance();
         var list = proxy->InfoProxyCommonList;
         Service.Log.Info($"Members (Proxy) [{list.CharDataSpan.Length}]:");
         for (var i = 0; i < list.CharDataSpan.Length; i++) {
             var data = list.CharDataSpan[i];
-            var name = MemoryHelper.ReadSeStringNullTerminated((nint)data.Name);
-            Service.Log.Info($"  [{i}] {name} ({data.HomeWorld}) {data.ContentId} {data.Job}");
+            Service.Log.Info($"  [{i}] {data.NameString} ({data.HomeWorld}) {data.ContentId} {data.Job}");
         }
     }
 }

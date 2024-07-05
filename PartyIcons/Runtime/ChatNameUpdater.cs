@@ -29,8 +29,8 @@ public sealed class ChatNameUpdater : IDisposable
         Service.ChatGui.ChatMessage += OnChatMessage;
     }
 
-    private void OnChatMessage(XivChatType type, uint senderid, ref SeString sender, ref SeString message,
-        ref bool ishandled)
+    private void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message,
+        ref bool isHandled)
     {
         if (Service.ClientState.IsPvP)
         {
@@ -131,7 +131,7 @@ public sealed class ChatNameUpdater : IDisposable
         {
             foreach (var obj in Service.ObjectTable)
             {
-                if (obj is PlayerCharacter pc && pc.Name.ToString() == playerPayload.PlayerName &&
+                if (obj is IPlayerCharacter pc && pc.Name.ToString() == playerPayload.PlayerName &&
                     pc.HomeWorld.Id == playerPayload.World.RowId)
                 {
                     senderJob = pc.ClassJob.GameData;

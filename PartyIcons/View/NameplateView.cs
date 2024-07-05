@@ -222,7 +222,7 @@ public sealed class NameplateView : IDisposable
             {
                 prefix = SeStringUtils.EmptyPtr;
                 if (context.DisplayConfig.RoleDisplayStyle == RoleDisplayStyle.PartyNumber) {
-                    if (PartyListHUDView.GetPartySlotIndex(context.PlayerCharacter.ObjectId) is { } partySlot) {
+                    if (PartyListHUDView.GetPartySlotIndex(context.PlayerCharacter.EntityId) is { } partySlot) {
                         // var slotString = hasRole
                         //     ? _stylesheet.GetPartySlotNumber(partySlot + 1, roleId)
                         //     : _stylesheet.GetPartySlotNumber(partySlot + 1, context.GenericRole);
@@ -255,7 +255,7 @@ public sealed class NameplateView : IDisposable
             }
             case NameplateMode.BigJobIconAndPartySlot:
             {
-                if (PartyListHUDView.GetPartySlotIndex(context.PlayerCharacter.ObjectId) is { } partySlot) {
+                if (PartyListHUDView.GetPartySlotIndex(context.PlayerCharacter.EntityId) is { } partySlot) {
                     var slotString = _stylesheet.GetPartySlotNumber(partySlot + 1, context.GenericRole);
                     slotString.Payloads.Insert(0, new TextPayload(FullWidthSpace));
                     name = SeStringUtils.SeStringToPtr(slotString);
@@ -274,7 +274,7 @@ public sealed class NameplateView : IDisposable
             {
                 SeString nameString;
                 if (context.DisplayConfig.RoleDisplayStyle == RoleDisplayStyle.PartyNumber) {
-                    nameString = PartyListHUDView.GetPartySlotIndex(context.PlayerCharacter.ObjectId) is { } partySlot
+                    nameString = PartyListHUDView.GetPartySlotIndex(context.PlayerCharacter.EntityId) is { } partySlot
                         ? _stylesheet.GetPartySlotNumber(partySlot + 1, context.GenericRole)
                         : _stylesheet.GetGenericRolePlate(context.GenericRole);
                 }
@@ -358,7 +358,7 @@ public sealed class NameplateView : IDisposable
             );
         }
 
-        exNode->LoadIconTexture((int)context.JobIconId, 0);
+        exNode->LoadIconTexture(context.JobIconId, 0);
 
         if (state.UseSubIcon) {
             const short subXAdjust = -4;
@@ -379,7 +379,7 @@ public sealed class NameplateView : IDisposable
                 iconNode->AtkResNode.X + subIconPaddingRight + subXAdjust + subIconConfig.OffsetX,
                 iconNode->AtkResNode.Y + subYAdjust + subIconConfig.OffsetY
             );
-            subNode->LoadIconTexture((int)context.StatusIconId, 0);
+            subNode->LoadIconTexture(context.StatusIconId, 0);
         }
     }
 
@@ -406,7 +406,7 @@ public sealed class NameplateView : IDisposable
             ResNodeCenter - ExIconWidth + iconPaddingRight + iconTextWidthAdjust + xAdjust + iconConfig.OffsetX,
             ResNodeBottom - ExIconHeight + yAdjust + iconConfig.OffsetY);
 
-        exNode->LoadIconTexture((int)context.JobIconId, 0);
+        exNode->LoadIconTexture(context.JobIconId, 0);
 
         if (state.UseSubIcon) {
             const short subXAdjust = -10;
@@ -434,7 +434,7 @@ public sealed class NameplateView : IDisposable
                 ResNodeCenter + textW - subIconPaddingLeft + subXAdjust + subIconConfig.OffsetX,
                 ResNodeBottom - ExIconHeight + subIconPaddingBottom + subYAdjust + subIconConfig.OffsetY
             );
-            subNode->LoadIconTexture((int)context.StatusIconId, 0);
+            subNode->LoadIconTexture(context.StatusIconId, 0);
         }
     }
 
@@ -463,7 +463,7 @@ public sealed class NameplateView : IDisposable
             ResNodeBottom - ExIconHeight + iconPaddingBottom + yAdjust + iconConfig.OffsetY
         );
 
-        exNode->LoadIconTexture((int)context.JobIconId, 0);
+        exNode->LoadIconTexture(context.JobIconId, 0);
 
         if (state.UseSubIcon) {
             const short subXAdjust = 6;
@@ -485,7 +485,7 @@ public sealed class NameplateView : IDisposable
                 ResNodeCenter - subIconPaddingLeft + subXAdjust + subIconConfig.OffsetX,
                 ResNodeBottom - ExIconHeight + subIconPaddingBottom + subYAdjust + subIconConfig.OffsetY
             );
-            subNode->LoadIconTexture((int)context.StatusIconId, 0);
+            subNode->LoadIconTexture(context.StatusIconId, 0);
         }
     }
 

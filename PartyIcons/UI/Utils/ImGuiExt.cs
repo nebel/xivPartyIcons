@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using Dalamud.Interface.Internal;
+using Dalamud.Interface.Textures;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Plugin.Services;
@@ -64,10 +65,10 @@ public static class ImGuiExt
         ImGui.SetNextItemWidth(maxItemWidth * paddingMultiplier);
     }
 
-    public static IDalamudTextureWrap? GetIconTexture(uint iconId)
+    public static ISharedImmediateTexture GetIconTexture(uint iconId)
     {
-        var path = Service.TextureProvider.GetIconPath(iconId, ITextureProvider.IconFlags.None);
-        return path == null ? null : Service.TextureProvider.GetTextureFromGame(path);
+        var path = Service.TextureProvider.GetIconPath(new GameIconLookup(iconId));
+        return Service.TextureProvider.GetFromGame(path);
     }
 
     public static void DrawIconSetCombo(string label, bool showInherit, Func<IconSetId> getter, Action<IconSetId> setter)
@@ -93,7 +94,7 @@ public static class ImGuiExt
             var iconGroupId = PlayerStylesheet.GetGenericRoleIconGroupId(currentIconSetId, job.GetRole());
             var iconGroup = IconRegistrar.Get(iconGroupId);
             var iconId = iconGroup.GetJobIcon((uint)job);
-            var icon = GetIconTexture(iconId);
+            var icon = GetIconTexture(iconId).GetWrapOrDefault();
             if (icon != null) {
                 var textSize = ImGui.CalcTextSize("Important");
                 var imageSize = textSize.Y + ImGui.GetStyle().FramePadding.Y * 2;

@@ -9,7 +9,7 @@ namespace PartyIcons.Runtime;
 
 public unsafe class UpdateContext
 {
-    public readonly PlayerCharacter PlayerCharacter;
+    public readonly IPlayerCharacter PlayerCharacter;
     public readonly bool IsLocalPlayer;
     public readonly bool IsPartyMember;
     public readonly Job Job;
@@ -24,12 +24,12 @@ public unsafe class UpdateContext
     public bool ShowExIcon = true;
     public bool ShowSubIcon = true;
 
-    public UpdateContext(PlayerCharacter playerCharacter)
+    public UpdateContext(IPlayerCharacter playerCharacter)
     {
-        var objectId = playerCharacter.ObjectId;
+        var entityId = playerCharacter.EntityId;
         PlayerCharacter = playerCharacter;
-        IsLocalPlayer = objectId == Service.ClientState.LocalPlayer?.ObjectId;
-        IsPartyMember = IsLocalPlayer || GroupManager.Instance()->IsObjectIDInParty(objectId);
+        IsLocalPlayer = entityId == Service.ClientState.LocalPlayer?.EntityId;
+        IsPartyMember = IsLocalPlayer || GroupManager.Instance()->MainGroup.IsEntityIdInParty(entityId);
         Job = (Job)((Character*)playerCharacter.Address)->CharacterData.ClassJob;
         Status = (Status)((Character*)playerCharacter.Address)->CharacterData.OnlineStatus;
     }

@@ -131,10 +131,8 @@ public sealed class StatusSettings
                 ImGui.Separator();
 
                 var icon = ImGuiExt.GetIconTexture(row.Icon);
-                if (icon != null) {
-                    ImGui.Image(icon.ImGuiHandle, iconSize);
-                    ImGui.SameLine();
-                }
+                ImGui.Image(icon.GetWrapOrEmpty().ImGuiHandle, iconSize);
+                ImGui.SameLine();
 
                 using (ImRaii.PushColor(ImGuiCol.Button, 0))
                 using (ImRaii.PushColor(ImGuiCol.ButtonHovered, 0))

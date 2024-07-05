@@ -7,6 +7,7 @@ using System.Reflection;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Components;
 using Dalamud.Interface.Internal;
+using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Interface.Utility.Raii;
 using ImGuiNET;
 using PartyIcons.Configuration;
@@ -38,10 +39,10 @@ public sealed class NameplateSettings
                 continue;
             }
 
-            using var memoryStream = new MemoryStream();
-            fileStream.CopyTo(memoryStream);
+            // using var memoryStream = new MemoryStream();
+            // fileStream.CopyTo(memoryStream);
 
-            _nameplateExamples[kv.Key] = Service.PluginInterface.UiBuilder.LoadImage(memoryStream.ToArray());
+            _nameplateExamples[kv.Key] = Service.TextureProvider.CreateFromImageAsync(fileStream).Result;
         }
     }
 

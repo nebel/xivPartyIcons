@@ -32,7 +32,7 @@ public sealed class ContextMenu : IDisposable
         Service.ContextMenu.OnMenuOpened -= OnMenuOpened;
     }
 
-    private CharacterInfo? GetCharacterInfo(MenuOpenedArgs args)
+    private CharacterInfo? GetCharacterInfo(IMenuOpenedArgs args)
     {
         if (args is { MenuType: ContextMenuType.Default, Target: MenuTargetDefault menuTarget }) {
             if (menuTarget.TargetCharacter is { Name: {} tcName, HomeWorld.Id: var tcWorld }) {
@@ -44,7 +44,7 @@ public sealed class ContextMenu : IDisposable
                 );
             }
 
-            if (menuTarget.TargetObject is PlayerCharacter { Name.TextValue: {} pcName, HomeWorld.Id: var pcWorld }) {
+            if (menuTarget.TargetObject is IPlayerCharacter { Name.TextValue: {} pcName, HomeWorld.Id: var pcWorld }) {
                 return new CharacterInfo(
                     pcName,
                     pcWorld,
@@ -57,7 +57,7 @@ public sealed class ContextMenu : IDisposable
         return null;
     }
 
-    private void OnMenuOpened(MenuOpenedArgs args)
+    private void OnMenuOpened(IMenuOpenedArgs args)
     {
         if (!_configuration.UseContextMenu || GetCharacterInfo(args) is not { } characterInfo) {
             return;

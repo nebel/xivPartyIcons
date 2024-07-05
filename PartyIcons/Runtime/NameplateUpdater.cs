@@ -25,10 +25,10 @@ public sealed class NameplateUpdater : IDisposable
 {
     private readonly NameplateView _view;
 
-    [Signature("0F B7 81 ?? ?? ?? ?? 4C 8B C1 66 C1 E0 06", DetourName = nameof(AddonNamePlateDrawDetour))]
+    [Signature("0F B7 81 ?? ?? ?? ?? 81 A1 ?? ?? ?? ?? ?? ?? ?? ??", DetourName = nameof(AddonNamePlateDrawDetour))]
     private readonly Hook<AddonNamePlateDrawDelegate> _namePlateDrawHook = null!;
 
-    [Signature("E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? 48 8B 5C 24 ?? 45 38 BE", DetourName = nameof(SetNamePlateDetour))]
+    [Signature("48 89 5C 24 ?? 55 56 57 41 54 41 55 41 56 41 57 48 83 EC 40 44 0F B6 EA", DetourName = nameof(SetNamePlateDetour))]
     private readonly Hook<SetNamePlateDelegate> _setNamePlateHook = null!;
 
     private unsafe delegate void AddonNamePlateDrawDelegate(AddonNamePlate* thisPtr);
@@ -107,13 +107,13 @@ public sealed class NameplateUpdater : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static unsafe PlayerCharacter? ResolvePlayerCharacter(uint objectId)
+    private static unsafe IPlayerCharacter? ResolvePlayerCharacter(GameObjectId gameObjectId)
     {
-        if (objectId == 0xE0000000) {
+        if (gameObjectId.Type != 0) {
             return null;
         }
 
-        if (Service.ObjectTable.SearchById(objectId) is PlayerCharacter c) {
+        if (Service.ObjectTable.SearchById(gameObjectId) is IPlayerCharacter c) {
             var job = ((Character*)c.Address)->CharacterData.ClassJob;
             return job is < 1 or > JobConstants.MaxJob ? null : c;
         }
@@ -122,17 +122,17 @@ public sealed class NameplateUpdater : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static unsafe Character* ResolveCharacter3D(uint objectId)
+    private static unsafe Character* ResolveCharacter3D(GameObjectId objectId)
     {
-        if (objectId == 0xE0000000) {
+        if (objectId.Type != 0) {
             return null;
         }
 
         var ui3DModule = UIModule.Instance()->GetUI3DModule();
         for (var i = 0; i < ui3DModule->NamePlateObjectInfoCount; i++) {
-            var objectInfo = ((UI3DModule.ObjectInfo**)ui3DModule->NamePlateObjectInfoPointerArray)[i];
+            var objectInfo = ui3DModule->NamePlateObjectInfoPointers[i].Value;
             var obj = objectInfo->GameObject;
-            if (obj->ObjectID == objectId && obj->ObjectKind == (int)ObjectKind.Pc) {
+            if (obj->GetGameObjectId() == objectId && obj->ObjectKind == ObjectKind.Pc) {
                 var character = (Character*)obj;
                 return character->CharacterData.ClassJob is < 1 or > JobConstants.MaxJob ? null : character;
             }
@@ -218,6 +218,7 @@ public sealed class NameplateUpdater : IDisposable
     public IntPtr SetNamePlateDetour(IntPtr namePlateObjectPtr, bool isPrefixTitle, bool displayTitle,
         IntPtr title, IntPtr name, IntPtr fcName, IntPtr prefix, uint iconID)
     {
+        Service.Log.Warning("SetNamePlateDetour");
         var hookResult = IntPtr.MinValue;
         if (_updaterState == UpdaterState.Ready) {
             try {
@@ -255,15 +256,14 @@ public sealed class NameplateUpdater : IDisposable
 
         var index = _indexMap[namePlateObjectPtr];
         var state = _stateCache[index];
-        var info = atkModule->NamePlateInfoEntriesSpan.GetPointer(index);
+        var info = atkModule->NamePlateInfoEntries.GetPointer(index);
 
         if (Service.ClientState.IsPvP || info == null) {
             ResetPlate(state);
             return;
         }
 
-        var objectId = info->ObjectID.ObjectID;
-        if (ResolvePlayerCharacter(objectId) is not { } playerCharacter) {
+        if (ResolvePlayerCharacter(info->ObjectId) is not { } playerCharacter) {
             ResetPlate(state);
             return;
         }

@@ -1,6 +1,7 @@
 ﻿using System;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using FFXIVClientStructs.Interop;
 using PartyIcons.Entities;
 using PartyIcons.Stylesheet;
 
@@ -19,7 +20,7 @@ public sealed unsafe class PartyListHUDView : IDisposable
     {
     }
 
-    public static uint? GetPartySlotIndex(uint objectId)
+    public static uint? GetPartySlotIndex(uint entityId)
     {
         var hud = AgentHUD.Instance();
 
@@ -34,18 +35,17 @@ public sealed unsafe class PartyListHUDView : IDisposable
         if (hud->PartyMemberCount > 9)
         {
             // hud->PartyMemberCount gives out special (?) value when in trust
+            // TODO: ^ this is probably no longer be true
             Service.Log.Verbose("GetPartySlotIndex - trust detected, returning null");
 
             return null;
         }
 
-        var list = (HudPartyMember*) hud->PartyMemberList;
-
         for (var i = 0; i < hud->PartyMemberCount; i++)
         {
-            if (list[i].ObjectId == objectId)
+            if (hud->PartyMembers.GetPointer(i)->EntityId == entityId)
             {
-                return (uint) i;
+                return (uint)i;
             }
         }
 
@@ -54,9 +54,9 @@ public sealed unsafe class PartyListHUDView : IDisposable
 
     public void SetPartyMemberRoleByIndex(AddonPartyList* addonPartyList, int index, RoleId roleId)
     {
-        var memberStruct = addonPartyList->PartyMember[index];
+        var memberStruct = addonPartyList->PartyMembers.GetPointer(index);
 
-        var nameNode = memberStruct.Name;
+        var nameNode = memberStruct->Name;
         nameNode->AtkResNode.SetPositionShort(29, 0);
 
         var numberNode = nameNode->AtkResNode.PrevSiblingNode->GetAsAtkTextNode();
@@ -73,9 +73,9 @@ public sealed unsafe class PartyListHUDView : IDisposable
 
     public void RevertPartyMemberRoleByIndex(AddonPartyList* addonPartyList, int index)
     {
-        var memberStruct = addonPartyList->PartyMember[index];
+        var memberStruct = addonPartyList->PartyMembers.GetPointer(index);
 
-        var nameNode = memberStruct.Name;
+        var nameNode = memberStruct->Name;
         nameNode->AtkResNode.SetPositionShort(19, 0);
 
         var numberNode = nameNode->AtkResNode.PrevSiblingNode->GetAsAtkTextNode();

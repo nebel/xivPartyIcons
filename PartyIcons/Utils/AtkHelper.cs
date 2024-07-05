@@ -61,6 +61,18 @@ public static class AtkHelper
         parent->Component->UldManager.UpdateDrawNodeList();
     }
 
+    public static unsafe void LinkNodeAtEnd(AtkResNode* intruder, AtkComponentNode* parent)
+    {
+        var node = parent->ChildNode;
+        while (node->PrevSiblingNode != null) node = node->PrevSiblingNode;
+
+        node->PrevSiblingNode = intruder;
+        intruder->NextSiblingNode = node;
+        intruder->ParentNode = node->ParentNode;
+
+        parent->Component->UldManager.UpdateDrawNodeList();
+    }
+
     public static unsafe void UnlinkAndFreeImageNodeIndirect(AtkImageNode* node, AtkUldManager* uldManager)
     {
         if ((IntPtr)node->AtkResNode.PrevSiblingNode != IntPtr.Zero)
@@ -79,7 +91,7 @@ public static class AtkHelper
         if ((IntPtr)imageNode == IntPtr.Zero)
             return false;
         imageNode->AtkResNode.Type = NodeType.Image;
-        imageNode->AtkResNode.NodeID = id;
+        imageNode->AtkResNode.NodeId = id;
         imageNode->AtkResNode.NodeFlags = resNodeFlags;
         imageNode->AtkResNode.DrawFlags = resNodeDrawFlags;
         imageNode->WrapMode = wrapMode;
@@ -186,7 +198,7 @@ public static class AtkHelper
             return null;
         for (var index = 0; index < uldManager->NodeListCount; ++index) {
             var nodeById = uldManager->NodeList[index];
-            if ((IntPtr)nodeById != IntPtr.Zero && (int)nodeById->NodeID == (int)nodeId &&
+            if ((IntPtr)nodeById != IntPtr.Zero && (int)nodeById->NodeId == (int)nodeId &&
                 (!type.HasValue || nodeById->Type == type.Value))
                 return (T*)nodeById;
         }

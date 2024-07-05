@@ -84,10 +84,10 @@ public sealed class RoleTracker : IDisposable
         return _assignedRoles.TryGetValue(PlayerId(name, worldId), out roleId);
     }
 
-    public unsafe bool TryGetAssignedRole(PlayerCharacter pc, out RoleId roleId)
+    public unsafe bool TryGetAssignedRole(IPlayerCharacter pc, out RoleId roleId)
     {
         // Cheating a lot for small efficiency gains (avoid SeString creation and ExcelResolver allocation)
-        var name = MemoryHelper.ReadStringNullTerminated((IntPtr)((FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)pc.Address)->Name);
+        var name = ((FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)pc.Address)->NameString;
         var worldId = ((FFXIVClientStructs.FFXIV.Client.Game.Character.Character*)pc.Address)->HomeWorld;
 
         return _assignedRoles.TryGetValue(PlayerId(name, worldId), out roleId);
@@ -263,7 +263,7 @@ public sealed class RoleTracker : IDisposable
 
     private string PlayerId(string name, uint worldId) => $"{name}@{worldId}";
 
-    private string PlayerId(PartyMember member) => $"{member.Name.TextValue}@{member.World.Id}";
+    private string PlayerId(IPartyMember member) => $"{member.Name.TextValue}@{member.World.Id}";
 
     private RoleId FindUnassignedRoleForGenericRole(GenericRole role)
     {
@@ -293,8 +293,8 @@ public sealed class RoleTracker : IDisposable
         }
     }
 
-    private void OnChatMessage(XivChatType type, uint senderid, ref SeString sender, ref SeString message,
-        ref bool ishandled)
+    private void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message,
+        ref bool isHandled)
     {
         if (_configuration.AssignFromChat && (type == XivChatType.Party || type == XivChatType.CrossParty || type == XivChatType.Say))
         {
@@ -316,7 +316,7 @@ public sealed class RoleTracker : IDisposable
 
             if (playerName == null || !playerWorld.HasValue)
             {
-                Service.Log.Verbose($"RoleTracker: Failed to get player data from {senderid}, {sender} ({sender.Payloads})");
+                Service.Log.Verbose($"RoleTracker: Failed to get player data from {sender} at {timestamp} ({sender.Payloads})");
 
                 return;
             }

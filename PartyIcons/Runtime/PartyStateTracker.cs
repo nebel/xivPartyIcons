@@ -35,7 +35,7 @@ public sealed class PartyStateTracker : IDisposable
         var change = PartyChangeType.None;
 
         for (var i = 0; i < 8; i++) {
-            var contentId = agentHud->PartyMemberListSpan[i].ContentId;
+            var contentId = agentHud->PartyMembers.GetPointer(i)->ContentId;
             if (contentId > 0 && _hudState[i] != contentId) {
                 _hudState[i] = contentId;
                 change = PartyChangeType.Order;
@@ -45,24 +45,24 @@ public sealed class PartyStateTracker : IDisposable
         var gm = GroupManager.Instance();
         if (gm == null) return;
 
-        var partySize = gm->MemberCount;
+        var partySize = gm->MainGroup.MemberCount;
 
         for (var i = 0; i < partySize; i++) {
-            var member = gm->PartyMembersSpan.GetPointer(i);
+            var member = gm->MainGroup.PartyMembers.GetPointer(i);
             if (member == null) continue;
 
             var slot = _partyState[i];
 
-            if (member->ContentID != slot.ContentId) {
+            if (member->ContentId != slot.ContentId) {
                 change = PartyChangeType.Member;
-                _partyState[i] = new PartySlot(contentId: member->ContentID, job: member->ClassJob);
+                _partyState[i] = new PartySlot(contentId: member->ContentId, job: member->ClassJob);
             }
             else if (member->ClassJob != slot.Job) {
                 // Skip change notification for job changing to 0 (member moved out of range, which may be temporary)
                 if (member->ClassJob != 0) {
                     change = change < PartyChangeType.Job ? PartyChangeType.Job : change;
                 }
-                _partyState[i] = new PartySlot(contentId: member->ContentID, job: member->ClassJob);
+                _partyState[i] = new PartySlot(contentId: member->ContentId, job: member->ClassJob);
             }
         }
 
@@ -79,9 +79,9 @@ public sealed class PartyStateTracker : IDisposable
     }
 }
 
-internal struct PartySlot(long contentId, byte job)
+internal struct PartySlot(ulong contentId, byte job)
 {
-    public readonly long ContentId = contentId;
+    public readonly ulong ContentId = contentId;
     public readonly byte Job = job;
 }
 

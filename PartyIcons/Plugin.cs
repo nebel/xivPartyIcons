@@ -24,7 +24,7 @@ public sealed class Plugin : IDalamudPlugin
     public static Settings Settings { get; private set; } = null!;
     public static PlayerStylesheet PlayerStylesheet { get; private set; } = null!;
 
-    public Plugin(DalamudPluginInterface pluginInterface)
+    public Plugin(IDalamudPluginInterface pluginInterface)
     {
         pluginInterface.Create<Service>();
 
