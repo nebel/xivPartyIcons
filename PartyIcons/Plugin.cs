@@ -23,6 +23,7 @@ public sealed class Plugin : IDalamudPlugin
     public static CommandHandler CommandHandler { get; private set; } = null!;
     public static Settings Settings { get; private set; } = null!;
     public static PlayerStylesheet PlayerStylesheet { get; private set; } = null!;
+    public static MiscHooker MiscHooker { get; private set; } = null!;
 
     public Plugin(IDalamudPluginInterface pluginInterface)
     {
@@ -46,6 +47,7 @@ public sealed class Plugin : IDalamudPlugin
         NameplateUpdater = new NameplateUpdater(NameplateView);
         ContextMenu = new ContextMenu(RoleTracker, Settings, PlayerStylesheet);
         CommandHandler = new CommandHandler();
+        MiscHooker = new MiscHooker();
 
         SettingsWindow.Initialize();
 
@@ -55,6 +57,7 @@ public sealed class Plugin : IDalamudPlugin
         RoleTracker.Enable();
         NameplateUpdater.Enable();
         ChatNameUpdater.Enable();
+        MiscHooker.Enable();
     }
 
     public void Dispose()
@@ -69,6 +72,7 @@ public sealed class Plugin : IDalamudPlugin
         ModeSetter.Dispose();
         SettingsWindow.Dispose();
         CommandHandler.Dispose();
+        MiscHooker.Dispose();
 
         SeStringUtils.Dispose();
     }

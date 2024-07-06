@@ -212,6 +212,7 @@ public sealed class NameplateUpdater : IDisposable
         }
 
         Original:
+        // Service.Log.Warning("[H] AddonNamePlateDrawDetour");
         _namePlateDrawHook.Original(addon);
     }
 
@@ -387,7 +388,8 @@ public sealed class NameplateUpdater : IDisposable
             var subNode =
                 AtkHelper.GetNodeByID<AtkImageNode>(uldManager, SubNodeId, NodeType.Image);
             if (subNode == null) {
-                subNode = CreateImageNode(SubNodeId, componentNode, NameTextNodeId);
+                subNode = CreateImageNode(SubNodeId, componentNode, ExNodeId);
+                // subNode = CreateImageNode(SubNodeId, componentNode, NameTextNodeId);
             }
 
             var namePlateObjectPointer = arr + i;
