@@ -177,8 +177,8 @@ public sealed class NameplateUpdater : IDisposable
         foreach (var state in _stateCache) {
             if (state.IsModified) {
                 var obj = state.NamePlateObject;
-                var kind = (NamePlateKind)obj->NameplateKind;
-                if (kind != NamePlateKind.Player || (obj->ResNode->NodeFlags & NodeFlags.Visible) == 0 || isPvP) {
+                var kind = (NamePlateKind)obj->NamePlateKind;
+                if (kind != NamePlateKind.Player || (obj->NameContainer->NodeFlags & NodeFlags.Visible) == 0 || isPvP) {
                     ResetPlate(state);
                 }
                 else {
@@ -194,9 +194,9 @@ public sealed class NameplateUpdater : IDisposable
                             (NodeFlags.UseDepthBasedPriority | NodeFlags.Visible);
 
                     if (state.NeedsCollisionFix) {
-                        var colScale = obj->NameText->AtkResNode.ScaleX * 2 * obj->ResNode->ScaleX *
+                        var colScale = obj->NameText->AtkResNode.ScaleX * 2 * obj->NameContainer->ScaleX *
                                        state.CollisionScale;
-                        var colRes = &obj->CollisionNode1->AtkResNode;
+                        var colRes = &obj->NameplateCollision->AtkResNode;
                         colRes->OriginX = colRes->Width / 2f;
                         colRes->OriginY = colRes->Height;
                         colRes->SetScale(colScale, colScale);
@@ -318,7 +318,7 @@ public sealed class NameplateUpdater : IDisposable
 
     public static unsafe void ForceRedrawNamePlates()
     {
-        // Service.Log.Info("ForceRedrawNamePlates");
+        Service.Log.Info("ForceRedrawNamePlates");
         var addon = (AddonNamePlate*)Service.GameGui.GetAddonByName("NamePlate");
         if (addon != null) {
             // Changing certain nameplate settings forces a call of the update function on the next frame, which checks
@@ -330,6 +330,10 @@ public sealed class NameplateUpdater : IDisposable
             Service.GameConfig.UiConfig.Set(setting, value);
             addon->DoFullUpdate = 1;
         }
+
+        // var m = RaptureAtkModule.Instance();
+        // var array = m->AtkArrayDataHolder.NumberArrays[5];
+        // array->SetValue(4, 1);
     }
 
     private static void ResetAllPlates()
@@ -342,9 +346,9 @@ public sealed class NameplateUpdater : IDisposable
     private static unsafe void ResetPlate(PlateState state)
     {
         if (state.IsGlobalScaleModified) {
-            state.NamePlateObject->ResNode->OriginX = 0;
-            state.NamePlateObject->ResNode->OriginY = 0;
-            state.NamePlateObject->ResNode->SetScale(1f, 1f);
+            state.NamePlateObject->NameContainer->OriginX = 0;
+            state.NamePlateObject->NameContainer->OriginY = 0;
+            state.NamePlateObject->NameContainer->SetScale(1f, 1f);
         }
 
         state.ExIconNode->AtkResNode.ToggleVisibility(false);
@@ -352,9 +356,9 @@ public sealed class NameplateUpdater : IDisposable
 
         state.NamePlateObject->NameText->AtkResNode.SetScale(0.5f, 0.5f);
 
-        state.NamePlateObject->CollisionNode1->AtkResNode.OriginX = 0;
-        state.NamePlateObject->CollisionNode1->AtkResNode.OriginY = 0;
-        state.NamePlateObject->CollisionNode1->AtkResNode.SetScale(1f, 1f);
+        state.NamePlateObject->NameplateCollision->AtkResNode.OriginX = 0;
+        state.NamePlateObject->NameplateCollision->AtkResNode.OriginY = 0;
+        state.NamePlateObject->NameplateCollision->AtkResNode.SetScale(1f, 1f);
 
         state.IsModified = false;
     }
@@ -371,7 +375,7 @@ public sealed class NameplateUpdater : IDisposable
 
         for (var i = 0; i < AddonNamePlate.NumNamePlateObjects; i++) {
             var np = &arr[i];
-            var resNode = np->ResNode;
+            var resNode = np->NameContainer;
             var componentNode = resNode->ParentNode->GetAsAtkComponentNode();
             var uldManager = &componentNode->Component->UldManager;
 
@@ -446,7 +450,7 @@ public sealed class NameplateUpdater : IDisposable
 
         for (var i = 0; i < AddonNamePlate.NumNamePlateObjects; i++) {
             var np = arr[i];
-            var resNode = np.ResNode;
+            var resNode = np.NameContainer;
             if (resNode == null) continue;
             var parentNode = resNode->ParentNode;
             if (parentNode == null) continue;

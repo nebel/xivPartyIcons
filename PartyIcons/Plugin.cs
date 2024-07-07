@@ -1,5 +1,6 @@
 ﻿using Dalamud.Plugin;
 using PartyIcons.Configuration;
+using PartyIcons.Dalamud;
 using PartyIcons.Runtime;
 using PartyIcons.Stylesheet;
 using PartyIcons.UI;
@@ -23,7 +24,7 @@ public sealed class Plugin : IDalamudPlugin
     public static CommandHandler CommandHandler { get; private set; } = null!;
     public static Settings Settings { get; private set; } = null!;
     public static PlayerStylesheet PlayerStylesheet { get; private set; } = null!;
-    public static MiscHooker MiscHooker { get; private set; } = null!;
+    public static NamePlateGui NamePlateGui { get; private set; } = null!;
 
     public Plugin(IDalamudPluginInterface pluginInterface)
     {
@@ -47,7 +48,7 @@ public sealed class Plugin : IDalamudPlugin
         NameplateUpdater = new NameplateUpdater(NameplateView);
         ContextMenu = new ContextMenu(RoleTracker, Settings, PlayerStylesheet);
         CommandHandler = new CommandHandler();
-        MiscHooker = new MiscHooker();
+        NamePlateGui = new NamePlateGui();
 
         SettingsWindow.Initialize();
 
@@ -57,7 +58,7 @@ public sealed class Plugin : IDalamudPlugin
         RoleTracker.Enable();
         NameplateUpdater.Enable();
         ChatNameUpdater.Enable();
-        MiscHooker.Enable();
+        NamePlateGui.Enable();
     }
 
     public void Dispose()
@@ -72,7 +73,7 @@ public sealed class Plugin : IDalamudPlugin
         ModeSetter.Dispose();
         SettingsWindow.Dispose();
         CommandHandler.Dispose();
-        MiscHooker.Dispose();
+        NamePlateGui.Dispose();
 
         SeStringUtils.Dispose();
     }

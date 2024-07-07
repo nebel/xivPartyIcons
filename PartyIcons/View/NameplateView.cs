@@ -344,7 +344,7 @@ public sealed class NameplateView : IDisposable
         var scale = iconGroup.Scale * iconConfig.Scale;
         exNode->AtkResNode.SetScale(scale, scale);
 
-        var iconNode = state.NamePlateObject->IconImageNode;
+        var iconNode = state.NamePlateObject->NameIcon;
         if (context.ShowSubIcon) {
             exNode->AtkResNode.SetPositionFloat(
                 iconNode->AtkResNode.X - 28 + iconPaddingRight + iconConfig.OffsetX,
@@ -509,7 +509,7 @@ public sealed class NameplateView : IDisposable
 
     public unsafe void ModifyGlobalScale(PlateState state, UpdateContext context)
     {
-        var resNode = state.NamePlateObject->ResNode;
+        var resNode = state.NamePlateObject->NameContainer;
 
         var scale = _configuration.SizeMode switch
         {
