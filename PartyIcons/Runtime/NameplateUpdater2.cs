@@ -12,6 +12,7 @@ using Dalamud.Utility.Signatures;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.UI;
+using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using FFXIVClientStructs.Interop;
 using PartyIcons.Configuration;
@@ -19,15 +20,13 @@ using PartyIcons.Dalamud;
 using PartyIcons.Entities;
 using PartyIcons.Utils;
 using PartyIcons.View;
+using System.Linq;
 
 namespace PartyIcons.Runtime;
 
 public sealed class NameplateUpdater2 : IDisposable
 {
     private readonly NameplateView _view;
-
-    private const uint EmptyIconId = 4294967295; // (uint)-1
-    private const uint PlaceholderEmptyIconId = 61696;
 
     private const int NameTextNodeId = 3;
     private const int IconNodeId = 4;
@@ -40,9 +39,12 @@ public sealed class NameplateUpdater2 : IDisposable
     private enum UpdaterState
     {
         Uninitialized,
-        Initializing,
+        Enabled,
+        WaitingForDraw,
+        WaitingForNodes,
         Ready,
-        Stopped
+        Stopped,
+        Disabled
     }
 
     public NameplateUpdater2(NameplateView view)
@@ -50,106 +52,102 @@ public sealed class NameplateUpdater2 : IDisposable
         _view = view;
     }
 
-    public void Enable()
+    private void SetReadyState(UpdaterState state, nint addonPtr = 0)
     {
-        Plugin.RoleTracker.OnAssignedRolesUpdated += ForceRedrawNamePlates;
-        Service.NamePlateGui.OnChangedPlatesPreUpdate += OnChangedPlatedPreUpdate;
-        Service.AddonLifecycle.RegisterListener(AddonEvent.PreDraw, "NamePlate", OnPreDraw);
-        Service.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "NamePlate", OnPreFinalize);
+        switch (state) {
+            case UpdaterState.Enabled:
+                Plugin.RoleTracker.OnAssignedRolesUpdated += ForceRedrawNamePlates;
+                Service.AddonLifecycle.RegisterListener(AddonEvent.PreDraw, "NamePlate", OnPreDraw);
+                Service.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "NamePlate", OnPreFinalize);
+                break;
+            case UpdaterState.WaitingForDraw:
+                _updaterState = UpdaterState.WaitingForDraw;
+                _stateCache = [];
+                break;
+            case UpdaterState.WaitingForNodes:
+                break;
+            case UpdaterState.Ready:
+                Service.NamePlateGui.OnChangedPlatesPreUpdate += OnChangedPlatesPreUpdate;
+                Service.AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "NamePlate", OnPostRequestedUpdate);
+                break;
+            case UpdaterState.Stopped:
+                if (_updaterState == UpdaterState.Ready) {
+                    Service.NamePlateGui.OnChangedPlatesPreUpdate -= OnChangedPlatesPreUpdate;
+                    Service.AddonLifecycle.UnregisterListener(AddonEvent.PostRequestedUpdate, "NamePlate", OnPostRequestedUpdate);
+                }
+                if (addonPtr == 0) {
+                    addonPtr = Service.GameGui.GetAddonByName("NamePlate");
+                }
+                if (addonPtr != 0) {
+                    ResetAllPlates();
+                    DestroyAllNodes(addonPtr);
+                }
+                break;
+            case UpdaterState.Disabled:
+                Plugin.RoleTracker.OnAssignedRolesUpdated -= ForceRedrawNamePlates;
+                Service.AddonLifecycle.UnregisterListener(AddonEvent.PreDraw, "NamePlate", OnPreDraw);
+                Service.AddonLifecycle.UnregisterListener(AddonEvent.PreFinalize, "NamePlate", OnPreFinalize);
+                break;
+            case UpdaterState.Uninitialized:
+            default:
+                throw new ArgumentOutOfRangeException(nameof(state), state, null);
+        }
+
+        _updaterState = state;
     }
 
-    public void OnChangedPlatedPreUpdate(PlateUpdateContext context, ReadOnlySpan<PlateUpdateHandler> handlers)
+    public void Enable()
     {
-        // Service.Log.Warning($"OnChangedPlatedPreUpdate ({handlers.Length})");
-        foreach (var handler in handlers) {
-            if (handler.NamePlateKind == 0) {
-                SetNamePlate(context, handler);
-            }
-            // handler.TextColor = 0xFF00FF00;
-            // handler.TextColor = 0;
-        }
+        SetReadyState(UpdaterState.Enabled);
+        SetReadyState(UpdaterState.WaitingForDraw);
     }
 
     public void Dispose()
     {
-        Plugin.RoleTracker.OnAssignedRolesUpdated -= ForceRedrawNamePlates;
-        Service.AddonLifecycle.UnregisterListener(OnPreFinalize);
+        SetReadyState(UpdaterState.Stopped);
+        SetReadyState(UpdaterState.Disabled);
+    }
 
-        _updaterState = UpdaterState.Stopped;
+    private void OnPreFinalize(AddonEvent type, AddonArgs args)
+    {
+        SetReadyState(UpdaterState.Stopped);
+        SetReadyState(UpdaterState.WaitingForDraw);
+    }
 
-        unsafe {
-            var addonPtr = (AddonNamePlate*)Service.GameGui.GetAddonByName("NamePlate");
-            if (addonPtr != null) {
-                ResetAllPlates();
-                DestroyAllNodes(addonPtr);
+    private void OnChangedPlatesPreUpdate(PlateUpdateContext context, ReadOnlySpan<PlateUpdateHandler> handlers)
+    {
+        foreach (var handler in handlers) {
+            if (handler.NamePlateKind == Dalamud.NamePlateKind.PlayerCharacter) {
+                SetNamePlate(handler);
             }
         }
     }
 
-    private static unsafe void OnPreFinalize(AddonEvent type, AddonArgs args)
+    private void OnPostRequestedUpdate(AddonEvent type, AddonArgs args)
     {
-        Service.Log.Debug($"OnPreFinalize (0x{args.Addon:X})");
-
-        ResetAllPlates();
-        DestroyAllNodes((AddonNamePlate*)args.Addon);
-
-        _updaterState = UpdaterState.Uninitialized;
-        _stateCache = [];
-        new Dictionary<nint, int>().ToFrozenDictionary();
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static unsafe IPlayerCharacter? ResolvePlayerCharacter(GameObjectId gameObjectId)
-    {
-        if (gameObjectId.Type != 0) {
-            return null;
+        foreach (var state in _stateCache) {
+            _view.DoPendingChanges(state);
         }
-
-        if (Service.ObjectTable.SearchById(gameObjectId) is IPlayerCharacter c) {
-            var job = ((Character*)c.Address)->CharacterData.ClassJob;
-            return job is < 1 or > JobConstants.MaxJob ? null : c;
-        }
-
-        return null;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static unsafe Character* ResolveCharacter3D(GameObjectId objectId)
-    {
-        if (objectId.Type != 0) {
-            return null;
-        }
-
-        var ui3DModule = UIModule.Instance()->GetUI3DModule();
-        for (var i = 0; i < ui3DModule->NamePlateObjectInfoCount; i++) {
-            var objectInfo = ui3DModule->NamePlateObjectInfoPointers[i].Value;
-            var obj = objectInfo->GameObject;
-            if (obj->GetGameObjectId() == objectId && obj->ObjectKind == ObjectKind.Pc) {
-                var character = (Character*)obj;
-                return character->CharacterData.ClassJob is < 1 or > JobConstants.MaxJob ? null : character;
-            }
-        }
-
-        return null;
     }
 
     private unsafe void OnPreDraw(AddonEvent type, AddonArgs args)
     {
-        if (_updaterState == UpdaterState.Uninitialized) {
+        if (_updaterState == UpdaterState.WaitingForDraw) {
             // Don't modify on first call as some setup may still be happening (seems to be cases where some node
             // siblings which shouldn't normally be null are null, usually when logging out/in during the same session)
-            _updaterState = UpdaterState.Initializing;
+            SetReadyState(UpdaterState.WaitingForNodes);
         }
 
-        if (_updaterState == UpdaterState.Initializing) {
+        if (_updaterState == UpdaterState.WaitingForNodes) {
             try {
                 if (CreateNodes((AddonNamePlate*)args.Addon)) {
-                    _updaterState = UpdaterState.Ready;
+                    SetReadyState(UpdaterState.Ready);
                 }
             }
             catch (Exception e) {
                 Service.Log.Error(e, "Failed to create nameplate icon nodes, will not try again");
-                _updaterState = UpdaterState.Stopped;
+                SetReadyState(UpdaterState.Stopped);
+                SetReadyState(UpdaterState.Disabled);
             }
 
             Service.Framework.RunOnFrameworkThread(ForceRedrawNamePlates);
@@ -165,8 +163,6 @@ public sealed class NameplateUpdater2 : IDisposable
                     ResetPlate(state);
                 }
                 else {
-                    _view.DoPendingChanges(state);
-
                     // Copy UseDepthBasedPriority and Visible flags from NameTextNode
                     var nameFlags = obj->NameText->AtkResNode.NodeFlags;
                     if (state.UseExIcon)
@@ -194,34 +190,14 @@ public sealed class NameplateUpdater2 : IDisposable
             // var scale = Service.Framework.LastUpdateUTC.Millisecond % 3000 / 500f * 4 + 1;
             // state.ExIconNode->AtkResNode.SetScale(scale, scale);
             // state.SubIconNode->AtkResNode.SetScale(scale, scale);
-        } ;
+        }
     }
 
 
-    private void SetNamePlate(PlateUpdateContext updateContext, PlateUpdateHandler handler)
+    private void SetNamePlate(PlateUpdateHandler handler)
     {
-        // Service.Log.Warning($"SetNamePlate ({_updaterState})");
-        if (_updaterState != UpdaterState.Ready) {
-            return;
-        }
-        // var prefixByte = ((byte*)prefix)[0];
-        // var prefixIcon = BitmapFontIcon.None;
-        // if (prefixByte != 0) {
-        //     prefixIcon = ((IconPayload)MemoryHelper.ReadSeStringNullTerminated(prefix).Payloads[1]).Icon;
-        // }
-        // Service.Log.Warning(
-        //     $"SetNamePlate @ 0x{namePlateObjectPtr:X}\nTitle: isPrefix=[{isPrefixTitle}] displayTitle=[{displayTitle}] title=[{SeStringUtils.PrintRawStringArg(title)}]\n" +
-        //     $"name=[{SeStringUtils.PrintRawStringArg(name)}] fcName=[{SeStringUtils.PrintRawStringArg(fcName)}] prefix=[{SeStringUtils.PrintRawStringArg(prefix)}] iconID=[{iconID}]\n" +
-        //     $"prefixByte=[0x{prefixByte:X}] prefixIcon=[{prefixIcon}({(int)prefixIcon})]");
-
-        // var atkModule = RaptureAtkModule.Instance();
-        // if (atkModule == null) {
-        //     throw new Exception("Unable to resolve NamePlate character as RaptureAtkModule was null");
-        // }
-
         var index = handler.NamePlateIndex;
         var state = _stateCache[index];
-        // var info = atkModule->NamePlateInfoEntries.GetPointer(index);
 
         if (Service.ClientState.IsPvP) {
             ResetPlate(state);
@@ -242,12 +218,6 @@ public sealed class NameplateUpdater2 : IDisposable
         }
 
         _view.ModifyPlateData(context, handler);
-
-        // Replace 0/-1 with empty dummy texture so the default icon is always positioned even for unselected
-        // targets (when unselected targets are hidden). If we don't do this, the icon node will only be
-        // positioned by the game after the target is selected for hidden nameplates, which would force us to
-        // re-position after the initial SetNamePlate call (which would be very annoying).
-        // iconId = PlaceholderEmptyIconId;
 
         if (context.Mode == NameplateMode.Hide) {
             // TODO: DOES HIDE NEED TO WORK DIFFERENTLY NOW? (e.g. actually hide icons?)
@@ -396,9 +366,11 @@ public sealed class NameplateUpdater2 : IDisposable
         return imageNode;
     }
 
-    private static unsafe void DestroyAllNodes(AddonNamePlate* addon)
+    private static unsafe void DestroyAllNodes(nint addonPtr)
     {
         Service.Log.Debug("DestroyNodes");
+
+        var addon = (AddonNamePlate*)addonPtr;
 
         var arr = addon->NamePlateObjectArray;
         if (arr == null) return;

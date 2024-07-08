@@ -107,6 +107,7 @@ public sealed class NameplateView : IDisposable
     {
         var config = GetDisplayConfig(context);
         context.DisplayConfig = config;
+
         var mode = config.Mode;
         context.Mode = mode;
 
@@ -316,6 +317,9 @@ public sealed class NameplateView : IDisposable
         state.PendingChangesContext = null;
         ModifyNodes(state, context);
         ModifyGlobalScale(state, context);
+        // unsafe {
+        //     state.NamePlateObject->NameContainer->DrawFlags |= 1;
+        // }
     }
 
     public void ModifyNodes(PlateState state, UpdateContext context)
@@ -566,20 +570,11 @@ public sealed class NameplateView : IDisposable
     {
         var mode = context.Mode;
 
+        // Replace 0/-1 with empty dummy texture so the default icon is always positioned even for unselected
+        // targets (when unselected targets are hidden). If we don't do this, the icon node will only be
+        // positioned by the game after the target is selected for hidden nameplates, which would force us to
+        // re-position after the initial SetNamePlate call (which would be very annoying).
         handler.NameIconId = PlaceholderEmptyIconId;
-
-        // if (_configuration.HideLocalPlayerNameplate && context.IsLocalPlayer) {
-        //     if (mode == NameplateMode.RoleLetters && (_configuration.TestingMode || Service.PartyList.Length > 0)) {
-        //         // Allow plate to draw since we're using RoleLetters and are in a party (or in testing mode)
-        //     }
-        //     else {
-        //         handler.ClearField(NamePlateStringField.Name);
-        //         handler.ClearField(NamePlateStringField.FreeCompanyTag);
-        //         handler.ClearField(NamePlateStringField.StatusPrefix);
-        //         handler.DisplayTitle = false;
-        //         return;
-        //     }
-        // }
 
         switch (mode) {
             case NameplateMode.Default:

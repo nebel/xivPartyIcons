@@ -10,7 +10,7 @@ using System.Text;
 
 namespace PartyIcons.Dalamud;
 
-public unsafe class PlateUpdateHandler
+public unsafe class PlateUpdateHandler : ICloneable
 {
     private readonly PlateUpdateContext context;
     private readonly int arrayIndex;
@@ -53,7 +53,7 @@ public unsafe class PlateUpdateHandler
 
     private AddonNamePlate.NamePlateIntArrayData.NamePlateObjectIntArrayData* ObjectData => context.numberStruct->ObjectData.GetPointer(arrayIndex);
 
-    public int NamePlateKind => (int)ObjectData->NamePlateKind;
+    public NamePlateKind NamePlateKind => (NamePlateKind)ObjectData->NamePlateKind;
 
     public int UpdateFlags
     {
@@ -99,6 +99,12 @@ public unsafe class PlateUpdateHandler
     {
         get => ObjectData->DrawFlags;
         private set => ObjectData->DrawFlags = value;
+    }
+
+    public bool IsPrefixTitle
+    {
+        get => (DrawFlags & 1) != 0;
+        set => DrawFlags = value ? DrawFlags | 1 : DrawFlags & ~1;
     }
 
     public bool DisplayTitle
@@ -201,11 +207,18 @@ public unsafe class PlateUpdateHandler
 
     public void DebugLog()
     {
-        for (var i = NamePlateStringField.Name; i <= (NamePlateStringField)250; i += 50) {
-            Service.Log.Debug($"    S[{i}] {GetStringValueAsString(i)}");
+        Service.Log.Debug($"  {BaseInfo.Name}");
+        for (var i = 0; i <= 250; i += 50) {
+            Service.Log.Debug($"    {BaseInfo.Name} S[{i}] {GetStringValueAsString((NamePlateStringField)i)}");
         }
-        for (var i = NamePlateNumberField.NamePlateKind; i < (NamePlateNumberField)20; i++) {
-            Service.Log.Debug($"    N[{i}] {GetNumberValue(i)}");
+        for (var i = 0; i < 20; i++) {
+            Service.Log.Debug($"    {BaseInfo.Name} N[{i}] {GetNumberValue((NamePlateNumberField)i)}");
         }
+        Service.Log.Debug($"    {BaseInfo.IsDirty}");
+    }
+
+    public object Clone()
+    {
+        return MemberwiseClone();
     }
 }

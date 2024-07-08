@@ -10,15 +10,9 @@ namespace PartyIcons.Dalamud;
 
 public class NamePlateGui : IDisposable
 {
-    public NamePlateGui()
-    {
-        Service.Log.Error("STARTING NamePlateGui");
-    }
-
     public void Enable()
     {
         Service.AddonLifecycle.RegisterListener(AddonEvent.PreRequestedUpdate, "NamePlate", OnPreRequestedUpdate);
-        Service.AddonLifecycle.RegisterListener(AddonEvent.PreDraw, "NamePlate", OnPreDraw);
     }
 
     private PlateUpdateContext? updateContext;
@@ -43,10 +37,6 @@ public class NamePlateGui : IDisposable
 
     public event OnPlateUpdateDelegate? OnAllPlatesPreUpdate;
 
-    public event OnPlateUpdateDelegate? OnChangedPlatesPreDraw;
-
-    public event OnPlateUpdateDelegate? OnAllPlatesPreDraw;
-
     public delegate void OnPlateUpdateDelegate(PlateUpdateContext context, ReadOnlySpan<PlateUpdateHandler> handlers);
 
     private void OnPreRequestedUpdate(AddonEvent type, AddonArgs args)
@@ -59,11 +49,6 @@ public class NamePlateGui : IDisposable
         else {
             updateContext.ResetState(reqArgs);
         }
-
-        // unsafe {
-        //     var numStruct = (AddonNamePlate.NamePlateIntArrayData*)updateContext.numberData->IntArray;
-        //     Service.Log.Info($"{Framework.Instance()->FrameCounter} addonNamePlate->DoFullUpdate={updateContext.addon->DoFullUpdate} intArray->DoFullUpdate={numStruct->DoFullUpdate}");
-        // }
 
         var numPlatesShown = updateContext.ActiveNamePlateCount;
         var updatingPlates = new List<PlateUpdateHandler>();
@@ -78,29 +63,14 @@ public class NamePlateGui : IDisposable
 
             DoDebugStuff(handler);
         }
-        changedUpdateHandlers = updatingPlates.ToArray();
 
         OnAllPlatesPreUpdate?.Invoke(updateContext, updateHandlers.AsSpan(0, numPlatesShown));
 
         if (updateContext.IsFullUpdate) {
             OnChangedPlatesPreUpdate?.Invoke(updateContext, updateHandlers.AsSpan(0, numPlatesShown));
         }
-        else if (changedUpdateHandlers.Length != 0) {
-            OnChangedPlatesPreUpdate?.Invoke(updateContext, changedUpdateHandlers.AsSpan());
-        }
-    }
-
-    private void OnPreDraw(AddonEvent type, AddonArgs args)
-    {
-        if (updateContext == null) return;
-
-        OnAllPlatesPreDraw?.Invoke(updateContext, updateHandlers.AsSpan(0, updateContext.ActiveNamePlateCount));
-
-        if (updateContext.IsFullUpdate) {
-            OnChangedPlatesPreDraw?.Invoke(updateContext, updateHandlers.AsSpan(0, updateContext.ActiveNamePlateCount));
-        }
-        else if (changedUpdateHandlers.Length != 0) {
-            OnChangedPlatesPreDraw?.Invoke(updateContext, changedUpdateHandlers.AsSpan());
+        else if (updatingPlates.Count != 0) {
+            OnChangedPlatesPreUpdate?.Invoke(updateContext, updatingPlates.ToArray().AsSpan());
         }
     }
 
@@ -114,20 +84,17 @@ public class NamePlateGui : IDisposable
             // handler.SetStringValue(NamePlateStringField.StatusPrefix, "");
             // handler.SetNumberValue(NamePlateNumberField.Icon, 0);
             if (handler.IsUpdating || updateContext!.IsFullUpdate) {
-                handler.SetNumberValue(NamePlateNumberField.MarkerIconId, 66181 + (int)handler.NamePlateKind);
+                handler.MarkerIconId = 66181 + (int)handler.NamePlateKind;
             }
             else {
-                handler.SetNumberValue(NamePlateNumberField.MarkerIconId, 66161 + (int)handler.NamePlateKind);
+                handler.MarkerIconId = 66161 + (int)handler.NamePlateKind;
             }
-            // handler.SetNumberValue(NamePlateNumberField.NameTextColor, unchecked((int)0xFF00FF00));
-            // handler.SetNumberValue(NamePlateNumberField.NameEdgeColor, unchecked((int)0xFFFF0000));
         }
     }
 
     public void Dispose()
     {
         Service.AddonLifecycle.UnregisterListener(AddonEvent.PreRequestedUpdate, "NamePlate", OnPreRequestedUpdate);
-        Service.AddonLifecycle.UnregisterListener(AddonEvent.PreDraw, "NamePlate", OnPreDraw);
         PlateUpdateHandler.FreeEmptyStringPointer();
     }
 }

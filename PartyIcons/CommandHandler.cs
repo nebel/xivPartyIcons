@@ -52,27 +52,5 @@ public class CommandHandler : IDisposable
         {
             PartyListHUDUpdater.DebugPartyData();
         }
-        else if (arguments.Contains("set"))
-        {
-            var argv = arguments.Split(' ');
-
-            if (argv.Length == 2)
-            {
-                try
-                {
-                    Plugin.NameplateUpdater.DebugIcon = int.Parse(argv[1]);
-                    Service.Log.Verbose($"Set debug icon to {Plugin.NameplateUpdater.DebugIcon}");
-                }
-                catch (Exception)
-                {
-                    Service.Log.Verbose("Invalid icon id given for debug icon.");
-                    Plugin.NameplateUpdater.DebugIcon = -1;
-                }
-            }
-            else
-            {
-                Plugin.NameplateUpdater.DebugIcon = -1;
-            }
-        }
     }
 }

@@ -15,7 +15,7 @@ public sealed class Plugin : IDalamudPlugin
     public static PartyListHUDView PartyHudView { get; private set; } = null!;
     public static PartyListHUDUpdater PartyListHudUpdater { get; private set; } = null!;
     public static SettingsWindow SettingsWindow { get; private set; } = null!;
-    public static NameplateUpdater NameplateUpdater { get; private set; } = null!;
+    // public static NameplateUpdater NameplateUpdater { get; private set; } = null!;
     public static NameplateUpdater2 NameplateUpdater2 { get; private set; } = null!;
     public static NameplateView NameplateView { get; private set; } = null!;
     public static RoleTracker RoleTracker { get; private set; } = null!;
@@ -46,7 +46,7 @@ public sealed class Plugin : IDalamudPlugin
         ChatNameUpdater = new ChatNameUpdater(RoleTracker, PlayerStylesheet);
         PartyListHudUpdater = new PartyListHUDUpdater(PartyHudView, RoleTracker, Settings, PartyStateTracker);
         ModeSetter = new ViewModeSetter(NameplateView, Settings, ChatNameUpdater, PartyListHudUpdater);
-        NameplateUpdater = new NameplateUpdater(NameplateView);
+        // NameplateUpdater = new NameplateUpdater(NameplateView);
         NameplateUpdater2 = new NameplateUpdater2(NameplateView);
         ContextMenu = new ContextMenu(RoleTracker, Settings, PlayerStylesheet);
         CommandHandler = new CommandHandler();

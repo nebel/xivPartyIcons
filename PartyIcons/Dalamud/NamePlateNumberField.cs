@@ -15,7 +15,7 @@ public enum NamePlateNumberField
     GaugeFillColor = 10,
     GaugeContainerColor = 11,
     MarkerIconId = 12,
-    Icon = 13,
+    NameIconId = 13,
     UnknownAdjust14 = 14,
     NamePlateIndex = 15,
     Unknown16 = 16,
