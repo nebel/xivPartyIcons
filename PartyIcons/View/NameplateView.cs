@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using PartyIcons.Configuration;
+using PartyIcons.Dalamud;
 using PartyIcons.Entities;
 using PartyIcons.Runtime;
 using PartyIcons.Stylesheet;
@@ -536,6 +537,128 @@ public sealed class NameplateView : IDisposable
             resNode->OriginY = ResNodeBottom;
             resNode->SetScale(scale, scale);
             state.IsGlobalScaleModified = true;
+        }
+    }
+
+    private const int EmptyIconId = -1;
+    private const int PlaceholderEmptyIconId = 61696;
+
+    public void ModifyPlateData(UpdateContext context, PlateUpdateHandler handler)
+    {
+        var mode = context.Mode;
+
+        handler.NameIconId = PlaceholderEmptyIconId;
+
+        if (_configuration.HideLocalPlayerNameplate && context.IsLocalPlayer) {
+            if (mode == NameplateMode.RoleLetters && (_configuration.TestingMode || Service.PartyList.Length > 0)) {
+                // Allow plate to draw since we're using RoleLetters and are in a party (or in testing mode)
+            }
+            else {
+                handler.ClearField(NamePlateStringField.Name);
+                handler.ClearField(NamePlateStringField.FreeCompanyTag);
+                handler.ClearField(NamePlateStringField.StatusPrefix);
+                handler.DisplayTitle = false;
+                return;
+            }
+        }
+
+        switch (mode) {
+            case NameplateMode.Default:
+            default:
+                throw new Exception(
+                    $"Illegal state, should not enter {nameof(ModifyPlateData)} with mode {context.Mode}");
+            case NameplateMode.Hide:
+                handler.ClearField(NamePlateStringField.Name);
+                handler.ClearField(NamePlateStringField.FreeCompanyTag);
+                handler.ClearField(NamePlateStringField.StatusPrefix);
+                handler.DisplayTitle = false;
+                break;
+            case NameplateMode.SmallJobIcon:
+            {
+                handler.ClearField(NamePlateStringField.StatusPrefix);
+                break;
+            }
+            case NameplateMode.SmallJobIconAndRole:
+            {
+                if (context.DisplayConfig.RoleDisplayStyle == RoleDisplayStyle.PartyNumber) {
+                    if (PartyListHUDView.GetPartySlotIndex(context.PlayerCharacter.EntityId) is { } partySlot) {
+                        // var slotString = hasRole
+                        //     ? _stylesheet.GetPartySlotNumber(partySlot + 1, roleId)
+                        //     : _stylesheet.GetPartySlotNumber(partySlot + 1, context.GenericRole);
+                        var slotString = _stylesheet.GetPartySlotNumber(partySlot + 1, context.GenericRole);
+                        var prefixString = new SeString()
+                            .Append(slotString)
+                            .Append(" ");
+                        handler.SetField(NamePlateStringField.StatusPrefix, prefixString);
+                    }
+                    else {
+                        handler.ClearField(NamePlateStringField.StatusPrefix);
+                    }
+                }
+                else {
+                    if (_roleTracker.TryGetAssignedRole(context.PlayerCharacter, out var roleId)) {
+                        var prefixString = new SeString()
+                            .Append(_stylesheet.GetRolePlate(roleId))
+                            .Append(" ");
+                        handler.SetField(NamePlateStringField.StatusPrefix, prefixString);
+                    }
+                    else {
+                        handler.ClearField(NamePlateStringField.StatusPrefix);
+                    }
+                }
+
+                break;
+            }
+            case NameplateMode.BigJobIcon:
+            {
+                handler.SetField(NamePlateStringField.Name, SeStringUtils.Text(FullWidthSpace));
+                handler.ClearField(NamePlateStringField.FreeCompanyTag);
+                handler.ClearField(NamePlateStringField.StatusPrefix);
+                handler.DisplayTitle = false;
+                break;
+            }
+            case NameplateMode.BigJobIconAndPartySlot:
+            {
+                if (PartyListHUDView.GetPartySlotIndex(context.PlayerCharacter.EntityId) is { } partySlot) {
+                    var slotString = _stylesheet.GetPartySlotNumber(partySlot + 1, context.GenericRole);
+                    slotString.Payloads.Insert(0, new TextPayload(FullWidthSpace));
+                    handler.SetField(NamePlateStringField.Name, slotString);
+                }
+                else {
+                    handler.SetField(NamePlateStringField.Name, SeStringUtils.Text(FullWidthSpace));
+                }
+
+                handler.ClearField(NamePlateStringField.FreeCompanyTag);
+                handler.ClearField(NamePlateStringField.StatusPrefix);
+                handler.DisplayTitle = false;
+
+                break;
+            }
+            case NameplateMode.RoleLetters:
+            {
+                SeString nameString;
+                if (context.DisplayConfig.RoleDisplayStyle == RoleDisplayStyle.PartyNumber) {
+                    nameString = PartyListHUDView.GetPartySlotIndex(context.PlayerCharacter.EntityId) is { } partySlot
+                        ? _stylesheet.GetPartySlotNumber(partySlot + 1, context.GenericRole)
+                        : _stylesheet.GetGenericRolePlate(context.GenericRole);
+                }
+                else {
+                    var hasRole = _roleTracker.TryGetAssignedRole(context.PlayerCharacter, out var roleId);
+                    nameString = hasRole
+                        ? _stylesheet.GetRolePlate(roleId)
+                        : _stylesheet.GetGenericRolePlate(context.GenericRole);
+                }
+
+                if (context.ShowExIcon) {
+                    nameString.Payloads.Insert(0, new TextPayload(FullWidthSpace));
+                }
+
+                handler.SetField(NamePlateStringField.Name, "test");
+                handler.ClearField(NamePlateStringField.FreeCompanyTag);
+                handler.ClearField(NamePlateStringField.StatusPrefix);
+                handler.DisplayTitle = false;
+                break;
+            }
         }
     }
 }

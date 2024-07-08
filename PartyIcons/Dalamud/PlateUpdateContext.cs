@@ -11,6 +11,8 @@ public unsafe class PlateUpdateContext
     internal NumberArrayData* numberData;
     internal StringArrayData* stringData;
 
+    internal AddonNamePlate.NamePlateIntArrayData* numberStruct;
+
     internal PlateUpdateContext(AddonRequestedUpdateArgs args)
     {
         raptureAtkModule = RaptureAtkModule.Instance();
@@ -21,10 +23,10 @@ public unsafe class PlateUpdateContext
     {
         addon = (AddonNamePlate*)args.Addon;
         numberData = ((NumberArrayData**)args.NumberArrayData)[5];
+        numberStruct = (AddonNamePlate.NamePlateIntArrayData*)numberData->IntArray;
         stringData = ((StringArrayData**)args.StringArrayData)[4];
 
-        var numStruct = (AddonNamePlate.NamePlateIntArrayData*)numberData->IntArray;
-        ActiveNamePlateCount = numStruct->ActiveNamePlateCount;
+        ActiveNamePlateCount = numberStruct->ActiveNamePlateCount;
         IsFullUpdate = addon->DoFullUpdate != 0;
     }
 

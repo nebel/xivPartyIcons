@@ -16,6 +16,7 @@ public sealed class Plugin : IDalamudPlugin
     public static PartyListHUDUpdater PartyListHudUpdater { get; private set; } = null!;
     public static SettingsWindow SettingsWindow { get; private set; } = null!;
     public static NameplateUpdater NameplateUpdater { get; private set; } = null!;
+    public static NameplateUpdater2 NameplateUpdater2 { get; private set; } = null!;
     public static NameplateView NameplateView { get; private set; } = null!;
     public static RoleTracker RoleTracker { get; private set; } = null!;
     public static ViewModeSetter ModeSetter { get; private set; } = null!;
@@ -24,11 +25,11 @@ public sealed class Plugin : IDalamudPlugin
     public static CommandHandler CommandHandler { get; private set; } = null!;
     public static Settings Settings { get; private set; } = null!;
     public static PlayerStylesheet PlayerStylesheet { get; private set; } = null!;
-    public static NamePlateGui NamePlateGui { get; private set; } = null!;
 
     public Plugin(IDalamudPluginInterface pluginInterface)
     {
         pluginInterface.Create<Service>();
+        Service.NamePlateGui = new NamePlateGui();
 
         Settings = Settings.Load();
 
@@ -46,9 +47,9 @@ public sealed class Plugin : IDalamudPlugin
         PartyListHudUpdater = new PartyListHUDUpdater(PartyHudView, RoleTracker, Settings, PartyStateTracker);
         ModeSetter = new ViewModeSetter(NameplateView, Settings, ChatNameUpdater, PartyListHudUpdater);
         NameplateUpdater = new NameplateUpdater(NameplateView);
+        NameplateUpdater2 = new NameplateUpdater2(NameplateView);
         ContextMenu = new ContextMenu(RoleTracker, Settings, PlayerStylesheet);
         CommandHandler = new CommandHandler();
-        NamePlateGui = new NamePlateGui();
 
         SettingsWindow.Initialize();
 
@@ -57,8 +58,10 @@ public sealed class Plugin : IDalamudPlugin
         ModeSetter.Enable();
         RoleTracker.Enable();
         NameplateUpdater.Enable();
+        NameplateUpdater2.Enable();
         ChatNameUpdater.Enable();
-        NamePlateGui.Enable();
+
+        Service.NamePlateGui.Enable();
     }
 
     public void Dispose()
@@ -69,11 +72,12 @@ public sealed class Plugin : IDalamudPlugin
         ChatNameUpdater.Dispose();
         ContextMenu.Dispose();
         NameplateUpdater.Dispose();
+        NameplateUpdater2.Dispose();
         RoleTracker.Dispose();
         ModeSetter.Dispose();
         SettingsWindow.Dispose();
         CommandHandler.Dispose();
-        NamePlateGui.Dispose();
+        Service.NamePlateGui.Dispose();
 
         SeStringUtils.Dispose();
     }

@@ -1,6 +1,7 @@
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
+using PartyIcons.Dalamud;
 
 namespace PartyIcons;
 
@@ -23,4 +24,5 @@ internal class Service
     [PluginService] public static IContextMenu ContextMenu { get; private set; } = null!;
     [PluginService] public static IGameConfig GameConfig { get; private set; } = null!;
     [PluginService] public static IAddonLifecycle AddonLifecycle { get; private set; } = null!;
+    public static NamePlateGui NamePlateGui { get; set; } = null!;
 }

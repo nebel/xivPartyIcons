@@ -13,15 +13,31 @@ namespace PartyIcons.Dalamud;
 public unsafe class PlateUpdateHandler
 {
     private readonly PlateUpdateContext context;
+    private readonly int arrayIndex;
     private readonly int numberIndex;
     private readonly int stringIndex;
 
     private ulong? gameObjectId;
     private IGameObject? gameObject;
 
+    private static readonly byte* EmptyStringPointer = CreateEmptyStringPointer();
+
+    private static byte* CreateEmptyStringPointer()
+    {
+        var pointer = Marshal.AllocHGlobal(1);
+        Marshal.WriteByte(pointer, 0, 0);
+        return (byte*)pointer;
+    }
+
+    internal static void FreeEmptyStringPointer()
+    {
+        Marshal.FreeHGlobal((nint)EmptyStringPointer);
+    }
+
     internal PlateUpdateHandler(PlateUpdateContext context, int arrayIndex)
     {
         this.context = context;
+        this.arrayIndex = arrayIndex;
         numberIndex = 6 + arrayIndex * 20;
         stringIndex = arrayIndex;
     }
@@ -33,10 +49,61 @@ public unsafe class PlateUpdateHandler
         IsUpdating = (UpdateFlags & 1) != 0;
     }
 
-    public int NamePlateKind => context.numberData->IntArray[numberIndex + (int)NamePlateGui.NamePlateNumberField.NamePlateKind];
-    public int UpdateFlags => context.numberData->IntArray[numberIndex + (int)NamePlateGui.NamePlateNumberField.UpdateFlags];
-    public int DrawFlags => context.numberData->IntArray[numberIndex + (int)NamePlateGui.NamePlateNumberField.DrawFlags];
-    public int NamePlateIndex => context.numberData->IntArray[numberIndex + (int)NamePlateGui.NamePlateNumberField.NamePlateIndex];
+    private AddonNamePlate.NamePlateIntArrayData.NamePlateObjectIntArrayData* ObjectData => context.numberStruct->ObjectData.GetPointer(arrayIndex);
+
+    public int NamePlateKind => (int)ObjectData->NamePlateKind;
+
+    public int UpdateFlags
+    {
+        get => ObjectData->UpdateFlags;
+        private set => ObjectData->UpdateFlags = value;
+    }
+
+    public int MarkerIconId
+    {
+        get => ObjectData->MarkerIconId;
+        set => ObjectData->MarkerIconId = value;
+    }
+
+    public int NameIconId
+    {
+        get => ObjectData->NameIconId;
+        set => ObjectData->NameIconId = value;
+    }
+
+    public uint TextColor
+    {
+        get => (uint)ObjectData->NameTextColor;
+        set
+        {
+            UpdateFlags |= 2;
+            ObjectData->NameTextColor = unchecked((int)value);
+        }
+    }
+
+    public uint EdgeColor
+    {
+        get => (uint)ObjectData->NameEdgeColor;
+        set
+        {
+            UpdateFlags |= 2;
+            ObjectData->NameEdgeColor = unchecked((int)value);
+        }
+    }
+
+    public int NamePlateIndex => ObjectData->NamePlateObjectIndex;
+
+    public int DrawFlags
+    {
+        get => ObjectData->DrawFlags;
+        private set => ObjectData->DrawFlags = value;
+    }
+
+    public bool DisplayTitle
+    {
+        get => (DrawFlags & 0x80) == 0;
+        set => DrawFlags = value ? DrawFlags & ~0x80 : DrawFlags | 0x80;
+    }
 
     private RaptureAtkModule.NamePlateInfo* NamePlateInfo => context.raptureAtkModule->NamePlateInfoEntries.GetPointer(NamePlateIndex);
 
@@ -57,72 +124,82 @@ public unsafe class PlateUpdateHandler
     /// </summary>
     public bool IsUpdating { get; private set; }
 
+    #region Array Data Accessors
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public int GetNumberValue(NamePlateGui.NamePlateNumberField field)
+    internal int GetNumberValue(NamePlateNumberField field)
     {
         return context.numberData->IntArray[numberIndex + (int)field];
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void SetNumberValue(NamePlateGui.NamePlateNumberField field, int value)
+    internal void SetNumberValue(NamePlateNumberField field, int value)
     {
         context.numberData->IntArray[numberIndex + (int)field] = value;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public byte* GetStringValueAsPointer(NamePlateGui.NamePlateStringField field)
+    internal byte* GetStringValueAsPointer(NamePlateStringField field)
     {
         return context.stringData->StringArray[stringIndex + (int)field];
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ReadOnlySpan<byte> GetStringValueAsSpan(NamePlateGui.NamePlateStringField field)
+    internal ReadOnlySpan<byte> GetStringValueAsSpan(NamePlateStringField field)
     {
         return MemoryMarshal.CreateReadOnlySpanFromNullTerminated(GetStringValueAsPointer(field));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public string GetStringValueAsString(NamePlateGui.NamePlateStringField field)
+    internal string GetStringValueAsString(NamePlateStringField field)
     {
         return Encoding.UTF8.GetString(GetStringValueAsSpan(field));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public SeString GetStringValueAsSeString(NamePlateGui.NamePlateStringField field)
+    internal SeString GetStringValueAsSeString(NamePlateStringField field)
     {
         return SeString.Parse(GetStringValueAsSpan(field));
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void SetStringValue(NamePlateGui.NamePlateStringField field, string value)
-    {
-        context.stringData->SetValue(stringIndex + (int)field, value, true, true, true);
-    }
+    // [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    // internal void SetField(NamePlateStringField field, string value)
+    // {
+    //     context.stringData->SetValue(stringIndex + (int)field, value, true, true, true);
+    // }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void SetStringValue(NamePlateGui.NamePlateStringField field, SeString value)
+    internal void SetField(NamePlateStringField field, SeString value)
     {
         context.stringData->SetValue(stringIndex + (int)field, value.Encode(), true, true, true);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void SetStringValue(NamePlateGui.NamePlateStringField field, ReadOnlySpan<byte> value)
+    internal void SetField(NamePlateStringField field, ReadOnlySpan<byte> value)
     {
         context.stringData->SetValue(stringIndex + (int)field, value, true, true, true);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void SetStringValue(NamePlateGui.NamePlateStringField field, byte* value)
+    internal void SetField(NamePlateStringField field, byte* value)
     {
         context.stringData->SetValue(stringIndex + (int)field, value, true, true, true);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void ClearField(NamePlateStringField field)
+    {
+        context.stringData->SetValue(stringIndex + (int)field, EmptyStringPointer, true, false, true);
+    }
+
+    #endregion
+
     public void DebugLog()
     {
-        for (var i = NamePlateGui.NamePlateStringField.Name; i <= (NamePlateGui.NamePlateStringField)250; i += 50) {
+        for (var i = NamePlateStringField.Name; i <= (NamePlateStringField)250; i += 50) {
             Service.Log.Debug($"    S[{i}] {GetStringValueAsString(i)}");
         }
-        for (var i = NamePlateGui.NamePlateNumberField.NamePlateKind; i < (NamePlateGui.NamePlateNumberField)20; i++) {
+        for (var i = NamePlateNumberField.NamePlateKind; i < (NamePlateNumberField)20; i++) {
             Service.Log.Debug($"    N[{i}] {GetNumberValue(i)}");
         }
     }
