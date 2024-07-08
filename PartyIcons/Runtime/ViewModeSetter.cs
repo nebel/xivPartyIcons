@@ -48,6 +48,8 @@ public sealed class ViewModeSetter
         _configuration.OnSave += OnConfigurationSave;
         Service.ClientState.TerritoryChanged += OnTerritoryChanged;
 
+        _chatNameUpdater.OthersMode = _configuration.ChatOthers;
+
         ForceRefresh();
     }
 

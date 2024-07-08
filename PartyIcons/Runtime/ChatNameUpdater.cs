@@ -36,12 +36,10 @@ public sealed class ChatNameUpdater : IDisposable
         {
             return;
         }
-        Service.Log.Warning("1");
 
         if (type == XivChatType.Say || type == XivChatType.Party || type == XivChatType.Alliance ||
             type == XivChatType.Shout || type == XivChatType.Yell)
         {
-            Service.Log.Warning("2");
             Parse(type, ref sender);
         }
     }
@@ -70,21 +68,18 @@ public sealed class ChatNameUpdater : IDisposable
 
     private bool CheckIfPlayerPayloadInParty(PlayerPayload playerPayload)
     {
-        Service.Log.Warning($"6");
         if (Plugin.Settings.TestingMode)
         {
             return true;
         }
-        Service.Log.Warning($"7 {Service.PartyList} {Service.PartyList.Length}");
-        
-        // foreach (var member in Service.PartyList)
-        // {
-        //     // Service.Log.Warning($"8");
-        //     // if (member.Name.ToString() == playerPayload.PlayerName && member.World.Id == playerPayload.World.RowId)
-        //     // {
-        //     //     return true;
-        //     // }
-        // }
+
+        foreach (var member in Service.PartyList)
+        {
+            if (member.Name.ToString() == playerPayload.PlayerName && member.World.Id == playerPayload.World.RowId)
+            {
+                return true;
+            }
+        }
 
         return false;
     }
@@ -151,17 +146,12 @@ public sealed class ChatNameUpdater : IDisposable
 
     private void Parse(XivChatType chatType, ref SeString sender)
     {
-        Service.Log.Warning($"3");
         if (GetPlayerPayload(sender) is not { } playerPayload)
         {
             return;
         }
-        Service.Log.Warning($"4");
 
-        var inParty = CheckIfPlayerPayloadInParty(playerPayload);
-        Service.Log.Warning($"5a: {inParty} {PartyMode} {OthersMode}");
-        var config = inParty ? PartyMode : OthersMode;
-        Service.Log.Warning($"5b: {config.Mode}");
+        var config = CheckIfPlayerPayloadInParty(playerPayload) ? PartyMode : OthersMode;
 
         if (config.Mode == ChatMode.Role &&
             _roleTracker.TryGetAssignedRole(playerPayload.PlayerName, playerPayload.World.RowId, out var roleId))
