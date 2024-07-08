@@ -16,6 +16,8 @@ public unsafe class PlateState
     public float CollisionScale = 1f;
     public bool NeedsCollisionFix = false;
 
+    public UpdateContext? PendingChangesContext;
+
     public override string ToString()
     {
         return $"{nameof(NamePlateObject)}: 0x{(nint)NamePlateObject:X}, " +

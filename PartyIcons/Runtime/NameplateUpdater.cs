@@ -324,16 +324,16 @@ public sealed class NameplateUpdater : IDisposable
             // Changing certain nameplate settings forces a call of the update function on the next frame, which checks
             // the full update flag and updates all visible plates. If we don't do the config part it may delay the
             // update for a short time or until the next camera movement.
-            var setting = UiConfigOption.NamePlateDispJobIconType.ToString();
-            var value = Service.GameConfig.UiConfig.GetUInt(setting);
-            Service.GameConfig.UiConfig.Set(setting, value == 1u ? 0u : 1u);
-            Service.GameConfig.UiConfig.Set(setting, value);
+            // var setting = UiConfigOption.NamePlateDispJobIconType.ToString();
+            // var value = Service.GameConfig.UiConfig.GetUInt(setting);
+            // Service.GameConfig.UiConfig.Set(setting, value == 1u ? 0u : 1u);
+            // Service.GameConfig.UiConfig.Set(setting, value);
             addon->DoFullUpdate = 1;
         }
 
-        // var m = RaptureAtkModule.Instance();
-        // var array = m->AtkArrayDataHolder.NumberArrays[5];
-        // array->SetValue(4, 1);
+        var m = RaptureAtkModule.Instance();
+        var array = m->AtkArrayDataHolder.NumberArrays[5];
+        array->SetValue(4, 1);
     }
 
     private static void ResetAllPlates()

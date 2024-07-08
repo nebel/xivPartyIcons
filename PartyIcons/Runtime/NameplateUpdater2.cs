@@ -52,18 +52,10 @@ public sealed class NameplateUpdater2 : IDisposable
 
     public void Enable()
     {
-        Service.Log.Warning("ENABLE");
         Plugin.RoleTracker.OnAssignedRolesUpdated += ForceRedrawNamePlates;
-        Service.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "NamePlate", OnPreFinalize);
         Service.NamePlateGui.OnChangedPlatesPreUpdate += OnChangedPlatedPreUpdate;
-        Service.NamePlateGui.OnChangedPlatesPreDraw += OnChangedPlatedPreDraw;
-    }
-
-    public unsafe void OnChangedPlatedPreDraw(PlateUpdateContext context, ReadOnlySpan<PlateUpdateHandler> handlers)
-    {
-        // Service.Log.Warning($"OnChangedPlatedPreDraw ({handlers.Length})");
-        AddonNamePlateDrawDetour(context.addon);
-        // throw new NotImplementedException();
+        Service.AddonLifecycle.RegisterListener(AddonEvent.PreDraw, "NamePlate", OnPreDraw);
+        Service.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "NamePlate", OnPreFinalize);
     }
 
     public void OnChangedPlatedPreUpdate(PlateUpdateContext context, ReadOnlySpan<PlateUpdateHandler> handlers)
@@ -80,7 +72,6 @@ public sealed class NameplateUpdater2 : IDisposable
 
     public void Dispose()
     {
-        Service.Log.Warning("DISPOSE");
         Plugin.RoleTracker.OnAssignedRolesUpdated -= ForceRedrawNamePlates;
         Service.AddonLifecycle.UnregisterListener(OnPreFinalize);
 
@@ -142,7 +133,7 @@ public sealed class NameplateUpdater2 : IDisposable
         return null;
     }
 
-    private unsafe void AddonNamePlateDrawDetour(AddonNamePlate* addon)
+    private unsafe void OnPreDraw(AddonEvent type, AddonArgs args)
     {
         if (_updaterState == UpdaterState.Uninitialized) {
             // Don't modify on first call as some setup may still be happening (seems to be cases where some node
@@ -152,7 +143,7 @@ public sealed class NameplateUpdater2 : IDisposable
 
         if (_updaterState == UpdaterState.Initializing) {
             try {
-                if (CreateNodes(addon)) {
+                if (CreateNodes((AddonNamePlate*)args.Addon)) {
                     _updaterState = UpdaterState.Ready;
                 }
             }
@@ -174,6 +165,8 @@ public sealed class NameplateUpdater2 : IDisposable
                     ResetPlate(state);
                 }
                 else {
+                    _view.DoPendingChanges(state);
+
                     // Copy UseDepthBasedPriority and Visible flags from NameTextNode
                     var nameFlags = obj->NameText->AtkResNode.NodeFlags;
                     if (state.UseExIcon)
@@ -205,8 +198,9 @@ public sealed class NameplateUpdater2 : IDisposable
     }
 
 
-    private unsafe void SetNamePlate(PlateUpdateContext updateContext, PlateUpdateHandler handler)
+    private void SetNamePlate(PlateUpdateContext updateContext, PlateUpdateHandler handler)
     {
+        // Service.Log.Warning($"SetNamePlate ({_updaterState})");
         if (_updaterState != UpdaterState.Ready) {
             return;
         }
@@ -220,21 +214,21 @@ public sealed class NameplateUpdater2 : IDisposable
         //     $"name=[{SeStringUtils.PrintRawStringArg(name)}] fcName=[{SeStringUtils.PrintRawStringArg(fcName)}] prefix=[{SeStringUtils.PrintRawStringArg(prefix)}] iconID=[{iconID}]\n" +
         //     $"prefixByte=[0x{prefixByte:X}] prefixIcon=[{prefixIcon}({(int)prefixIcon})]");
 
-        var atkModule = RaptureAtkModule.Instance();
-        if (atkModule == null) {
-            throw new Exception("Unable to resolve NamePlate character as RaptureAtkModule was null");
-        }
+        // var atkModule = RaptureAtkModule.Instance();
+        // if (atkModule == null) {
+        //     throw new Exception("Unable to resolve NamePlate character as RaptureAtkModule was null");
+        // }
 
         var index = handler.NamePlateIndex;
         var state = _stateCache[index];
-        var info = atkModule->NamePlateInfoEntries.GetPointer(index);
+        // var info = atkModule->NamePlateInfoEntries.GetPointer(index);
 
-        if (Service.ClientState.IsPvP || info == null) {
+        if (Service.ClientState.IsPvP) {
             ResetPlate(state);
             return;
         }
 
-        if (ResolvePlayerCharacter(info->ObjectId) is not { } playerCharacter) {
+        if (handler.PlayerCharacter is not { } playerCharacter) {
             ResetPlate(state);
             return;
         }
@@ -264,6 +258,7 @@ public sealed class NameplateUpdater2 : IDisposable
         // _view.ModifyGlobalScale(state, context);
         // _view.ModifyNodes(state, context);
         state.IsModified = true;
+        state.PendingChangesContext = context;
     }
 
     public static unsafe void ForceRedrawNamePlates()
@@ -311,6 +306,7 @@ public sealed class NameplateUpdater2 : IDisposable
         state.NamePlateObject->NameplateCollision->AtkResNode.SetScale(1f, 1f);
 
         state.IsModified = false;
+        state.PendingChangesContext = null;
     }
 
     private static unsafe bool CreateNodes(AddonNamePlate* addon)
@@ -336,14 +332,23 @@ public sealed class NameplateUpdater2 : IDisposable
             var exNode =
                 AtkHelper.GetNodeByID<AtkImageNode>(uldManager, ExNodeId, NodeType.Image);
             if (exNode == null) {
-                exNode = CreateImageNode(ExNodeId, componentNode, IconNodeId);
+                exNode = CreateImageNode(ExNodeId);
+                var targetNode = AtkHelper.GetNodeByID<AtkResNode>(&componentNode->Component->UldManager, IconNodeId);
+                if (targetNode == null) {
+                    throw new Exception($"Failed to find link target ({IconNodeId}) for image node {IconNodeId}");
+                }
+                AtkHelper.LinkNodeAfterTargetNode((AtkResNode*)exNode, componentNode, targetNode);
             }
 
             var subNode =
                 AtkHelper.GetNodeByID<AtkImageNode>(uldManager, SubNodeId, NodeType.Image);
             if (subNode == null) {
-                subNode = CreateImageNode(SubNodeId, componentNode, ExNodeId);
-                // subNode = CreateImageNode(SubNodeId, componentNode, NameTextNodeId);
+                subNode = CreateImageNode(SubNodeId);
+                var targetNode = AtkHelper.GetNodeByID<AtkResNode>(&componentNode->Component->UldManager, NameTextNodeId);
+                if (targetNode == null) {
+                    throw new Exception($"Failed to find link target ({NameTextNodeId}) for image node {NameTextNodeId}");
+                }
+                AtkHelper.LinkNodeAtEnd((AtkResNode*)subNode, componentNode, resNode);
             }
 
             var namePlateObjectPointer = arr + i;
@@ -365,7 +370,7 @@ public sealed class NameplateUpdater2 : IDisposable
         return true;
     }
 
-    private static unsafe AtkImageNode* CreateImageNode(uint nodeId, AtkComponentNode* parent, uint targetNodeId)
+    private static unsafe AtkImageNode* CreateImageNode(uint nodeId)
     {
         var imageNode = AtkHelper.MakeImageNode(nodeId, new AtkHelper.PartInfo(0, 0, 32, 32));
         if (imageNode == null) {
@@ -381,12 +386,12 @@ public sealed class NameplateUpdater2 : IDisposable
         imageNode->Flags = (byte)ImageNodeFlags.AutoFit;
         imageNode->LoadIconTexture(60071, 0);
 
-        var targetNode = AtkHelper.GetNodeByID<AtkResNode>(&parent->Component->UldManager, targetNodeId);
-        if (targetNode == null) {
-            throw new Exception($"Failed to find link target ({targetNodeId}) for image node {nodeId}");
-        }
-
-        AtkHelper.LinkNodeAfterTargetNode((AtkResNode*)imageNode, parent, targetNode);
+        // var targetNode = AtkHelper.GetNodeByID<AtkResNode>(&parent->Component->UldManager, targetNodeId);
+        // if (targetNode == null) {
+        //     throw new Exception($"Failed to find link target ({targetNodeId}) for image node {nodeId}");
+        // }
+        //
+        // AtkHelper.LinkNodeAfterTargetNode((AtkResNode*)imageNode, parent, targetNode);
 
         return imageNode;
     }

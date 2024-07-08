@@ -110,6 +110,15 @@ public sealed class NameplateView : IDisposable
         var mode = config.Mode;
         context.Mode = mode;
 
+        if (_configuration.HideLocalPlayerNameplate && context.IsLocalPlayer) {
+            if (mode == NameplateMode.RoleLetters && (_configuration.TestingMode || Service.PartyList.Length > 0)) {
+                // Allow plate to draw since we're using RoleLetters and are in a party (or in testing mode)
+            }
+            else {
+                context.Mode = NameplateMode.Hide;
+            }
+        }
+
         if (mode is NameplateMode.Default or NameplateMode.Hide) {
             return;
         }
@@ -297,6 +306,16 @@ public sealed class NameplateView : IDisposable
                 break;
             }
         }
+    }
+
+    public void DoPendingChanges(PlateState state)
+    {
+        var context = state.PendingChangesContext;
+        if (context == null) return;
+
+        state.PendingChangesContext = null;
+        ModifyNodes(state, context);
+        ModifyGlobalScale(state, context);
     }
 
     public void ModifyNodes(PlateState state, UpdateContext context)
@@ -549,18 +568,18 @@ public sealed class NameplateView : IDisposable
 
         handler.NameIconId = PlaceholderEmptyIconId;
 
-        if (_configuration.HideLocalPlayerNameplate && context.IsLocalPlayer) {
-            if (mode == NameplateMode.RoleLetters && (_configuration.TestingMode || Service.PartyList.Length > 0)) {
-                // Allow plate to draw since we're using RoleLetters and are in a party (or in testing mode)
-            }
-            else {
-                handler.ClearField(NamePlateStringField.Name);
-                handler.ClearField(NamePlateStringField.FreeCompanyTag);
-                handler.ClearField(NamePlateStringField.StatusPrefix);
-                handler.DisplayTitle = false;
-                return;
-            }
-        }
+        // if (_configuration.HideLocalPlayerNameplate && context.IsLocalPlayer) {
+        //     if (mode == NameplateMode.RoleLetters && (_configuration.TestingMode || Service.PartyList.Length > 0)) {
+        //         // Allow plate to draw since we're using RoleLetters and are in a party (or in testing mode)
+        //     }
+        //     else {
+        //         handler.ClearField(NamePlateStringField.Name);
+        //         handler.ClearField(NamePlateStringField.FreeCompanyTag);
+        //         handler.ClearField(NamePlateStringField.StatusPrefix);
+        //         handler.DisplayTitle = false;
+        //         return;
+        //     }
+        // }
 
         switch (mode) {
             case NameplateMode.Default:
@@ -653,7 +672,7 @@ public sealed class NameplateView : IDisposable
                     nameString.Payloads.Insert(0, new TextPayload(FullWidthSpace));
                 }
 
-                handler.SetField(NamePlateStringField.Name, "test");
+                handler.SetField(NamePlateStringField.Name, nameString);
                 handler.ClearField(NamePlateStringField.FreeCompanyTag);
                 handler.ClearField(NamePlateStringField.StatusPrefix);
                 handler.DisplayTitle = false;

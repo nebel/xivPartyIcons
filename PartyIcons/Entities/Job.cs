@@ -47,12 +47,14 @@ public enum Job : uint
     GNB = 37,
     DNC = 38,
     RPR = 39,
-    SGE = 40
+    SGE = 40,
+    VIP = 41,
+    PCT = 42,
 }
 
 public static class JobConstants
 {
-    public const int MaxJob = (int)Job.SGE;
+    public const int MaxJob = (int)Job.PCT;
 }
 
 public static class JobExtensions
@@ -85,6 +87,7 @@ public static class JobExtensions
             case Job.NIN:
             case Job.SAM:
             case Job.RPR:
+            case Job.VIP:
                 return GenericRole.Melee;
 
             case Job.ARC:
@@ -97,6 +100,7 @@ public static class JobExtensions
             case Job.SMN:
             case Job.RDM:
             case Job.BLU:
+            case Job.PCT:
                 return GenericRole.Ranged;
 
             case Job.CRP:

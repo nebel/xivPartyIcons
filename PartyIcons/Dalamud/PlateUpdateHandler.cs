@@ -19,6 +19,7 @@ public unsafe class PlateUpdateHandler
 
     private ulong? gameObjectId;
     private IGameObject? gameObject;
+    private NamePlateBaseInfo? baseInfo;
 
     private static readonly byte* EmptyStringPointer = CreateEmptyStringPointer();
 
@@ -46,6 +47,7 @@ public unsafe class PlateUpdateHandler
     {
         gameObjectId = null;
         gameObject = null;
+        baseInfo = null;
         IsUpdating = (UpdateFlags & 1) != 0;
     }
 
@@ -107,9 +109,12 @@ public unsafe class PlateUpdateHandler
 
     private RaptureAtkModule.NamePlateInfo* NamePlateInfo => context.raptureAtkModule->NamePlateInfoEntries.GetPointer(NamePlateIndex);
 
-
     public nint NamePlateInfoAddress => (nint)NamePlateInfo;
+
+    public NamePlateBaseInfo BaseInfo => baseInfo ??= new NamePlateBaseInfo(NamePlateInfo);
+
     private AddonNamePlate.NamePlateObject* NamePlateObject => &context.addon->NamePlateObjectArray[NamePlateIndex];
+
     public nint NamePlateObjectAddress => (nint)NamePlateObject;
 
     public ulong GameObjectId => gameObjectId ??= NamePlateInfo->ObjectId;
@@ -162,11 +167,11 @@ public unsafe class PlateUpdateHandler
         return SeString.Parse(GetStringValueAsSpan(field));
     }
 
-    // [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    // internal void SetField(NamePlateStringField field, string value)
-    // {
-    //     context.stringData->SetValue(stringIndex + (int)field, value, true, true, true);
-    // }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void SetField(NamePlateStringField field, string value)
+    {
+        context.stringData->SetValue(stringIndex + (int)field, value, true, true, true);
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void SetField(NamePlateStringField field, SeString value)

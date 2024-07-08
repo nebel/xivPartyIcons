@@ -82,16 +82,10 @@ public class NamePlateGui : IDisposable
 
         OnAllPlatesPreUpdate?.Invoke(updateContext, updateHandlers.AsSpan(0, numPlatesShown));
 
-        // foreach (var plateUpdateHandler in updateHandlers.AsSpan(0, numPlatesShown)) {
-        //     plateUpdateHandler.DebugLog();
-        // }
-
         if (updateContext.IsFullUpdate) {
-            // Service.Log.Debug($"INVOKE-A {OnChangedPlatesPreUpdate != null}");
             OnChangedPlatesPreUpdate?.Invoke(updateContext, updateHandlers.AsSpan(0, numPlatesShown));
         }
         else if (changedUpdateHandlers.Length != 0) {
-            // Service.Log.Debug($"INVOKE-B {OnChangedPlatesPreUpdate != null}");
             OnChangedPlatesPreUpdate?.Invoke(updateContext, changedUpdateHandlers.AsSpan());
         }
     }
@@ -110,7 +104,7 @@ public class NamePlateGui : IDisposable
         }
     }
 
-    private static readonly bool DebugUpdates = true;
+    private static readonly bool DebugUpdates = false;
 
     private void DoDebugStuff(PlateUpdateHandler handler)
     {

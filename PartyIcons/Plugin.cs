@@ -57,7 +57,7 @@ public sealed class Plugin : IDalamudPlugin
         PartyListHudUpdater.Enable();
         ModeSetter.Enable();
         RoleTracker.Enable();
-        NameplateUpdater.Enable();
+        // NameplateUpdater.Enable();
         NameplateUpdater2.Enable();
         ChatNameUpdater.Enable();
 
@@ -71,7 +71,7 @@ public sealed class Plugin : IDalamudPlugin
         PartyListHudUpdater.Dispose();
         ChatNameUpdater.Dispose();
         ContextMenu.Dispose();
-        NameplateUpdater.Dispose();
+        // NameplateUpdater.Dispose();
         NameplateUpdater2.Dispose();
         RoleTracker.Dispose();
         ModeSetter.Dispose();

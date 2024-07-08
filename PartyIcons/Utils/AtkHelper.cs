@@ -2,6 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using FFXIVClientStructs.FFXIV.Client.System.Memory;
+using FFXIVClientStructs.FFXIV.Common.Component.BGCollision;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 
 namespace PartyIcons.Utils;
@@ -44,12 +45,11 @@ public static class AtkHelper
         return imageNode;
     }
 
-    public static unsafe void LinkNodeAfterTargetNode(AtkResNode* node, AtkComponentNode* parent,
-        AtkResNode* targetNode)
+    public static unsafe void LinkNodeAfterTargetNode(AtkResNode* node, AtkComponentNode* parentComponent, AtkResNode* targetNode)
     {
         if (targetNode->PrevSiblingNode == null) {
             throw new Exception(
-                $"LinkNodeAfterTargetNode: Failed to link 0x{(nint)node:X} (parent 0x{(nint)parent:X}, target 0x{(nint)targetNode:X} since PrevSiblingNode was null");
+                $"LinkNodeAfterTargetNode: Failed to link 0x{(nint)node:X} (parent 0x{(nint)parentComponent:X}, target 0x{(nint)targetNode:X} since PrevSiblingNode was null");
         }
 
         var prevSiblingNode = targetNode->PrevSiblingNode;
@@ -58,23 +58,31 @@ public static class AtkHelper
         prevSiblingNode->NextSiblingNode = node;
         node->PrevSiblingNode = prevSiblingNode;
         node->NextSiblingNode = targetNode;
-        parent->Component->UldManager.UpdateDrawNodeList();
+        parentComponent->Component->UldManager.UpdateDrawNodeList();
     }
 
-    public static unsafe void LinkNodeAtEnd(AtkResNode* intruder, AtkComponentNode* parent)
+    public static unsafe void LinkNodeAtEnd(AtkResNode* intruder, AtkComponentNode* parentComponent, AtkResNode* parentNode)
     {
-        var node = parent->ChildNode;
-        while (node->PrevSiblingNode != null) node = node->PrevSiblingNode;
+        var node = parentNode->ChildNode;
+        if (node != null) {
+            while (node->PrevSiblingNode != null) node = node->PrevSiblingNode;
+        }
 
         node->PrevSiblingNode = intruder;
         intruder->NextSiblingNode = node;
         intruder->ParentNode = node->ParentNode;
 
-        parent->Component->UldManager.UpdateDrawNodeList();
+        if (intruder->ParentNode->NextSiblingNode == intruder->NextSiblingNode) {
+            intruder->ParentNode->NextSiblingNode = intruder;
+        }
+
+        parentComponent->Component->UldManager.UpdateDrawNodeList();
     }
 
     public static unsafe void UnlinkAndFreeImageNodeIndirect(AtkImageNode* node, AtkUldManager* uldManager)
     {
+        if ((IntPtr)node->AtkResNode.ParentNode->NextSiblingNode == (IntPtr)node)
+            node->AtkResNode.ParentNode->NextSiblingNode = node->AtkResNode.NextSiblingNode;
         if ((IntPtr)node->AtkResNode.PrevSiblingNode != IntPtr.Zero)
             node->AtkResNode.PrevSiblingNode->NextSiblingNode = node->AtkResNode.NextSiblingNode;
         if ((IntPtr)node->AtkResNode.NextSiblingNode != IntPtr.Zero)
