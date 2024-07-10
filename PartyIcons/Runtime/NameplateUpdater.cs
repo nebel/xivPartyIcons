@@ -3,9 +3,12 @@ using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.Gui.NamePlate;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
+using FFXIVClientStructs.FFXIV.Client.Game.Character;
+using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using PartyIcons.Configuration;
+using PartyIcons.Entities;
 using PartyIcons.Utils;
 using PartyIcons.View;
 using System;
@@ -13,6 +16,7 @@ using System.Collections;
 using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace PartyIcons.Runtime;
@@ -232,12 +236,37 @@ public sealed class NameplateUpdater : IDisposable
             // state.SubIconNode->AtkResNode.SetScale(scale, scale);
         }
     }
-
+    //
+    // [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    // private static unsafe Character* ResolveCharacter3D(GameObjectId objectId)
+    // {
+    //     if (objectId.Type != 0) {
+    //         return null;
+    //     }
+    //
+    //     var ui3DModule = UIModule.Instance()->GetUI3DModule();
+    //     for (var i = 0; i < ui3DModule->NamePlateObjectInfoCount; i++) {
+    //         var objectInfo = ui3DModule->NamePlateObjectInfoPointers[i].Value;
+    //         var obj = objectInfo->GameObject;
+    //         if (obj->GetGameObjectId() == objectId && obj->ObjectKind == ObjectKind.Pc) {
+    //             var character = (Character*)obj;
+    //             Service.Log.Info($" 3D: {i} {obj->EntityId} {obj->NameString} (0x{(nint)ui3DModule:X})");
+    //             return character->CharacterData.ClassJob is < 1 or > JobConstants.MaxJob ? null : character;
+    //         }
+    //     }
+    //
+    //     return null;
+    // }
 
     private void SetNamePlate(INamePlateUpdateHandler handler)
     {
         var index = handler.NamePlateIndex;
         var state = _stateCache[index];
+
+        // unsafe {
+        //     Service.Log.Info($"NPI: {handler.ArrayIndex} {handler.GameObjectId} {handler.Name} ({index})");
+        //     var ch = ResolveCharacter3D(handler.GameObjectId);
+        // }
 
         if (Service.ClientState.IsPvP) {
             ResetPlate(state);
