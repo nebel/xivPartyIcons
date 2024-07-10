@@ -17,6 +17,8 @@ public sealed class NameplateView : IDisposable
     private readonly PlayerStylesheet _stylesheet;
     private readonly RoleTracker _roleTracker;
 
+    private const int PlaceholderEmptyIconId = 61696;
+
     private const short ExIconWidth = 32;
     private const short ExIconWidthHalf = 16;
     private const short ExIconHeight = 32;
@@ -170,68 +172,34 @@ public sealed class NameplateView : IDisposable
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static unsafe void SetIconState(PlateState state, bool exIcon, bool subIcon)
-    {
-        state.ExIconNode->AtkResNode.ToggleVisibility(exIcon);
-        state.UseExIcon = exIcon;
-
-        state.SubIconNode->AtkResNode.ToggleVisibility(subIcon);
-        state.UseSubIcon = subIcon;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static unsafe void SetNameScale(PlateState state, float scale)
-    {
-        state.NamePlateObject->NameText->AtkResNode.SetScale(scale, scale);
-    }
-
-    public void ModifyParameters(UpdateContext context,
-        ref bool isPrefixTitle,
-        ref bool displayTitle,
-        ref IntPtr title,
-        ref IntPtr name,
-        ref IntPtr fcName,
-        ref IntPtr prefix,
-        ref uint iconId)
+    public void ModifyPlateData(UpdateContext context, NamePlateUpdateHandler handler)
     {
         var mode = context.Mode;
 
-        if (_configuration.HideLocalPlayerNameplate && context.IsLocalPlayer) {
-            if (mode == NameplateMode.RoleLetters && (_configuration.TestingMode || Service.PartyList.Length > 0)) {
-                // Allow plate to draw since we're using RoleLetters and are in a party (or in testing mode)
-            }
-            else {
-                name = SeStringUtils.EmptyPtr;
-                fcName = SeStringUtils.EmptyPtr;
-                prefix = SeStringUtils.EmptyPtr;
-                displayTitle = false;
-                context.ShowExIcon = false;
-                context.ShowSubIcon = false;
-                return;
-            }
-        }
+        // Replace 0/-1 with empty dummy texture so the default icon is always positioned even for unselected
+        // targets (when unselected targets are hidden). If we don't do this, the icon node will only be
+        // positioned by the game after the target is selected for hidden nameplates, which would force us to
+        // re-position after the initial SetNamePlate call (which would be very annoying).
+        handler.NameIconId = PlaceholderEmptyIconId;
 
         switch (mode) {
             case NameplateMode.Default:
             default:
                 throw new Exception(
-                    $"Illegal state, should not enter {nameof(ModifyParameters)} with mode {context.Mode}");
+                    $"Illegal state, cannot modify plate data for nodes using mode {context.Mode}");
             case NameplateMode.Hide:
-                name = SeStringUtils.EmptyPtr;
-                fcName = SeStringUtils.EmptyPtr;
-                prefix = SeStringUtils.EmptyPtr;
-                displayTitle = false;
+                handler.RemoveName();
+                handler.RemoveFreeCompanyTag();
+                handler.RemoveStatusPrefix();
+                handler.DisplayTitle = false;
                 break;
             case NameplateMode.SmallJobIcon:
             {
-                prefix = SeStringUtils.EmptyPtr;
-                iconId = context.StatusIconId;
+                handler.RemoveStatusPrefix();
                 break;
             }
             case NameplateMode.SmallJobIconAndRole:
             {
-                prefix = SeStringUtils.EmptyPtr;
                 if (context.DisplayConfig.RoleDisplayStyle == RoleDisplayStyle.PartyNumber) {
                     if (PartyListHUDView.GetPartySlotIndex(context.PlayerCharacter.EntityId) is { } partySlot) {
                         // var slotString = hasRole
@@ -241,7 +209,10 @@ public sealed class NameplateView : IDisposable
                         var prefixString = new SeString()
                             .Append(slotString)
                             .Append(" ");
-                        prefix = SeStringUtils.SeStringToPtr(prefixString);
+                        handler.SetField(NamePlateStringField.StatusPrefix, prefixString);
+                    }
+                    else {
+                        handler.RemoveField(NamePlateStringField.StatusPrefix);
                     }
                 }
                 else {
@@ -249,19 +220,21 @@ public sealed class NameplateView : IDisposable
                         var prefixString = new SeString()
                             .Append(_stylesheet.GetRolePlate(roleId))
                             .Append(" ");
-                        prefix = SeStringUtils.SeStringToPtr(prefixString);
+                        handler.SetField(NamePlateStringField.StatusPrefix, prefixString);
+                    }
+                    else {
+                        handler.RemoveField(NamePlateStringField.StatusPrefix);
                     }
                 }
 
-                iconId = context.StatusIconId;
                 break;
             }
             case NameplateMode.BigJobIcon:
             {
-                name = SeStringUtils.SeStringToPtr(SeStringUtils.Text(FullWidthSpace));
-                fcName = SeStringUtils.EmptyPtr;
-                prefix = SeStringUtils.EmptyPtr;
-                displayTitle = false;
+                handler.Name = FullWidthSpace;
+                handler.RemoveFreeCompanyTag();
+                handler.RemoveStatusPrefix();
+                handler.DisplayTitle = false;
                 break;
             }
             case NameplateMode.BigJobIconAndPartySlot:
@@ -269,15 +242,15 @@ public sealed class NameplateView : IDisposable
                 if (PartyListHUDView.GetPartySlotIndex(context.PlayerCharacter.EntityId) is { } partySlot) {
                     var slotString = _stylesheet.GetPartySlotNumber(partySlot + 1, context.GenericRole);
                     slotString.Payloads.Insert(0, new TextPayload(FullWidthSpace));
-                    name = SeStringUtils.SeStringToPtr(slotString);
+                    handler.SetField(NamePlateStringField.Name, slotString);
                 }
                 else {
-                    name = SeStringUtils.SeStringToPtr(SeStringUtils.Text(FullWidthSpace));
+                    handler.SetField(NamePlateStringField.Name, SeStringUtils.Text(FullWidthSpace));
                 }
 
-                fcName = SeStringUtils.EmptyPtr;
-                prefix = SeStringUtils.EmptyPtr;
-                displayTitle = false;
+                handler.RemoveFreeCompanyTag();
+                handler.RemoveStatusPrefix();
+                handler.DisplayTitle = false;
 
                 break;
             }
@@ -300,15 +273,16 @@ public sealed class NameplateView : IDisposable
                     nameString.Payloads.Insert(0, new TextPayload(FullWidthSpace));
                 }
 
-                name = SeStringUtils.SeStringToPtr(nameString);
-                prefix = SeStringUtils.EmptyPtr;
-                fcName = SeStringUtils.EmptyPtr;
-                displayTitle = false;
+                handler.Name = nameString;
+                handler.RemoveFreeCompanyTag();
+                handler.RemoveStatusPrefix();
+                handler.DisplayTitle = false;
                 break;
             }
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void DoPendingChanges(PlateState state)
     {
         var context = state.PendingChangesContext;
@@ -317,12 +291,9 @@ public sealed class NameplateView : IDisposable
         state.PendingChangesContext = null;
         ModifyNodes(state, context);
         ModifyGlobalScale(state, context);
-        // unsafe {
-        //     state.NamePlateObject->NameContainer->DrawFlags |= 1;
-        // }
     }
 
-    public void ModifyNodes(PlateState state, UpdateContext context)
+    private void ModifyNodes(PlateState state, UpdateContext context)
     {
         SetIconState(state, context.ShowExIcon, context.ShowSubIcon);
 
@@ -352,6 +323,22 @@ public sealed class NameplateView : IDisposable
                 PrepareNodeInlineLarge(state, context);
                 break;
         }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static unsafe void SetIconState(PlateState state, bool exIcon, bool subIcon)
+    {
+        state.ExIconNode->AtkResNode.ToggleVisibility(exIcon);
+        state.UseExIcon = exIcon;
+
+        state.SubIconNode->AtkResNode.ToggleVisibility(subIcon);
+        state.UseSubIcon = subIcon;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static unsafe void SetNameScale(PlateState state, float scale)
+    {
+        state.NamePlateObject->NameText->AtkResNode.SetScale(scale, scale);
     }
 
     private static unsafe void PrepareNodeInlineSmall(PlateState state, UpdateContext context)
@@ -531,7 +518,7 @@ public sealed class NameplateView : IDisposable
         return OthersStatus;
     }
 
-    public unsafe void ModifyGlobalScale(PlateState state, UpdateContext context)
+    private unsafe void ModifyGlobalScale(PlateState state, UpdateContext context)
     {
         var resNode = state.NamePlateObject->NameContainer;
 
@@ -560,119 +547,6 @@ public sealed class NameplateView : IDisposable
             resNode->OriginY = ResNodeBottom;
             resNode->SetScale(scale, scale);
             state.IsGlobalScaleModified = true;
-        }
-    }
-
-    private const int EmptyIconId = -1;
-    private const int PlaceholderEmptyIconId = 61696;
-
-    public void ModifyPlateData(UpdateContext context, PlateUpdateHandler handler)
-    {
-        var mode = context.Mode;
-
-        // Replace 0/-1 with empty dummy texture so the default icon is always positioned even for unselected
-        // targets (when unselected targets are hidden). If we don't do this, the icon node will only be
-        // positioned by the game after the target is selected for hidden nameplates, which would force us to
-        // re-position after the initial SetNamePlate call (which would be very annoying).
-        handler.NameIconId = PlaceholderEmptyIconId;
-
-        switch (mode) {
-            case NameplateMode.Default:
-            default:
-                throw new Exception(
-                    $"Illegal state, should not enter {nameof(ModifyPlateData)} with mode {context.Mode}");
-            case NameplateMode.Hide:
-                handler.ClearField(NamePlateStringField.Name);
-                handler.ClearField(NamePlateStringField.FreeCompanyTag);
-                handler.ClearField(NamePlateStringField.StatusPrefix);
-                handler.DisplayTitle = false;
-                break;
-            case NameplateMode.SmallJobIcon:
-            {
-                handler.ClearField(NamePlateStringField.StatusPrefix);
-                break;
-            }
-            case NameplateMode.SmallJobIconAndRole:
-            {
-                if (context.DisplayConfig.RoleDisplayStyle == RoleDisplayStyle.PartyNumber) {
-                    if (PartyListHUDView.GetPartySlotIndex(context.PlayerCharacter.EntityId) is { } partySlot) {
-                        // var slotString = hasRole
-                        //     ? _stylesheet.GetPartySlotNumber(partySlot + 1, roleId)
-                        //     : _stylesheet.GetPartySlotNumber(partySlot + 1, context.GenericRole);
-                        var slotString = _stylesheet.GetPartySlotNumber(partySlot + 1, context.GenericRole);
-                        var prefixString = new SeString()
-                            .Append(slotString)
-                            .Append(" ");
-                        handler.SetField(NamePlateStringField.StatusPrefix, prefixString);
-                    }
-                    else {
-                        handler.ClearField(NamePlateStringField.StatusPrefix);
-                    }
-                }
-                else {
-                    if (_roleTracker.TryGetAssignedRole(context.PlayerCharacter, out var roleId)) {
-                        var prefixString = new SeString()
-                            .Append(_stylesheet.GetRolePlate(roleId))
-                            .Append(" ");
-                        handler.SetField(NamePlateStringField.StatusPrefix, prefixString);
-                    }
-                    else {
-                        handler.ClearField(NamePlateStringField.StatusPrefix);
-                    }
-                }
-
-                break;
-            }
-            case NameplateMode.BigJobIcon:
-            {
-                handler.SetField(NamePlateStringField.Name, SeStringUtils.Text(FullWidthSpace));
-                handler.ClearField(NamePlateStringField.FreeCompanyTag);
-                handler.ClearField(NamePlateStringField.StatusPrefix);
-                handler.DisplayTitle = false;
-                break;
-            }
-            case NameplateMode.BigJobIconAndPartySlot:
-            {
-                if (PartyListHUDView.GetPartySlotIndex(context.PlayerCharacter.EntityId) is { } partySlot) {
-                    var slotString = _stylesheet.GetPartySlotNumber(partySlot + 1, context.GenericRole);
-                    slotString.Payloads.Insert(0, new TextPayload(FullWidthSpace));
-                    handler.SetField(NamePlateStringField.Name, slotString);
-                }
-                else {
-                    handler.SetField(NamePlateStringField.Name, SeStringUtils.Text(FullWidthSpace));
-                }
-
-                handler.ClearField(NamePlateStringField.FreeCompanyTag);
-                handler.ClearField(NamePlateStringField.StatusPrefix);
-                handler.DisplayTitle = false;
-
-                break;
-            }
-            case NameplateMode.RoleLetters:
-            {
-                SeString nameString;
-                if (context.DisplayConfig.RoleDisplayStyle == RoleDisplayStyle.PartyNumber) {
-                    nameString = PartyListHUDView.GetPartySlotIndex(context.PlayerCharacter.EntityId) is { } partySlot
-                        ? _stylesheet.GetPartySlotNumber(partySlot + 1, context.GenericRole)
-                        : _stylesheet.GetGenericRolePlate(context.GenericRole);
-                }
-                else {
-                    var hasRole = _roleTracker.TryGetAssignedRole(context.PlayerCharacter, out var roleId);
-                    nameString = hasRole
-                        ? _stylesheet.GetRolePlate(roleId)
-                        : _stylesheet.GetGenericRolePlate(context.GenericRole);
-                }
-
-                if (context.ShowExIcon) {
-                    nameString.Payloads.Insert(0, new TextPayload(FullWidthSpace));
-                }
-
-                handler.SetField(NamePlateStringField.Name, nameString);
-                handler.ClearField(NamePlateStringField.FreeCompanyTag);
-                handler.ClearField(NamePlateStringField.StatusPrefix);
-                handler.DisplayTitle = false;
-                break;
-            }
         }
     }
 }

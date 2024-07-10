@@ -15,8 +15,7 @@ public sealed class Plugin : IDalamudPlugin
     public static PartyListHUDView PartyHudView { get; private set; } = null!;
     public static PartyListHUDUpdater PartyListHudUpdater { get; private set; } = null!;
     public static SettingsWindow SettingsWindow { get; private set; } = null!;
-    // public static NameplateUpdater NameplateUpdater { get; private set; } = null!;
-    public static NameplateUpdater2 NameplateUpdater2 { get; private set; } = null!;
+    public static NameplateUpdater NameplateUpdater { get; private set; } = null!;
     public static NameplateView NameplateView { get; private set; } = null!;
     public static RoleTracker RoleTracker { get; private set; } = null!;
     public static ViewModeSetter ModeSetter { get; private set; } = null!;
@@ -46,8 +45,7 @@ public sealed class Plugin : IDalamudPlugin
         ChatNameUpdater = new ChatNameUpdater(RoleTracker, PlayerStylesheet);
         PartyListHudUpdater = new PartyListHUDUpdater(PartyHudView, RoleTracker, Settings, PartyStateTracker);
         ModeSetter = new ViewModeSetter(NameplateView, Settings, ChatNameUpdater, PartyListHudUpdater);
-        // NameplateUpdater = new NameplateUpdater(NameplateView);
-        NameplateUpdater2 = new NameplateUpdater2(NameplateView);
+        NameplateUpdater = new NameplateUpdater(NameplateView);
         ContextMenu = new ContextMenu(RoleTracker, Settings, PlayerStylesheet);
         CommandHandler = new CommandHandler();
 
@@ -57,8 +55,7 @@ public sealed class Plugin : IDalamudPlugin
         PartyListHudUpdater.Enable();
         ModeSetter.Enable();
         RoleTracker.Enable();
-        // NameplateUpdater.Enable();
-        NameplateUpdater2.Enable();
+        NameplateUpdater.Enable();
         ChatNameUpdater.Enable();
 
         Service.NamePlateGui.Enable();
@@ -71,8 +68,7 @@ public sealed class Plugin : IDalamudPlugin
         PartyListHudUpdater.Dispose();
         ChatNameUpdater.Dispose();
         ContextMenu.Dispose();
-        // NameplateUpdater.Dispose();
-        NameplateUpdater2.Dispose();
+        NameplateUpdater.Dispose();
         RoleTracker.Dispose();
         ModeSetter.Dispose();
         SettingsWindow.Dispose();
