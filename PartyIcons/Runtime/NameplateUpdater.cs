@@ -1,28 +1,17 @@
-﻿using System;
-using System.Collections.Frozen;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
-using Dalamud.Game.Addon.Lifecycle;
+﻿using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
-using Dalamud.Game.ClientState.Objects.SubKinds;
-using Dalamud.Game.Config;
+using Dalamud.Game.Gui.NamePlate;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
-using Dalamud.Hooking;
-using Dalamud.Utility.Signatures;
-using FFXIVClientStructs.FFXIV.Client.Game.Character;
-using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.UI;
-using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
-using FFXIVClientStructs.Interop;
 using PartyIcons.Configuration;
-using PartyIcons.Dalamud;
-using PartyIcons.Entities;
 using PartyIcons.Utils;
 using PartyIcons.View;
+using System;
 using System.Collections;
+using System.Collections.Frozen;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
@@ -58,6 +47,7 @@ public sealed class NameplateUpdater : IDisposable
 
     private void SetReadyState(UpdaterState state, nint addonPtr = 0)
     {
+        Service.Log.Debug($"SetReadyState: {_updaterState} -> {state}");
         switch (state) {
             case UpdaterState.Enabled:
                 Plugin.RoleTracker.OnAssignedRolesUpdated += ForceRedrawNamePlates;
@@ -71,12 +61,23 @@ public sealed class NameplateUpdater : IDisposable
             case UpdaterState.WaitingForNodes:
                 break;
             case UpdaterState.Ready:
-                Service.NamePlateGui.OnChangedPlatesPreUpdate += OnChangedPlatesPreUpdate;
+                Service.NamePlateGui.OnNamePlateUpdate += OnNamePlateUpdate;
+                // Service.NamePlateGui.OnDataUpdate += (context, handlers) =>
+                // {
+                //     foreach (var handler in handlers) {
+                //         if (handler.IsUpdating || context.IsFullUpdate) {
+                //             handler.MarkerIconId = 66181 + (int)handler.NamePlateKind;
+                //         }
+                //         else {
+                //             handler.MarkerIconId = 66161 + (int)handler.NamePlateKind;
+                //         }
+                //     }
+                // };
                 Service.AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "NamePlate", OnPostRequestedUpdate);
                 break;
             case UpdaterState.Stopped:
                 if (_updaterState == UpdaterState.Ready) {
-                    Service.NamePlateGui.OnChangedPlatesPreUpdate -= OnChangedPlatesPreUpdate;
+                    Service.NamePlateGui.OnNamePlateUpdate -= OnNamePlateUpdate;
                     Service.AddonLifecycle.UnregisterListener(AddonEvent.PostRequestedUpdate, "NamePlate", OnPostRequestedUpdate);
                 }
                 if (addonPtr == 0) {
@@ -118,64 +119,26 @@ public sealed class NameplateUpdater : IDisposable
         SetReadyState(UpdaterState.WaitingForDraw);
     }
 
-    private void OnChangedPlatesPreUpdate(NamePlateUpdateContext context, ReadOnlySpan<NamePlateUpdateHandler> handlers)
+    private void OnNamePlateUpdate(INamePlateUpdateContext context, IReadOnlyList<INamePlateUpdateHandler> handlers)
     {
         foreach (var handler in handlers) {
-            if (handler.NamePlateKind == Dalamud.NamePlateKind.PlayerCharacter) {
+            if (handler.NamePlateKind == NamePlateKind.PlayerCharacter) {
                 // Service.Log.Debug(Dump(handler.BaseInfo));
-                Service.Log.Debug(Dump(context));
-                handler.FreeCompanyTagBuilder.TextColor = (new SeString().Append(new UIForegroundPayload(43)), new SeString().Append(UIForegroundPayload.UIForegroundOff));
-                handler.FreeCompanyTagBuilder.Text = "Hello";
-                handler.TitleBuilder.TextColor = (new SeString().Append(new UIForegroundPayload(16)), new SeString().Append(UIForegroundPayload.UIForegroundOff));
-                handler.TitleBuilder.Text = "Plate";
-                handler.IsPrefixTitle = true;
-                handler.DisplayTitle = true;
-                handler.NameBuilder.Text = "Anonymous Player";
-                handler.NameBuilder.TextColor = (new SeString().Append(new UIForegroundPayload(37)), new SeString().Append(UIForegroundPayload.UIForegroundOff));
+                // Service.Log.Debug(Dump(context));
+                // handler.FreeCompanyTagParts.TextWrap = (new SeString().Append(new UIForegroundPayload(43)), new SeString().Append(UIForegroundPayload.UIForegroundOff));
+                // handler.FreeCompanyTagParts.Text = "Hello";
+                // handler.TitleParts.TextWrap = (new SeString().Append(new UIForegroundPayload(16)), new SeString().Append(UIForegroundPayload.UIForegroundOff));
+                // handler.TitleParts.Text = "Plate";
+                // handler.IsPrefixTitle = true;
+                // handler.DisplayTitle = true;
+                // handler.NameParts.Text = "Anonymous Player";
+                // handler.NameParts.TextWrap = (new SeString().Append(new UIForegroundPayload(37)), new SeString().Append(UIForegroundPayload.UIForegroundOff));
 
+                Service.Log.Warning($"SNP: {handler.Name}");
                 SetNamePlate(handler);
             }
         }
     }
-
-    private static string Dump(object? o, string name = "", int depth = 3, bool showStatics = false)
-    {
-        try
-        {
-            var leafprefix = string.IsNullOrWhiteSpace(name) ? name : name + " = ";
-            if (null == o) return leafprefix + "null";
-            var t = o.GetType();
-            if (depth-- < 1 || t == typeof (string) || t.IsValueType)
-                return  leafprefix + o;
-            var sb = new StringBuilder();
-            if (o is IEnumerable enumerable)
-            {
-                name = (name??"").TrimEnd('[', ']') + '[';
-                var elements = enumerable.Cast<object>().Select(e => Dump(e, "", depth)).ToList();
-                var arrayInOneLine = elements.Count + "] = {" + string.Join(",", elements) + '}';
-                if (!arrayInOneLine.Contains(Environment.NewLine)) // Single line?
-                    return name + arrayInOneLine;
-                var i = 0;
-                foreach (var element in elements)
-                {
-                    var lineheader = name + i++ + ']';
-                    sb.Append(lineheader).AppendLine(element.Replace(Environment.NewLine, Environment.NewLine+lineheader));
-                }
-                return sb.ToString();
-            }
-            foreach (var f in t.GetFields().Where(f => showStatics || !f.IsStatic))
-                sb.AppendLine(Dump(f.GetValue(o), name + '.' + f.Name, depth));
-            foreach (var p in t.GetProperties().Where(p => showStatics || p.GetMethod is not { IsStatic: true }))
-                sb.AppendLine(Dump(p.GetValue(o, null), name + '.' + p.Name, depth));
-            if (sb.Length == 0) return leafprefix + o;
-            return sb.ToString().TrimEnd();
-        }
-        catch
-        {
-            return name + "???";
-        }
-    }
-
 
     private void OnPostRequestedUpdate(AddonEvent type, AddonArgs args)
     {
@@ -213,8 +176,8 @@ public sealed class NameplateUpdater : IDisposable
         foreach (var state in _stateCache) {
             if (state.IsModified) {
                 var obj = state.NamePlateObject;
-                var kind = (NamePlateKind)obj->NamePlateKind;
-                if (kind != NamePlateKind.Player || (obj->NameContainer->NodeFlags & NodeFlags.Visible) == 0 || isPvP) {
+                var kind = obj->NamePlateKind;
+                if (kind != UIObjectKind.PlayerCharacter || (obj->NameContainer->NodeFlags & NodeFlags.Visible) == 0 || isPvP) {
                     ResetPlate(state);
                 }
                 else {
@@ -249,7 +212,7 @@ public sealed class NameplateUpdater : IDisposable
     }
 
 
-    private void SetNamePlate(NamePlateUpdateHandler handler)
+    private void SetNamePlate(INamePlateUpdateHandler handler)
     {
         var index = handler.NamePlateIndex;
         var state = _stateCache[index];
@@ -286,27 +249,10 @@ public sealed class NameplateUpdater : IDisposable
         state.PendingChangesContext = context;
     }
 
-    public static unsafe void ForceRedrawNamePlates()
+    public static void ForceRedrawNamePlates()
     {
-        Service.Log.Info("ForceRedrawNamePlates");
-
+        Service.Log.Debug("ForceRedrawNamePlates");
         Service.NamePlateGui.RequestRedraw();
-
-        // var addon = (AddonNamePlate*)Service.GameGui.GetAddonByName("NamePlate");
-        // if (addon != null) {
-        //     // Changing certain nameplate settings forces a call of the update function on the next frame, which checks
-        //     // the full update flag and updates all visible plates. If we don't do the config part it may delay the
-        //     // update for a short time or until the next camera movement.
-        //     var setting = UiConfigOption.NamePlateDispJobIconType.ToString();
-        //     var value = Service.GameConfig.UiConfig.GetUInt(setting);
-        //     Service.GameConfig.UiConfig.Set(setting, value == 1u ? 0u : 1u);
-        //     Service.GameConfig.UiConfig.Set(setting, value);
-        //     addon->DoFullUpdate = 1;
-        // }
-
-        // var m = RaptureAtkModule.Instance();
-        // var array = m->AtkArrayDataHolder.NumberArrays[5];
-        // array->SetValue(4, 1);
     }
 
     private static void ResetAllPlates()
@@ -456,26 +402,5 @@ public sealed class NameplateUpdater : IDisposable
                 AtkHelper.UnlinkAndFreeImageNodeIndirect(subNode, &parentComponentNodeComponent->UldManager);
             }
         }
-    }
-
-    // 2: Unknown. Shares the same internal 'renderer' as 1 & 5.
-    // 4: Seems to be used by any friendly NPC with a level in its nameplate. NPCs of type 1 can become type 4 when a
-    //    FATE triggers, for example (e.g. Boughbury Trader -> Lv32 Boughbury Trader). Shares same internal 'renderer'
-    //    as 3.
-    // 6: Unknown.
-    // 7: Unknown.
-    // 8: Unknown.
-    [SuppressMessage("ReSharper", "UnusedMember.Local")]
-    private enum NamePlateKind : byte
-    {
-        Player = 0,
-        FriendlyNpc = 1,
-        Unknown2 = 2,
-        Enemy = 3,
-        FriendlyCombatant = 4,
-        Interactable = 5,
-        Unknown6 = 6,
-        Unknown7 = 7,
-        Unknown8 = 8,
     }
 }

@@ -1,9 +1,9 @@
-﻿using System;
+﻿using Dalamud.Game.Gui.NamePlate;
+using System;
 using System.Runtime.CompilerServices;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using PartyIcons.Configuration;
-using PartyIcons.Dalamud;
 using PartyIcons.Entities;
 using PartyIcons.Runtime;
 using PartyIcons.Stylesheet;
@@ -172,7 +172,7 @@ public sealed class NameplateView : IDisposable
         }
     }
 
-    public void ModifyPlateData(UpdateContext context, NamePlateUpdateHandler handler)
+    public void ModifyPlateData(UpdateContext context, INamePlateUpdateHandler handler)
     {
         var mode = context.Mode;
 

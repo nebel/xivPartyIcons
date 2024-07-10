@@ -1,7 +1,7 @@
+using Dalamud.Game.Gui.NamePlate;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
-using PartyIcons.Dalamud;
 
 namespace PartyIcons;
 
@@ -19,10 +19,8 @@ internal class Service
     [PluginService] public static IGameGui GameGui { get; private set; } = null!;
     [PluginService] public static IPartyList PartyList { get; private set; } = null!;
     [PluginService] public static ITextureProvider TextureProvider { get; private set; } = null!;
-    [PluginService] public static IGameInteropProvider GameInteropProvider { get; private set; } = null!;
     [PluginService] public static IToastGui ToastGui { get; private set; } = null!;
     [PluginService] public static IContextMenu ContextMenu { get; private set; } = null!;
-    [PluginService] public static IGameConfig GameConfig { get; private set; } = null!;
     [PluginService] public static IAddonLifecycle AddonLifecycle { get; private set; } = null!;
-    public static NamePlateGui NamePlateGui { get; set; } = null!;
+    [PluginService] public static INamePlateGui NamePlateGui { get; private set; } = null!;
 }

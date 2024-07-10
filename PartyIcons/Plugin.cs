@@ -1,6 +1,5 @@
 ﻿using Dalamud.Plugin;
 using PartyIcons.Configuration;
-using PartyIcons.Dalamud;
 using PartyIcons.Runtime;
 using PartyIcons.Stylesheet;
 using PartyIcons.UI;
@@ -28,7 +27,6 @@ public sealed class Plugin : IDalamudPlugin
     public Plugin(IDalamudPluginInterface pluginInterface)
     {
         pluginInterface.Create<Service>();
-        Service.NamePlateGui = new NamePlateGui();
 
         Settings = Settings.Load();
 
@@ -57,8 +55,6 @@ public sealed class Plugin : IDalamudPlugin
         RoleTracker.Enable();
         NameplateUpdater.Enable();
         ChatNameUpdater.Enable();
-
-        Service.NamePlateGui.Enable();
     }
 
     public void Dispose()
@@ -73,7 +69,6 @@ public sealed class Plugin : IDalamudPlugin
         ModeSetter.Dispose();
         SettingsWindow.Dispose();
         CommandHandler.Dispose();
-        Service.NamePlateGui.Dispose();
 
         SeStringUtils.Dispose();
     }
