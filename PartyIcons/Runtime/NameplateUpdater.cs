@@ -1,5 +1,6 @@
 ﻿using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
+using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.Gui.NamePlate;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
@@ -236,7 +237,7 @@ public sealed class NameplateUpdater : IDisposable
             // state.SubIconNode->AtkResNode.SetScale(scale, scale);
         }
     }
-    //
+
     // [MethodImpl(MethodImplOptions.AggressiveInlining)]
     // private static unsafe Character* ResolveCharacter3D(GameObjectId objectId)
     // {
@@ -248,9 +249,10 @@ public sealed class NameplateUpdater : IDisposable
     //     for (var i = 0; i < ui3DModule->NamePlateObjectInfoCount; i++) {
     //         var objectInfo = ui3DModule->NamePlateObjectInfoPointers[i].Value;
     //         var obj = objectInfo->GameObject;
+    //         // Service.Log.Info($" 3d: {i} {obj->EntityId} {obj->NameString} 0x{(nint)obj:X} (UI=0x{(nint)ui3DModule:X})");
     //         if (obj->GetGameObjectId() == objectId && obj->ObjectKind == ObjectKind.Pc) {
     //             var character = (Character*)obj;
-    //             Service.Log.Info($" 3D: {i} {obj->EntityId} {obj->NameString} (0x{(nint)ui3DModule:X})");
+    //             Service.Log.Info($" 3D: {i} {obj->EntityId} {obj->NameString} 0x{(nint)obj:X} (UI=0x{(nint)ui3DModule:X})");
     //             return character->CharacterData.ClassJob is < 1 or > JobConstants.MaxJob ? null : character;
     //         }
     //     }
@@ -264,7 +266,17 @@ public sealed class NameplateUpdater : IDisposable
         var state = _stateCache[index];
 
         // unsafe {
-        //     Service.Log.Info($"NPI: {handler.ArrayIndex} {handler.GameObjectId} {handler.Name} ({index})");
+        //     Service.Log.Warning($"{handler.ArrayIndex} / {handler.NamePlateIndex}");
+        //     Service.Log.Info($"  {handler.GameObject}");
+        //     // Service.Log.Info($"  {handler.GameObject3D}");
+        //
+        //     var om = Service.ObjectTable.CreateObjectReference(
+        //         (nint)UIModule.Instance()->GetUI3DModule()->NamePlateObjectInfoPointers[
+        //             handler.ArrayIndex].Value->GameObject)!;
+        //     Service.Log.Info($"  {om}");
+        //
+        //     // Service.Log.Info($"NPI-OT: {handler.ArrayIndex} {{handler.GameObjectId}} {handler.Name} ({index}) {handler.GameObject as IPlayerCharacter}");
+        //     // Service.Log.Info($"NPI-3D: {handler.ArrayIndex} {handler.GameObjectId} {handler.Name} ({index}) {handler.GameObject3D as IPlayerCharacter}");
         //     var ch = ResolveCharacter3D(handler.GameObjectId);
         // }
 
@@ -289,13 +301,10 @@ public sealed class NameplateUpdater : IDisposable
         _view.ModifyPlateData(context, handler);
 
         if (context.Mode == NameplateMode.Hide) {
-            // TODO: DOES HIDE NEED TO WORK DIFFERENTLY NOW? (e.g. actually hide icons?)
             ResetPlate(state);
             return;
         }
 
-        // _view.ModifyGlobalScale(state, context);
-        // _view.ModifyNodes(state, context);
         state.IsModified = true;
         state.PendingChangesContext = context;
     }
