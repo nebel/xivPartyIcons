@@ -74,6 +74,21 @@ public sealed class NameplateUpdater : IDisposable
                 //     }
                 // };
                 Service.AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "NamePlate", OnPostRequestedUpdate);
+                // Service.NamePlateGui.OnNamePlateUpdate += (context, handlers) =>
+                // {
+                //     foreach (var handler in handlers) {
+                //         if (handler.NamePlateKind == NamePlateKind.PlayerCharacter) {
+                //             handler.FreeCompanyTagParts.TextWrap = (new SeString().Append(new UIForegroundPayload(43)), new SeString().Append(UIForegroundPayload.UIForegroundOff));
+                //             handler.FreeCompanyTagParts.Text = "Hello";
+                //             handler.TitleParts.TextWrap = (new SeString().Append(new UIForegroundPayload(16)), new SeString().Append(UIForegroundPayload.UIForegroundOff));
+                //             handler.TitleParts.Text = "Plate";
+                //             handler.IsPrefixTitle = true;
+                //             handler.DisplayTitle = true;
+                //             handler.NameParts.Text = "Anonymous Player";
+                //             handler.NameParts.TextWrap = (new SeString().Append(new UIForegroundPayload(37)), new SeString().Append(UIForegroundPayload.UIForegroundOff));
+                //         }
+                //     }
+                // };
                 break;
             case UpdaterState.Stopped:
                 if (_updaterState == UpdaterState.Ready) {
@@ -127,6 +142,13 @@ public sealed class NameplateUpdater : IDisposable
                 // Service.Log.Debug(Dump(context));
                 // handler.FreeCompanyTagParts.TextWrap = (new SeString().Append(new UIForegroundPayload(43)), new SeString().Append(UIForegroundPayload.UIForegroundOff));
                 // handler.FreeCompanyTagParts.Text = "Hello";
+
+                // handler.TitleParts.LeftQuote = new SeString().Append(new UIForegroundPayload(16)).Append("《");
+                // handler.TitleParts.RightQuote = new SeString().Append("》").Append(UIForegroundPayload.UIForegroundOff);
+                // handler.FreeCompanyTagParts.LeftQuote = new SeString().Append(new UIForegroundPayload(43)).Append(" (");
+                // handler.FreeCompanyTagParts.RightQuote = new SeString().Append(")").Append(UIForegroundPayload.UIForegroundOff);
+                // handler.DisplayTitle = true;
+
                 // handler.TitleParts.TextWrap = (new SeString().Append(new UIForegroundPayload(16)), new SeString().Append(UIForegroundPayload.UIForegroundOff));
                 // handler.TitleParts.Text = "Plate";
                 // handler.IsPrefixTitle = true;
@@ -134,7 +156,7 @@ public sealed class NameplateUpdater : IDisposable
                 // handler.NameParts.Text = "Anonymous Player";
                 // handler.NameParts.TextWrap = (new SeString().Append(new UIForegroundPayload(37)), new SeString().Append(UIForegroundPayload.UIForegroundOff));
 
-                Service.Log.Warning($"SNP: {handler.Name}");
+                // Service.Log.Warning($"SNP: {handler.Name}");
                 SetNamePlate(handler);
             }
         }
