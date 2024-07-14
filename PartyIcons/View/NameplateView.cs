@@ -3,6 +3,7 @@ using System;
 using System.Runtime.CompilerServices;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
+using FFXIVClientStructs.FFXIV.Component.GUI;
 using PartyIcons.Configuration;
 using PartyIcons.Entities;
 using PartyIcons.Runtime;
@@ -111,6 +112,11 @@ public sealed class NameplateView : IDisposable
         context.DisplayConfig = config;
 
         var mode = config.Mode;
+        // var rand = new Random();
+        if (context.PlayerCharacter.Name.TextValue.ToCharArray()[0] > 'K') {
+        // if (rand.Next(0, 2) == 0) {
+            // mode = NameplateMode.RoleLetters;
+        }
         context.Mode = mode;
 
         if (_configuration.HideLocalPlayerNameplate && context.IsLocalPlayer) {
@@ -328,11 +334,19 @@ public sealed class NameplateView : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static unsafe void SetIconState(PlateState state, bool exIcon, bool subIcon)
     {
-        state.ExIconNode->AtkResNode.ToggleVisibility(exIcon);
         state.UseExIcon = exIcon;
 
-        state.SubIconNode->AtkResNode.ToggleVisibility(subIcon);
         state.UseSubIcon = subIcon;
+
+        var nameFlags = state.NamePlateObject->NameText->AtkResNode.NodeFlags;
+        if (state.UseExIcon)
+            state.ExIconNode->AtkResNode.NodeFlags ^=
+                (state.ExIconNode->AtkResNode.NodeFlags ^ nameFlags) &
+                (NodeFlags.UseDepthBasedPriority | NodeFlags.Visible);
+        if (state.UseSubIcon)
+            state.SubIconNode->AtkResNode.NodeFlags ^=
+                (state.SubIconNode->AtkResNode.NodeFlags ^ nameFlags) &
+                (NodeFlags.UseDepthBasedPriority | NodeFlags.Visible);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

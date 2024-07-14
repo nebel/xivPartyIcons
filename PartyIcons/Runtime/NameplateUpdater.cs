@@ -4,9 +4,12 @@ using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.Gui.NamePlate;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
+using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
+using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.FFXIV.Client.UI;
+using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using PartyIcons.Configuration;
 using PartyIcons.Entities;
@@ -16,6 +19,7 @@ using System;
 using System.Collections;
 using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -67,6 +71,14 @@ public sealed class NameplateUpdater : IDisposable
                 break;
             case UpdaterState.Ready:
                 Service.NamePlateGui.OnNamePlateUpdate += OnNamePlateUpdate;
+                // Service.NamePlateGui.OnDataUpdate += (_, handlers) =>
+                // {
+                //     foreach (var handler in handlers) {
+                //         if (handler.NamePlateKind == NamePlateKind.PlayerCharacter) {
+                //             handler.VisibilityFlags &= ~1;
+                //         }
+                //     }
+                // };
                 // Service.NamePlateGui.OnDataUpdate += (context, handlers) =>
                 // {
                 //     foreach (var handler in handlers) {
@@ -139,30 +151,107 @@ public sealed class NameplateUpdater : IDisposable
         SetReadyState(UpdaterState.WaitingForDraw);
     }
 
+    private static string Dump(object? o, string name = "", int depth = 3, bool showStatics = false)
+    {
+        try {
+            var leafprefix = string.IsNullOrWhiteSpace(name) ? name : name + " = ";
+            if (null == o) return leafprefix + "null";
+            var t = o.GetType();
+            if (depth-- < 1 || t == typeof(string) || t.IsValueType)
+                return leafprefix + o;
+            var sb = new StringBuilder();
+            if (o is IEnumerable enumerable) {
+                name = (name ?? "").TrimEnd('[', ']') + '[';
+                var elements = enumerable.Cast<object>().Select(e => Dump(e, "", depth)).ToList();
+                var arrayInOneLine = elements.Count + "] = {" + string.Join(",", elements) + '}';
+                if (!arrayInOneLine.Contains(Environment.NewLine)) // Single line?
+                    return name + arrayInOneLine;
+                var i = 0;
+                foreach (var element in elements) {
+                    var lineheader = name + i++ + ']';
+                    sb.Append(lineheader).AppendLine(element.Replace(Environment.NewLine, Environment.NewLine + lineheader));
+                }
+                return sb.ToString();
+            }
+            foreach (var f in t.GetFields().Where(f => showStatics || !f.IsStatic))
+                sb.AppendLine(Dump(f.GetValue(o), name + '.' + f.Name, depth));
+            foreach (var p in t.GetProperties().Where(p => showStatics || p.GetMethod is not { IsStatic: true }))
+                sb.AppendLine(Dump(p.GetValue(o, null), name + '.' + p.Name, depth));
+            if (sb.Length == 0) return leafprefix + o;
+            return sb.ToString().TrimEnd();
+        }
+        catch {
+            return name + "???";
+        }
+    }
+
     private void OnNamePlateUpdate(INamePlateUpdateContext context, IReadOnlyList<INamePlateUpdateHandler> handlers)
     {
         foreach (var handler in handlers) {
+            // Service.Log.Info(Dump(handler));
             if (handler.NamePlateKind == NamePlateKind.PlayerCharacter) {
                 // Service.Log.Debug(Dump(handler.BaseInfo));
                 // Service.Log.Debug(Dump(context));
-                // handler.FreeCompanyTagParts.TextWrap = (new SeString().Append(new UIForegroundPayload(43)), new SeString().Append(UIForegroundPayload.UIForegroundOff));
-                // handler.FreeCompanyTagParts.Text = "Hello";
 
-                // handler.TitleParts.LeftQuote = new SeString().Append(new UIForegroundPayload(16)).Append("《");
+                // handler.TitleParts.LeftQuote = new SeString().Append(new UIForegroundPayload(522)).Append("《");
                 // handler.TitleParts.RightQuote = new SeString().Append("》").Append(UIForegroundPayload.UIForegroundOff);
-                // handler.FreeCompanyTagParts.LeftQuote = new SeString().Append(new UIForegroundPayload(43)).Append(" (");
+                // handler.FreeCompanyTagParts.LeftQuote = new SeString().Append(new UIForegroundPayload(707)).Append(" (");
                 // handler.FreeCompanyTagParts.RightQuote = new SeString().Append(")").Append(UIForegroundPayload.UIForegroundOff);
                 // handler.DisplayTitle = true;
 
-                // handler.TitleParts.TextWrap = (new SeString().Append(new UIForegroundPayload(16)), new SeString().Append(UIForegroundPayload.UIForegroundOff));
+                // handler.TitleParts.OuterWrap = (new SeString(new UIForegroundPayload(522)), new SeString(UIForegroundPayload.UIForegroundOff));
+                // handler.FreeCompanyTagParts.OuterWrap = (new SeString(new UIForegroundPayload(710)), new SeString(UIForegroundPayload.UIForegroundOff));
+                //
+                // handler.TitleParts.LeftQuote = "[";
+                // handler.TitleParts.RightQuote = "]";
+                // handler.FreeCompanyTagParts.LeftQuote = " (";
+                // handler.FreeCompanyTagParts.RightQuote = ")";
+                //
+                // handler.FreeCompanyTagParts.TextWrap = (new SeString(new UIForegroundPayload(43)), new SeString(UIForegroundPayload.UIForegroundOff));
+                // handler.FreeCompanyTagParts.Text = "Hello";
+                // handler.TitleParts.TextWrap = (new SeString(new UIForegroundPayload(16)), new SeString(UIForegroundPayload.UIForegroundOff));
                 // handler.TitleParts.Text = "Plate";
                 // handler.IsPrefixTitle = true;
                 // handler.DisplayTitle = true;
                 // handler.NameParts.Text = "Anonymous Player";
-                // handler.NameParts.TextWrap = (new SeString().Append(new UIForegroundPayload(37)), new SeString().Append(UIForegroundPayload.UIForegroundOff));
+                // handler.NameParts.TextWrap = (new SeString(new UIForegroundPayload(37)), new SeString(UIForegroundPayload.UIForegroundOff));
 
                 // Service.Log.Warning($"SNP: {handler.Name}");
+
+                unsafe {
+                    var ns = (AddonNamePlate.NamePlateIntArrayData*)context.NumberArrayDataEntryAddress;
+                    if (ns->DoFullUpdate) {
+                        Service.Log.Warning("!ns->DoFullUpdate!");
+                    }
+                }
+
+                if (handler.InfoView.IsDirty && handler.IsUpdating) {
+                    Service.Log.Error($"{handler.Name} IsDirty={handler.InfoView.IsDirty} IsUpdating={handler.IsUpdating}");
+                }
+                else if (handler.InfoView.IsDirty && !handler.IsUpdating) {
+                    Service.Log.Warning($"{handler.Name} IsDirty={handler.InfoView.IsDirty} IsUpdating={handler.IsUpdating}");
+                }
+                else if (!handler.InfoView.IsDirty && handler.IsUpdating) {
+                    // Service.Log.Info($"{handler.Name} IsDirty={handler.InfoView.IsDirty} IsUpdating={handler.IsUpdating}");
+                }
+
                 SetNamePlate(handler);
+            }
+            else {
+                var index = handler.NamePlateIndex;
+                var state = _stateCache[index];
+                unsafe {
+                    // Service.Log.Info($"  Reset0 {handler.Name} -> {state.ExIconNode->IsVisible()} / {state.SubIconNode->IsVisible()} (N{handler.NamePlateIndex})");
+                }
+                if (state.IsModified) {
+                    unsafe {
+                        // Service.Log.Info($"  Reset1 {handler.Name} -> {state.ExIconNode->IsVisible()} / {state.SubIconNode->IsVisible()} (N{handler.NamePlateIndex})");
+                    }
+                    ResetPlate(state, ResetType.NonPlayer);
+                    unsafe {
+                        // Service.Log.Info($"  Reset2 {handler.Name} -> {state.ExIconNode->IsVisible()} / {state.SubIconNode->IsVisible()} (N{handler.NamePlateIndex})");
+                    }
+                }
             }
         }
     }
@@ -204,11 +293,29 @@ public sealed class NameplateUpdater : IDisposable
             if (state.IsModified) {
                 var obj = state.NamePlateObject;
                 var kind = obj->NamePlateKind;
-                if (kind != UIObjectKind.PlayerCharacter || (obj->NameContainer->NodeFlags & NodeFlags.Visible) == 0 || isPvP) {
-                    ResetPlate(state);
+                if (kind != UIObjectKind.PlayerCharacter) {
+                    ResetPlate(state, ResetType.KindChanged);
+                    return;
+                }
+                if ((obj->RootComponentNode->NodeFlags & NodeFlags.Visible) == 0) {
+                    ResetPlate(state, ResetType.Hidden);
+                    return;
+                }
+                if (isPvP) {
+                    ResetPlate(state, ResetType.PvPDraw);
+                    return;
                 }
                 else {
                     // Copy UseDepthBasedPriority and Visible flags from NameTextNode
+                    // Service.Log.Debug($"Setting flags for {obj->NameText->NodeText}");
+                    // Service.Log.Info($"{obj->NameText->NodeText.ToString()}");
+                    // const bool log = true;
+                    // if (log && obj->NameText->NodeText.ToString().StartsWith("T.")) {
+                    //     Service.Log.Debug($"#   {Framework.Instance()->FrameCounter}");
+                    //     Service.Log.Debug($"  a {obj->NameText->AtkResNode.NodeFlags}");
+                    //     Service.Log.Debug($"  b {state.ExIconNode->AtkResNode.NodeFlags}");
+                    //     Service.Log.Debug($"  c {state.SubIconNode->AtkResNode.NodeFlags}");
+                    // }
                     var nameFlags = obj->NameText->AtkResNode.NodeFlags;
                     if (state.UseExIcon)
                         state.ExIconNode->AtkResNode.NodeFlags ^=
@@ -218,7 +325,12 @@ public sealed class NameplateUpdater : IDisposable
                         state.SubIconNode->AtkResNode.NodeFlags ^=
                             (state.SubIconNode->AtkResNode.NodeFlags ^ nameFlags) &
                             (NodeFlags.UseDepthBasedPriority | NodeFlags.Visible);
-
+                    // if (log && obj->NameText->NodeText.ToString().StartsWith("T.")) {
+                    //     Service.Log.Debug($"  | {Framework.Instance()->FrameCounter}");
+                    //     Service.Log.Debug($"  A {obj->NameText->AtkResNode.NodeFlags}");
+                    //     Service.Log.Debug($"  B {state.ExIconNode->AtkResNode.NodeFlags}");
+                    //     Service.Log.Debug($"  C {state.SubIconNode->AtkResNode.NodeFlags}");
+                    // }
                     if (state.NeedsCollisionFix) {
                         var colScale = obj->NameText->AtkResNode.ScaleX * 2 * obj->NameContainer->ScaleX *
                                        state.CollisionScale;
@@ -265,28 +377,13 @@ public sealed class NameplateUpdater : IDisposable
         var index = handler.NamePlateIndex;
         var state = _stateCache[index];
 
-        // unsafe {
-        //     Service.Log.Warning($"{handler.ArrayIndex} / {handler.NamePlateIndex}");
-        //     Service.Log.Info($"  {handler.GameObject}");
-        //     // Service.Log.Info($"  {handler.GameObject3D}");
-        //
-        //     var om = Service.ObjectTable.CreateObjectReference(
-        //         (nint)UIModule.Instance()->GetUI3DModule()->NamePlateObjectInfoPointers[
-        //             handler.ArrayIndex].Value->GameObject)!;
-        //     Service.Log.Info($"  {om}");
-        //
-        //     // Service.Log.Info($"NPI-OT: {handler.ArrayIndex} {{handler.GameObjectId}} {handler.Name} ({index}) {handler.GameObject as IPlayerCharacter}");
-        //     // Service.Log.Info($"NPI-3D: {handler.ArrayIndex} {handler.GameObjectId} {handler.Name} ({index}) {handler.GameObject3D as IPlayerCharacter}");
-        //     var ch = ResolveCharacter3D(handler.GameObjectId);
-        // }
-
         if (Service.ClientState.IsPvP) {
-            ResetPlate(state);
+            ResetPlate(state, ResetType.PvPSet);
             return;
         }
 
         if (handler.PlayerCharacter is not { } playerCharacter) {
-            ResetPlate(state);
+            ResetPlate(state, ResetType.NotPlayer);
             return;
         }
 
@@ -294,14 +391,14 @@ public sealed class NameplateUpdater : IDisposable
         _view.UpdateViewData(ref context);
 
         if (context.Mode == NameplateMode.Default) {
-            ResetPlate(state);
+            ResetPlate(state, ResetType.PlayerDefault);
             return;
         }
 
         _view.ModifyPlateData(context, handler);
 
         if (context.Mode == NameplateMode.Hide) {
-            ResetPlate(state);
+            ResetPlate(state, ResetType.PlayerHide);
             return;
         }
 
@@ -318,17 +415,42 @@ public sealed class NameplateUpdater : IDisposable
     private static void ResetAllPlates()
     {
         foreach (var state in _stateCache) {
-            ResetPlate(state);
+            ResetPlate(state, ResetType.ResetAll);
         }
     }
 
-    private static unsafe void ResetPlate(PlateState state)
+    enum ResetType
     {
+        KindChanged,
+        NonPlayer,
+        Hidden,
+        PvPSet,
+        PvPDraw,
+        NotPlayer,
+        PlayerDefault,
+        PlayerHide,
+        ResetAll,
+
+        Unknown
+    }
+
+    private static unsafe void ResetPlate(PlateState state, ResetType resetType = ResetType.Unknown)
+    {
+        // Service.Log.Info($"Resetting {state.NamePlateObject->NameText->NodeText} ({resetType})");
         if (state.IsGlobalScaleModified) {
             state.NamePlateObject->NameContainer->OriginX = 0;
             state.NamePlateObject->NameContainer->OriginY = 0;
             state.NamePlateObject->NameContainer->SetScale(1f, 1f);
         }
+
+        // if (resetType == ResetType.Hidden) {
+        //     Service.Log.Info($"  {state.ExIconNode->AtkResNode.NodeFlags} / {state.SubIconNode->AtkResNode.NodeFlags}");
+        // }
+        // state.ExIconNode->AtkResNode.NodeFlags &= ~NodeFlags.Visible;
+        // state.SubIconNode->AtkResNode.NodeFlags &= ~NodeFlags.Visible;
+        // if (resetType == ResetType.Hidden) {
+        //     Service.Log.Info($"  {state.ExIconNode->AtkResNode.NodeFlags} / {state.SubIconNode->AtkResNode.NodeFlags}");
+        // }
 
         state.ExIconNode->AtkResNode.ToggleVisibility(false);
         state.SubIconNode->AtkResNode.ToggleVisibility(false);
