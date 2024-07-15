@@ -112,11 +112,11 @@ public sealed class NameplateView : IDisposable
         context.DisplayConfig = config;
 
         var mode = config.Mode;
-        // var rand = new Random();
-        if (context.PlayerCharacter.Name.TextValue.ToCharArray()[0] > 'K') {
-        // if (rand.Next(0, 2) == 0) {
-            // mode = NameplateMode.RoleLetters;
-        }
+        // // var rand = new Random();
+        // if (context.PlayerCharacter.Name.TextValue.ToCharArray()[0] > 'K') {
+        // // if (rand.Next(0, 2) == 0) {
+        //     // mode = NameplateMode.RoleLetters;
+        // }
         context.Mode = mode;
 
         if (_configuration.HideLocalPlayerNameplate && context.IsLocalPlayer) {
@@ -292,11 +292,11 @@ public sealed class NameplateView : IDisposable
     public void DoPendingChanges(PlateState state)
     {
         var context = state.PendingChangesContext;
-        if (context == null) return;
-
-        state.PendingChangesContext = null;
-        ModifyNodes(state, context);
-        ModifyGlobalScale(state, context);
+        if (context != null) {
+            state.PendingChangesContext = null;
+            ModifyNodes(state, context);
+            ModifyGlobalScale(state, context);
+        }
     }
 
     private void ModifyNodes(PlateState state, UpdateContext context)
@@ -334,19 +334,27 @@ public sealed class NameplateView : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static unsafe void SetIconState(PlateState state, bool exIcon, bool subIcon)
     {
-        state.UseExIcon = exIcon;
-
-        state.UseSubIcon = subIcon;
-
         var nameFlags = state.NamePlateObject->NameText->AtkResNode.NodeFlags;
-        if (state.UseExIcon)
+
+        state.UseExIcon = exIcon;
+        if (exIcon) {
             state.ExIconNode->AtkResNode.NodeFlags ^=
                 (state.ExIconNode->AtkResNode.NodeFlags ^ nameFlags) &
                 (NodeFlags.UseDepthBasedPriority | NodeFlags.Visible);
-        if (state.UseSubIcon)
+        }
+        else {
+            state.ExIconNode->AtkResNode.ToggleVisibility(false);
+        }
+
+        state.UseSubIcon = subIcon;
+        if (subIcon) {
             state.SubIconNode->AtkResNode.NodeFlags ^=
                 (state.SubIconNode->AtkResNode.NodeFlags ^ nameFlags) &
                 (NodeFlags.UseDepthBasedPriority | NodeFlags.Visible);
+        }
+        else {
+            state.SubIconNode->AtkResNode.ToggleVisibility(false);
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
