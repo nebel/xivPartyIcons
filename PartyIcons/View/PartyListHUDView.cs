@@ -57,10 +57,10 @@ public sealed unsafe class PartyListHUDView : IDisposable
         var memberStruct = addonPartyList->PartyMembers.GetPointer(index);
 
         var nameNode = memberStruct->Name;
-        nameNode->AtkResNode.SetPositionShort(29, 0);
+        nameNode->SetPositionShort(29, 0);
 
-        var numberNode = nameNode->AtkResNode.PrevSiblingNode->GetAsAtkTextNode();
-        numberNode->AtkResNode.SetPositionShort(6, 0);
+        var numberNode = nameNode->PrevSiblingNode->GetAsAtkTextNode();
+        numberNode->SetPositionShort(6, 0);
 
         var seString = _stylesheet.GetRolePlate(roleId);
         var buf = seString.Encode();
@@ -76,10 +76,10 @@ public sealed unsafe class PartyListHUDView : IDisposable
         var memberStruct = addonPartyList->PartyMembers.GetPointer(index);
 
         var nameNode = memberStruct->Name;
-        nameNode->AtkResNode.SetPositionShort(19, 0);
+        nameNode->SetPositionShort(19, 0);
 
-        var numberNode = nameNode->AtkResNode.PrevSiblingNode->GetAsAtkTextNode();
-        numberNode->AtkResNode.SetPositionShort(0, 0);
+        var numberNode = nameNode->PrevSiblingNode->GetAsAtkTextNode();
+        numberNode->SetPositionShort(0, 0);
         numberNode->SetText(PlayerStylesheet.BoxedCharacterString((index + 1).ToString()));
     }
 }

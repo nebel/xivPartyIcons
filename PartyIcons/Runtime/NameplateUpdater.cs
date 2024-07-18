@@ -308,19 +308,19 @@ public sealed class NameplateUpdater : IDisposable
                 }
 
                 // Copy UseDepthBasedPriority and Visible flags from NameTextNode
-                var nameFlags = obj->NameText->AtkResNode.NodeFlags;
+                var nameFlags = obj->NameText->NodeFlags;
                 if (state.UseExIcon)
-                    state.ExIconNode->AtkResNode.NodeFlags ^=
-                        (state.ExIconNode->AtkResNode.NodeFlags ^ nameFlags) &
+                    state.ExIconNode->NodeFlags ^=
+                        (state.ExIconNode->NodeFlags ^ nameFlags) &
                         (NodeFlags.UseDepthBasedPriority | NodeFlags.Visible);
                 if (state.UseSubIcon)
-                    state.SubIconNode->AtkResNode.NodeFlags ^=
-                        (state.SubIconNode->AtkResNode.NodeFlags ^ nameFlags) &
+                    state.SubIconNode->NodeFlags ^=
+                        (state.SubIconNode->NodeFlags ^ nameFlags) &
                         (NodeFlags.UseDepthBasedPriority | NodeFlags.Visible);
                 if (state.NeedsCollisionFix) {
-                    var colScale = obj->NameText->AtkResNode.ScaleX * 2 * obj->NameContainer->ScaleX *
+                    var colScale = obj->NameText->ScaleX * 2 * obj->NameContainer->ScaleX *
                                    state.CollisionScale;
-                    var colRes = &obj->NameplateCollision->AtkResNode;
+                    var colRes = obj->NameplateCollision;
                     colRes->OriginX = colRes->Width / 2f;
                     colRes->OriginY = colRes->Height;
                     colRes->SetScale(colScale, colScale);
@@ -330,8 +330,8 @@ public sealed class NameplateUpdater : IDisposable
 
             // Debug icon padding by changing scale each frame
             // var scale = Service.Framework.LastUpdateUTC.Millisecond % 3000 / 500f * 4 + 1;
-            // state.ExIconNode->AtkResNode.SetScale(scale, scale);
-            // state.SubIconNode->AtkResNode.SetScale(scale, scale);
+            // state.ExIconNode->SetScale(scale, scale);
+            // state.SubIconNode->SetScale(scale, scale);
         }
     }
 
@@ -415,14 +415,14 @@ public sealed class NameplateUpdater : IDisposable
         //     Service.Log.Info($"  {state.ExIconNode->AtkResNode.NodeFlags} / {state.SubIconNode->AtkResNode.NodeFlags}");
         // }
 
-        state.ExIconNode->AtkResNode.ToggleVisibility(false);
-        state.SubIconNode->AtkResNode.ToggleVisibility(false);
+        state.ExIconNode->ToggleVisibility(false);
+        state.SubIconNode->ToggleVisibility(false);
 
-        state.NamePlateObject->NameText->AtkResNode.SetScale(0.5f, 0.5f);
+        state.NamePlateObject->NameText->SetScale(0.5f, 0.5f);
 
-        state.NamePlateObject->NameplateCollision->AtkResNode.OriginX = 0;
-        state.NamePlateObject->NameplateCollision->AtkResNode.OriginY = 0;
-        state.NamePlateObject->NameplateCollision->AtkResNode.SetScale(1f, 1f);
+        state.NamePlateObject->NameplateCollision->OriginX = 0;
+        state.NamePlateObject->NameplateCollision->OriginY = 0;
+        state.NamePlateObject->NameplateCollision->SetScale(1f, 1f);
 
         state.IsModified = false;
         state.PendingChangesContext = null;
@@ -496,10 +496,10 @@ public sealed class NameplateUpdater : IDisposable
             throw new Exception($"Failed to create image node {nodeId}");
         }
 
-        imageNode->AtkResNode.NodeFlags = NodeFlags.AnchorTop | NodeFlags.AnchorLeft | NodeFlags.Enabled |
+        imageNode->NodeFlags = NodeFlags.AnchorTop | NodeFlags.AnchorLeft | NodeFlags.Enabled |
                                           NodeFlags.EmitsEvents | NodeFlags.UseDepthBasedPriority;
-        imageNode->AtkResNode.SetWidth(32);
-        imageNode->AtkResNode.SetHeight(32);
+        imageNode->SetWidth(32);
+        imageNode->SetHeight(32);
 
         imageNode->WrapMode = 1;
         imageNode->Flags = (byte)ImageNodeFlags.AutoFit;

@@ -334,33 +334,33 @@ public sealed class NameplateView : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static unsafe void SetIconState(PlateState state, bool exIcon, bool subIcon)
     {
-        var nameFlags = state.NamePlateObject->NameText->AtkResNode.NodeFlags;
+        var nameFlags = state.NamePlateObject->NameText->NodeFlags;
 
         state.UseExIcon = exIcon;
         if (exIcon) {
-            state.ExIconNode->AtkResNode.NodeFlags ^=
-                (state.ExIconNode->AtkResNode.NodeFlags ^ nameFlags) &
+            state.ExIconNode->NodeFlags ^=
+                (state.ExIconNode->NodeFlags ^ nameFlags) &
                 (NodeFlags.UseDepthBasedPriority | NodeFlags.Visible);
         }
         else {
-            state.ExIconNode->AtkResNode.ToggleVisibility(false);
+            state.ExIconNode->ToggleVisibility(false);
         }
 
         state.UseSubIcon = subIcon;
         if (subIcon) {
-            state.SubIconNode->AtkResNode.NodeFlags ^=
-                (state.SubIconNode->AtkResNode.NodeFlags ^ nameFlags) &
+            state.SubIconNode->NodeFlags ^=
+                (state.SubIconNode->NodeFlags ^ nameFlags) &
                 (NodeFlags.UseDepthBasedPriority | NodeFlags.Visible);
         }
         else {
-            state.SubIconNode->AtkResNode.ToggleVisibility(false);
+            state.SubIconNode->ToggleVisibility(false);
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static unsafe void SetNameScale(PlateState state, float scale)
     {
-        state.NamePlateObject->NameText->AtkResNode.SetScale(scale, scale);
+        state.NamePlateObject->NameText->SetScale(scale, scale);
     }
 
     private static unsafe void PrepareNodeInlineSmall(PlateState state, UpdateContext context)
@@ -371,23 +371,23 @@ public sealed class NameplateView : IDisposable
         var iconPaddingRight = iconGroup.Padding.Right;
 
         var exNode = state.ExIconNode;
-        exNode->AtkResNode.OriginX = ExIconWidth - iconPaddingRight;
-        exNode->AtkResNode.OriginY = ExIconHeightHalf;
+        exNode->OriginX = ExIconWidth - iconPaddingRight;
+        exNode->OriginY = ExIconHeightHalf;
 
         var scale = iconGroup.Scale * iconConfig.Scale;
-        exNode->AtkResNode.SetScale(scale, scale);
+        exNode->SetScale(scale, scale);
 
         var iconNode = state.NamePlateObject->NameIcon;
         if (context.ShowSubIcon) {
-            exNode->AtkResNode.SetPositionFloat(
-                iconNode->AtkResNode.X - 28 + iconPaddingRight + iconConfig.OffsetX,
-                iconNode->AtkResNode.Y + iconConfig.OffsetY
+            exNode->SetPositionFloat(
+                iconNode->X - 28 + iconPaddingRight + iconConfig.OffsetX,
+                iconNode->Y + iconConfig.OffsetY
             );
         }
         else {
             exNode->AtkResNode.SetPositionFloat(
-                iconNode->AtkResNode.X - 6 + iconPaddingRight + iconConfig.OffsetX,
-                iconNode->AtkResNode.Y + iconConfig.OffsetY
+                iconNode->X - 6 + iconPaddingRight + iconConfig.OffsetX,
+                iconNode->Y + iconConfig.OffsetY
             );
         }
 
@@ -405,12 +405,12 @@ public sealed class NameplateView : IDisposable
             var subScale = subIconGroup.Scale * subIconScale * subIconConfig.Scale;
             var subIconPaddingRight = subIconGroup.Padding.Right;
 
-            subNode->AtkResNode.OriginX = ExIconWidth - subIconPaddingRight;
-            subNode->AtkResNode.OriginY = ExIconHeight / 2f;
-            subNode->AtkResNode.SetScale(subScale, subScale);
-            subNode->AtkResNode.SetPositionFloat(
-                iconNode->AtkResNode.X + subIconPaddingRight + subXAdjust + subIconConfig.OffsetX,
-                iconNode->AtkResNode.Y + subYAdjust + subIconConfig.OffsetY
+            subNode->OriginX = ExIconWidth - subIconPaddingRight;
+            subNode->OriginY = ExIconHeight / 2f;
+            subNode->SetScale(subScale, subScale);
+            subNode->SetPositionFloat(
+                iconNode->X + subIconPaddingRight + subXAdjust + subIconConfig.OffsetX,
+                iconNode->Y + subYAdjust + subIconConfig.OffsetY
             );
             subNode->LoadIconTexture(context.StatusIconId, 0);
         }
@@ -428,14 +428,14 @@ public sealed class NameplateView : IDisposable
         var iconPaddingRight = iconGroup.Padding.Right;
 
         var exNode = state.ExIconNode;
-        exNode->AtkResNode.OriginX = ExIconWidth - iconPaddingRight;
-        exNode->AtkResNode.OriginY = ExIconHeightHalf;
+        exNode->OriginX = ExIconWidth - iconPaddingRight;
+        exNode->OriginY = ExIconHeightHalf;
 
         var scale = iconGroup.Scale * iconScale * iconConfig.Scale;
-        exNode->AtkResNode.SetScale(scale, scale);
+        exNode->SetScale(scale, scale);
 
         var iconTextWidthAdjust = TextIconSize - Math.Max(0, state.NamePlateObject->TextW / TextIconSize - 1) * TextIconSize;
-        exNode->AtkResNode.SetPositionFloat(
+        exNode->SetPositionFloat(
             ResNodeCenter - ExIconWidth + iconPaddingRight + iconTextWidthAdjust + xAdjust + iconConfig.OffsetX,
             ResNodeBottom - ExIconHeight + yAdjust + iconConfig.OffsetY);
 
@@ -460,10 +460,10 @@ public sealed class NameplateView : IDisposable
                 textW += TextIconSize;
             }
 
-            subNode->AtkResNode.OriginX = 0 + subIconPaddingLeft;
-            subNode->AtkResNode.OriginY = ExIconHeight - subIconPaddingBottom;
-            subNode->AtkResNode.SetScale(subScale, subScale);
-            subNode->AtkResNode.SetPositionFloat(
+            subNode->OriginX = 0 + subIconPaddingLeft;
+            subNode->OriginY = ExIconHeight - subIconPaddingBottom;
+            subNode->SetScale(subScale, subScale);
+            subNode->SetPositionFloat(
                 ResNodeCenter + textW - subIconPaddingLeft + subXAdjust + subIconConfig.OffsetX,
                 ResNodeBottom - ExIconHeight + subIconPaddingBottom + subYAdjust + subIconConfig.OffsetY
             );
@@ -486,12 +486,12 @@ public sealed class NameplateView : IDisposable
         var iconPaddingBottom = iconGroup.Padding.Bottom;
 
         var exNode = state.ExIconNode;
-        exNode->AtkResNode.OriginX = ExIconWidthHalf;
-        exNode->AtkResNode.OriginY = ExIconHeight - iconPaddingBottom;
+        exNode->OriginX = ExIconWidthHalf;
+        exNode->OriginY = ExIconHeight - iconPaddingBottom;
 
         var scale = iconGroup.Scale * iconScale2;
-        exNode->AtkResNode.SetScale(scale, scale);
-        exNode->AtkResNode.SetPositionFloat(
+        exNode->SetScale(scale, scale);
+        exNode->SetPositionFloat(
             ResNodeCenter - ExIconWidthHalf + iconConfig.OffsetX,
             ResNodeBottom - ExIconHeight + iconPaddingBottom + yAdjust + iconConfig.OffsetY
         );
@@ -511,10 +511,10 @@ public sealed class NameplateView : IDisposable
             var subIconPaddingLeft = subIconGroup.Padding.Left;
             var subIconPaddingBottom = subIconGroup.Padding.Bottom;
 
-            subNode->AtkResNode.OriginX = 0 + subIconPaddingLeft;
-            subNode->AtkResNode.OriginY = ExIconHeight - subIconPaddingBottom;
-            subNode->AtkResNode.SetScale(subScale, subScale);
-            subNode->AtkResNode.SetPositionFloat(
+            subNode->OriginX = 0 + subIconPaddingLeft;
+            subNode->OriginY = ExIconHeight - subIconPaddingBottom;
+            subNode->SetScale(subScale, subScale);
+            subNode->SetPositionFloat(
                 ResNodeCenter - subIconPaddingLeft + subXAdjust + subIconConfig.OffsetX,
                 ResNodeBottom - ExIconHeight + subIconPaddingBottom + subYAdjust + subIconConfig.OffsetY
             );

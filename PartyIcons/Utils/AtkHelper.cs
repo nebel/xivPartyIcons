@@ -81,12 +81,12 @@ public static class AtkHelper
 
     public static unsafe void UnlinkAndFreeImageNodeIndirect(AtkImageNode* node, AtkUldManager* uldManager)
     {
-        if ((IntPtr)node->AtkResNode.ParentNode->NextSiblingNode == (IntPtr)node)
-            node->AtkResNode.ParentNode->NextSiblingNode = node->AtkResNode.NextSiblingNode;
-        if ((IntPtr)node->AtkResNode.PrevSiblingNode != IntPtr.Zero)
-            node->AtkResNode.PrevSiblingNode->NextSiblingNode = node->AtkResNode.NextSiblingNode;
-        if ((IntPtr)node->AtkResNode.NextSiblingNode != IntPtr.Zero)
-            node->AtkResNode.NextSiblingNode->PrevSiblingNode = node->AtkResNode.PrevSiblingNode;
+        if ((IntPtr)node->ParentNode->NextSiblingNode == (IntPtr)node)
+            node->ParentNode->NextSiblingNode = node->NextSiblingNode;
+        if ((IntPtr)node->PrevSiblingNode != IntPtr.Zero)
+            node->PrevSiblingNode->NextSiblingNode = node->NextSiblingNode;
+        if ((IntPtr)node->NextSiblingNode != IntPtr.Zero)
+            node->NextSiblingNode->PrevSiblingNode = node->PrevSiblingNode;
         uldManager->UpdateDrawNodeList();
         FreePartsList(node->PartsList);
         FreeImageNode(node);
@@ -98,10 +98,10 @@ public static class AtkHelper
         imageNode = IMemorySpace.GetUISpace()->Create<AtkImageNode>();
         if ((IntPtr)imageNode == IntPtr.Zero)
             return false;
-        imageNode->AtkResNode.Type = NodeType.Image;
-        imageNode->AtkResNode.NodeId = id;
-        imageNode->AtkResNode.NodeFlags = resNodeFlags;
-        imageNode->AtkResNode.DrawFlags = resNodeDrawFlags;
+        imageNode->Type = NodeType.Image;
+        imageNode->NodeId = id;
+        imageNode->NodeFlags = resNodeFlags;
+        imageNode->DrawFlags = resNodeDrawFlags;
         imageNode->WrapMode = wrapMode;
         imageNode->Flags = imageNodeFlags;
         return true;
@@ -171,7 +171,7 @@ public static class AtkHelper
 
     private static unsafe void FreeImageNode(AtkImageNode* node)
     {
-        node->AtkResNode.Destroy(false);
+        node->Destroy(false);
         IMemorySpace.Free(node, (ulong)sizeof(AtkImageNode));
     }
 
