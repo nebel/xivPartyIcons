@@ -187,7 +187,33 @@ public sealed class NameplateUpdater : IDisposable
 
     private void OnNamePlateUpdate(INamePlateUpdateContext context, IReadOnlyList<INamePlateUpdateHandler> handlers)
     {
+        if (context.IsFullUpdate) {
+            Service.Log.Info("!context->IsFullUpdate!");
+        }
+
+        unsafe {
+            var ns = (AddonNamePlate.NamePlateIntArrayData*)context.NumberArrayDataEntryAddress;
+            if (ns->DoFullUpdate) {
+                Service.Log.Warning("!ns->DoFullUpdate!");
+            }
+        }
+
         foreach (var handler in handlers) {
+            if (!handler.IsUpdating && handler.UpdateFlags != 0) {
+                Service.Log.Error($"(!) {handler.Name} IsDirty={handler.InfoView.IsDirty} IsUpdating={handler.IsUpdating} ({handler.UpdateFlags})");
+            }
+
+
+            if (handler.InfoView.IsDirty && handler.IsUpdating) {
+                Service.Log.Info($"(a) {handler.Name} IsDirty={handler.InfoView.IsDirty} IsUpdating={handler.IsUpdating} ({handler.UpdateFlags})");
+            }
+            else if (handler.InfoView.IsDirty && !handler.IsUpdating) {
+                Service.Log.Error($"(b) {handler.Name} IsDirty={handler.InfoView.IsDirty} IsUpdating={handler.IsUpdating} ({handler.UpdateFlags})");
+            }
+            else if (!handler.InfoView.IsDirty && handler.IsUpdating) {
+                // Service.Log.Info($"(c) {handler.Name} IsDirty={handler.InfoView.IsDirty} IsUpdating={handler.IsUpdating} ({handler.UpdateFlags})");
+            }
+
             // Service.Log.Info(Dump(handler));
             if (handler.NamePlateKind == NamePlateKind.PlayerCharacter) {
                 // Service.Log.Debug(Dump(handler.BaseInfo));
@@ -218,39 +244,14 @@ public sealed class NameplateUpdater : IDisposable
 
                 // Service.Log.Warning($"SNP: {handler.Name}");
 
-                unsafe {
-                    var ns = (AddonNamePlate.NamePlateIntArrayData*)context.NumberArrayDataEntryAddress;
-                    if (ns->DoFullUpdate) {
-                        Service.Log.Warning("!ns->DoFullUpdate!");
-                    }
-                }
-
-                if (handler.InfoView.IsDirty && handler.IsUpdating) {
-                    Service.Log.Error($"{handler.Name} IsDirty={handler.InfoView.IsDirty} IsUpdating={handler.IsUpdating}");
-                }
-                else if (handler.InfoView.IsDirty && !handler.IsUpdating) {
-                    Service.Log.Warning($"{handler.Name} IsDirty={handler.InfoView.IsDirty} IsUpdating={handler.IsUpdating}");
-                }
-                else if (!handler.InfoView.IsDirty && handler.IsUpdating) {
-                    // Service.Log.Info($"{handler.Name} IsDirty={handler.InfoView.IsDirty} IsUpdating={handler.IsUpdating}");
-                }
 
                 SetNamePlate(handler);
             }
             else {
                 var index = handler.NamePlateIndex;
                 var state = _stateCache[index];
-                unsafe {
-                    // Service.Log.Info($"  Reset0 {handler.Name} -> {state.ExIconNode->IsVisible()} / {state.SubIconNode->IsVisible()} (N{handler.NamePlateIndex})");
-                }
                 if (state.IsModified) {
-                    unsafe {
-                        // Service.Log.Info($"  Reset1 {handler.Name} -> {state.ExIconNode->IsVisible()} / {state.SubIconNode->IsVisible()} (N{handler.NamePlateIndex})");
-                    }
                     ResetPlate(state, ResetType.NonPlayer);
-                    unsafe {
-                        // Service.Log.Info($"  Reset2 {handler.Name} -> {state.ExIconNode->IsVisible()} / {state.SubIconNode->IsVisible()} (N{handler.NamePlateIndex})");
-                    }
                 }
             }
         }
@@ -305,41 +306,25 @@ public sealed class NameplateUpdater : IDisposable
                     ResetPlate(state, ResetType.PvPDraw);
                     return;
                 }
-                else {
-                    // Copy UseDepthBasedPriority and Visible flags from NameTextNode
-                    // Service.Log.Debug($"Setting flags for {obj->NameText->NodeText}");
-                    // Service.Log.Info($"{obj->NameText->NodeText.ToString()}");
-                    // const bool log = true;
-                    // if (log && obj->NameText->NodeText.ToString().StartsWith("T.")) {
-                    //     Service.Log.Debug($"#   {Framework.Instance()->FrameCounter}");
-                    //     Service.Log.Debug($"  a {obj->NameText->AtkResNode.NodeFlags}");
-                    //     Service.Log.Debug($"  b {state.ExIconNode->AtkResNode.NodeFlags}");
-                    //     Service.Log.Debug($"  c {state.SubIconNode->AtkResNode.NodeFlags}");
-                    // }
-                    var nameFlags = obj->NameText->AtkResNode.NodeFlags;
-                    if (state.UseExIcon)
-                        state.ExIconNode->AtkResNode.NodeFlags ^=
-                            (state.ExIconNode->AtkResNode.NodeFlags ^ nameFlags) &
-                            (NodeFlags.UseDepthBasedPriority | NodeFlags.Visible);
-                    if (state.UseSubIcon)
-                        state.SubIconNode->AtkResNode.NodeFlags ^=
-                            (state.SubIconNode->AtkResNode.NodeFlags ^ nameFlags) &
-                            (NodeFlags.UseDepthBasedPriority | NodeFlags.Visible);
-                    // if (log && obj->NameText->NodeText.ToString().StartsWith("T.")) {
-                    //     Service.Log.Debug($"  | {Framework.Instance()->FrameCounter}");
-                    //     Service.Log.Debug($"  A {obj->NameText->AtkResNode.NodeFlags}");
-                    //     Service.Log.Debug($"  B {state.ExIconNode->AtkResNode.NodeFlags}");
-                    //     Service.Log.Debug($"  C {state.SubIconNode->AtkResNode.NodeFlags}");
-                    // }
-                    if (state.NeedsCollisionFix) {
-                        var colScale = obj->NameText->AtkResNode.ScaleX * 2 * obj->NameContainer->ScaleX *
-                                       state.CollisionScale;
-                        var colRes = &obj->NameplateCollision->AtkResNode;
-                        colRes->OriginX = colRes->Width / 2f;
-                        colRes->OriginY = colRes->Height;
-                        colRes->SetScale(colScale, colScale);
-                        state.NeedsCollisionFix = false;
-                    }
+
+                // Copy UseDepthBasedPriority and Visible flags from NameTextNode
+                var nameFlags = obj->NameText->AtkResNode.NodeFlags;
+                if (state.UseExIcon)
+                    state.ExIconNode->AtkResNode.NodeFlags ^=
+                        (state.ExIconNode->AtkResNode.NodeFlags ^ nameFlags) &
+                        (NodeFlags.UseDepthBasedPriority | NodeFlags.Visible);
+                if (state.UseSubIcon)
+                    state.SubIconNode->AtkResNode.NodeFlags ^=
+                        (state.SubIconNode->AtkResNode.NodeFlags ^ nameFlags) &
+                        (NodeFlags.UseDepthBasedPriority | NodeFlags.Visible);
+                if (state.NeedsCollisionFix) {
+                    var colScale = obj->NameText->AtkResNode.ScaleX * 2 * obj->NameContainer->ScaleX *
+                                   state.CollisionScale;
+                    var colRes = &obj->NameplateCollision->AtkResNode;
+                    colRes->OriginX = colRes->Width / 2f;
+                    colRes->OriginY = colRes->Height;
+                    colRes->SetScale(colScale, colScale);
+                    state.NeedsCollisionFix = false;
                 }
             }
 
@@ -349,28 +334,6 @@ public sealed class NameplateUpdater : IDisposable
             // state.SubIconNode->AtkResNode.SetScale(scale, scale);
         }
     }
-
-    // [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    // private static unsafe Character* ResolveCharacter3D(GameObjectId objectId)
-    // {
-    //     if (objectId.Type != 0) {
-    //         return null;
-    //     }
-    //
-    //     var ui3DModule = UIModule.Instance()->GetUI3DModule();
-    //     for (var i = 0; i < ui3DModule->NamePlateObjectInfoCount; i++) {
-    //         var objectInfo = ui3DModule->NamePlateObjectInfoPointers[i].Value;
-    //         var obj = objectInfo->GameObject;
-    //         // Service.Log.Info($" 3d: {i} {obj->EntityId} {obj->NameString} 0x{(nint)obj:X} (UI=0x{(nint)ui3DModule:X})");
-    //         if (obj->GetGameObjectId() == objectId && obj->ObjectKind == ObjectKind.Pc) {
-    //             var character = (Character*)obj;
-    //             Service.Log.Info($" 3D: {i} {obj->EntityId} {obj->NameString} 0x{(nint)obj:X} (UI=0x{(nint)ui3DModule:X})");
-    //             return character->CharacterData.ClassJob is < 1 or > JobConstants.MaxJob ? null : character;
-    //         }
-    //     }
-    //
-    //     return null;
-    // }
 
     private void SetNamePlate(INamePlateUpdateHandler handler)
     {
