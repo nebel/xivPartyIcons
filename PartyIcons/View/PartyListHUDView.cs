@@ -1,5 +1,4 @@
-﻿using FFXIVClientStructs.FFXIV.Client.System.String;
-using System;
+﻿using System;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.Interop;
@@ -11,14 +10,10 @@ namespace PartyIcons.View;
 public sealed unsafe class PartyListHUDView : IDisposable
 {
     private readonly PlayerStylesheet _stylesheet;
-    private readonly Utf8String*[] _strings = new Utf8String*[8];
 
     public PartyListHUDView(PlayerStylesheet stylesheet)
     {
         _stylesheet = stylesheet;
-        for (var i = 0; i < 8; i++) {
-            _strings[i] = Utf8String.CreateEmpty();
-        }
     }
 
     public void Dispose()
@@ -68,10 +63,12 @@ public sealed unsafe class PartyListHUDView : IDisposable
         numberNode->AtkResNode.SetPositionShort(6, 0);
 
         var seString = _stylesheet.GetRolePlate(roleId);
+        var buf = seString.Encode();
 
-        var buf = _strings[index];
-        buf->SetString(seString.EncodeWithNullTerminator());
-        numberNode->SetText(buf->StringPtr);
+        fixed (byte* ptr = buf)
+        {
+            numberNode->SetText(ptr);
+        }
     }
 
     public void RevertPartyMemberRoleByIndex(AddonPartyList* addonPartyList, int index)
@@ -83,23 +80,6 @@ public sealed unsafe class PartyListHUDView : IDisposable
 
         var numberNode = nameNode->AtkResNode.PrevSiblingNode->GetAsAtkTextNode();
         numberNode->AtkResNode.SetPositionShort(0, 0);
-
-        var buf = _strings[index];
-        buf->SetString(PlayerStylesheet.BoxedCharacterString((index + 1).ToString()));
-        numberNode->SetText(buf->StringPtr);
-    }
-
-    public void FreeBufferByIndex(AddonPartyList* addonPartyList, int index)
-    {
-        var memberStruct = addonPartyList->PartyMembers.GetPointer(index);
-
-        // Ensure original pointer is self-referential?!
-        var nameNode = memberStruct->Name;
-        nameNode->SetText(nameNode->NodeText.StringPtr);
-
-        var buf = _strings[index];
-        if (buf != null)
-            buf->Dtor();
-        _strings[index] = null;
+        numberNode->SetText(PlayerStylesheet.BoxedCharacterString((index + 1).ToString()));
     }
 }

@@ -51,7 +51,6 @@ public sealed class PartyListHUDUpdater : IDisposable
         _partyStateTracker.OnPartyStateChange -= OnPartyStateChange;
 
         RevertHud();
-        DestroyHud();
     }
 
     public void EnableUpdates(bool value)
@@ -178,16 +177,6 @@ public sealed class PartyListHUDUpdater : IDisposable
         }
 
         _hasModifiedNodes = false;
-    }
-
-    private unsafe void DestroyHud()
-    {
-        var addonPartyList = (AddonPartyList*)Service.GameGui.GetAddonByName("_PartyList");
-        if (addonPartyList == null) return;
-
-        for (var i = 0; i < 8; i++) {
-            _view.FreeBufferByIndex(addonPartyList, i);
-        }
     }
 
     private static unsafe uint GetWorldId(HudPartyMember* hudPartyMember)
