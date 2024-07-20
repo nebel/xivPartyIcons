@@ -30,7 +30,6 @@ public unsafe class UpdateContext
         PlayerCharacter = playerCharacter;
         IsLocalPlayer = entityId == Service.ClientState.LocalPlayer?.EntityId;
         IsPartyMember = IsLocalPlayer || GroupManager.Instance()->MainGroup.IsEntityIdInParty(entityId);
-        Service.Log.Info($"U:: 0x{entityId:X} {playerCharacter.Name} pm={IsPartyMember}"); // TODO: temp
         Job = (Job)((Character*)playerCharacter.Address)->CharacterData.ClassJob;
         Status = (Status)((Character*)playerCharacter.Address)->CharacterData.OnlineStatus;
     }

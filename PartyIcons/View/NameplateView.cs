@@ -112,11 +112,6 @@ public sealed class NameplateView : IDisposable
         context.DisplayConfig = config;
 
         var mode = config.Mode;
-        // // var rand = new Random();
-        // if (context.PlayerCharacter.Name.TextValue.ToCharArray()[0] > 'K') {
-        // // if (rand.Next(0, 2) == 0) {
-        //     // mode = NameplateMode.RoleLetters;
-        // }
         context.Mode = mode;
 
         if (_configuration.HideLocalPlayerNameplate && context.IsLocalPlayer) {
