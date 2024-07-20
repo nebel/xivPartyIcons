@@ -39,9 +39,6 @@ public sealed class NameplateSettings
                 continue;
             }
 
-            // using var memoryStream = new MemoryStream();
-            // fileStream.CopyTo(memoryStream);
-
             _nameplateExamples[kv.Key] = Service.TextureProvider.CreateFromImageAsync(fileStream).Result;
         }
     }

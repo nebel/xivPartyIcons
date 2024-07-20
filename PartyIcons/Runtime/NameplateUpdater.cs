@@ -1,25 +1,14 @@
 ﻿using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
-using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.Gui.NamePlate;
-using Dalamud.Game.Text.SeStringHandling;
-using Dalamud.Game.Text.SeStringHandling.Payloads;
-using Dalamud.Utility;
-using FFXIVClientStructs.FFXIV.Client.Game.Character;
-using FFXIVClientStructs.FFXIV.Client.Game.Object;
-using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.FFXIV.Client.UI;
-using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using PartyIcons.Configuration;
-using PartyIcons.Entities;
 using PartyIcons.Utils;
 using PartyIcons.View;
 using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
 
 namespace PartyIcons.Runtime;
 
@@ -116,17 +105,6 @@ public sealed class NameplateUpdater : IDisposable
 
     private void OnNamePlateUpdate(INamePlateUpdateContext context, IReadOnlyList<INamePlateUpdateHandler> handlers)
     {
-        if (context.IsFullUpdate) {
-            Service.Log.Info("!context->IsFullUpdate!");
-        }
-
-        unsafe {
-            var ns = (AddonNamePlate.NamePlateIntArrayData*)context.NumberArrayDataEntryAddress;
-            if (ns->DoFullUpdate) {
-                Service.Log.Warning("!ns->DoFullUpdate!");
-            }
-        }
-
         foreach (var handler in handlers) {
             if (handler.NamePlateKind == NamePlateKind.PlayerCharacter) {
                 SetNamePlate(handler);
