@@ -94,6 +94,7 @@ public static class JobExtensions
             case Job.BRD:
             case Job.MCH:
             case Job.DNC:
+                return GenericRole.Ranged;
             case Job.THM:
             case Job.BLM:
             case Job.ACN:
@@ -101,7 +102,7 @@ public static class JobExtensions
             case Job.RDM:
             case Job.BLU:
             case Job.PCT:
-                return GenericRole.Ranged;
+                return GenericRole.Caster;
 
             case Job.CRP:
             case Job.BSM:
