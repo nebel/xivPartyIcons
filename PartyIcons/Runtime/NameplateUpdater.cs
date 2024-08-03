@@ -1,7 +1,7 @@
 ﻿using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.Gui.NamePlate;
-using Dalamud.Game.Text.SeStringHandling;
+using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using PartyIcons.Configuration;
@@ -10,6 +10,7 @@ using PartyIcons.View;
 using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.Text;
 
 namespace PartyIcons.Runtime;
 
@@ -57,11 +58,13 @@ public sealed class NameplateUpdater : IDisposable
             case UpdaterState.WaitingForNodes:
                 break;
             case UpdaterState.Ready:
+                Service.NamePlateGui.OnDataUpdate += OnNamePlateDebug;
                 Service.NamePlateGui.OnNamePlateUpdate += OnNamePlateUpdate;
                 Service.AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "NamePlate", OnPostRequestedUpdate);
                 break;
             case UpdaterState.Stopped:
                 if (_updaterState == UpdaterState.Ready) {
+                    Service.NamePlateGui.OnDataUpdate -= OnNamePlateDebug;
                     Service.NamePlateGui.OnNamePlateUpdate -= OnNamePlateUpdate;
                     Service.AddonLifecycle.UnregisterListener(AddonEvent.PostRequestedUpdate, "NamePlate", OnPostRequestedUpdate);
                 }
@@ -104,8 +107,38 @@ public sealed class NameplateUpdater : IDisposable
         SetReadyState(UpdaterState.WaitingForDraw);
     }
 
+    private unsafe void OnNamePlateDebug(INamePlateUpdateContext context, IReadOnlyList<INamePlateUpdateHandler> handlers)
+    {
+        var o = new StringBuilder();
+        foreach (var handler in handlers) {
+            if (handler.UpdateFlags != 0) {
+                o.Append($"{handler.Name.TextValue.Replace(" ", "_")}:{handler.GameObject?.EntityId:X}${handler.UpdateFlags} ");
+            }
+        }
+
+        var addon = (AddonNamePlate*)context.AddonAddress;
+        var numStruct = (AddonNamePlate.AddonNamePlateNumberArray*)context.NumberArrayDataEntryAddress;
+        var numArray = (NumberArrayData*)context.NumberArrayDataAddress;
+
+        var fd = context.IsFullUpdate;
+        var fa = addon->DoFullUpdate;
+        var fn1 = numArray->IntArray[4];
+        var fn2 = numStruct->DoFullUpdate;
+
+        if (o.Length > 0 || fd || fa != 0 || fn1 != 0 || fn2) {
+            Service.Log.Info($"({Framework.Instance()->FrameCounter}) OnNamePlateDebug D:{context.IsFullUpdate} A:{addon->DoFullUpdate} N:{numArray->IntArray[4]}/{numStruct->DoFullUpdate}");
+        }
+        if (o.Length > 0) {
+            Service.Log.Info($"  {o}");
+        }
+    }
+
     private void OnNamePlateUpdate(INamePlateUpdateContext context, IReadOnlyList<INamePlateUpdateHandler> handlers)
     {
+        // unsafe {
+        //     Service.Log.Info($"({Framework.Instance()->FrameCounter}) OnNamePlateUpdate");
+        // }
+
         foreach (var handler in handlers) {
             if (handler.NamePlateKind == NamePlateKind.PlayerCharacter) {
                 SetNamePlate(handler);
