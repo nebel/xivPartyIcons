@@ -170,8 +170,7 @@ public sealed class RoleTracker : IDisposable
                 if (kv.Key.Equals(playerDescription))
                 {
                     var applicableRoles =
-                        GetApplicableRolesForGenericRole(
-                            JobRoleExtensions.RoleFromByte(member.ClassJob.GameData.Role));
+                        GetApplicableRolesForGenericRole(((Job)member.ClassJob.Id).GetRole());
 
                     if (applicableRoles.Contains(kv.Value))
                     {
@@ -199,7 +198,7 @@ public sealed class RoleTracker : IDisposable
             }
 
             var roleToAssign =
-                FindUnassignedRoleForGenericRole(JobRoleExtensions.RoleFromByte(member.ClassJob.GameData.Role));
+                FindUnassignedRoleForGenericRole(((Job)member.ClassJob.Id).GetRole());
 
             if (roleToAssign != default)
             {
@@ -283,6 +282,9 @@ public sealed class RoleTracker : IDisposable
                 return new[] { RoleId.M1, RoleId.M2, RoleId.R1, RoleId.R2 };
 
             case GenericRole.Ranged:
+                return new[] { RoleId.R1, RoleId.R2, RoleId.M1, RoleId.M2 };
+
+            case GenericRole.Caster:
                 return new[] { RoleId.R1, RoleId.R2, RoleId.M1, RoleId.M2 };
 
             case GenericRole.Healer:

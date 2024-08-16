@@ -28,6 +28,7 @@ public sealed class PlayerStylesheet
             GenericRole.Tank => 37,
             GenericRole.Melee => 524,
             GenericRole.Ranged => 32,
+            GenericRole.Caster => 49,
             GenericRole.Healer => 42,
             _ => FallbackColor
         };
@@ -39,7 +40,8 @@ public sealed class PlayerStylesheet
         {
             RoleId.MT or RoleId.OT => GetGenericRoleColor(GenericRole.Tank),
             RoleId.M1 or RoleId.M2 => GetGenericRoleColor(GenericRole.Melee),
-            RoleId.R1 or RoleId.R2 => GetGenericRoleColor(GenericRole.Ranged),
+            RoleId.R1 => GetGenericRoleColor(GenericRole.Ranged),
+            RoleId.R2 => GetGenericRoleColor(GenericRole.Caster),
             RoleId.H1 or RoleId.H2 => GetGenericRoleColor(GenericRole.Healer),
             _ => FallbackColor
         };
@@ -57,6 +59,7 @@ public sealed class PlayerStylesheet
                 GenericRole.Tank => IconGroupId.GradientBlue,
                 GenericRole.Melee => IconGroupId.GradientRed,
                 GenericRole.Ranged => IconGroupId.GradientOrange,
+                GenericRole.Caster => IconGroupId.GradientPurple,
                 GenericRole.Healer => IconGroupId.GradientGreen,
                 _ => IconGroupId.GradientGrey
             },
@@ -88,6 +91,7 @@ public sealed class PlayerStylesheet
                 GenericRole.Tank => SeStringUtils.Text(BoxedCharacterString("T"), GetGenericRoleColor(genericRole)),
                 GenericRole.Melee => SeStringUtils.Text(BoxedCharacterString(_configuration.EasternNamingConvention ? "D" : "M"), GetGenericRoleColor(genericRole)),
                 GenericRole.Ranged => SeStringUtils.Text(BoxedCharacterString(_configuration.EasternNamingConvention ? "D" : "R"), GetGenericRoleColor(genericRole)),
+                GenericRole.Caster => SeStringUtils.Text(BoxedCharacterString(_configuration.EasternNamingConvention ? "D" : "R"), GetGenericRoleColor(genericRole)),
                 GenericRole.Healer => SeStringUtils.Text(BoxedCharacterString("H"), GetGenericRoleColor(genericRole)),
                 GenericRole.Crafter => SeStringUtils.Text(BoxedCharacterString("C"), GetGenericRoleColor(genericRole)),
                 GenericRole.Gatherer => SeStringUtils.Text(BoxedCharacterString("G"), GetGenericRoleColor(genericRole)),
@@ -98,6 +102,7 @@ public sealed class PlayerStylesheet
                 GenericRole.Tank => SeStringUtils.Text(BoxedCharacterString("T")),
                 GenericRole.Melee => SeStringUtils.Text(BoxedCharacterString(_configuration.EasternNamingConvention ? "D" : "M")),
                 GenericRole.Ranged => SeStringUtils.Text(BoxedCharacterString(_configuration.EasternNamingConvention ? "D" : "R")),
+                GenericRole.Caster => SeStringUtils.Text(BoxedCharacterString(_configuration.EasternNamingConvention ? "D" : "R")),
                 GenericRole.Healer => SeStringUtils.Text(BoxedCharacterString("H")),
                 GenericRole.Crafter => SeStringUtils.Text(BoxedCharacterString("C")),
                 GenericRole.Gatherer => SeStringUtils.Text(BoxedCharacterString("G")),
