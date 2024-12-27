@@ -169,6 +169,7 @@ public record struct StatusSelector
             ZoneType.Dungeon => StatusPreset.Instances,
             ZoneType.Raid => StatusPreset.Instances,
             ZoneType.AllianceRaid => StatusPreset.Instances,
+            ZoneType.ChaoticRaid => StatusPreset.Instances,
             ZoneType.FieldOperation => StatusPreset.FieldOperations,
             _ => throw new ArgumentOutOfRangeException(nameof(zoneType), zoneType, null)
         };

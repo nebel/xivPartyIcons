@@ -63,6 +63,7 @@ public sealed class NameplateView : IDisposable
             ZoneType.Dungeon => selectors.DisplayDungeon,
             ZoneType.Raid => selectors.DisplayRaid,
             ZoneType.AllianceRaid => selectors.DisplayAllianceRaid,
+            ZoneType.ChaoticRaid => selectors.DisplayChaoticRaid,
             ZoneType.FieldOperation => selectors.DisplayFieldOperationParty,
             _ => throw new ArgumentOutOfRangeException($"Unknown zone type {zoneType}")
         });
@@ -73,6 +74,7 @@ public sealed class NameplateView : IDisposable
             ZoneType.Dungeon => selectors.DisplayOthers,
             ZoneType.Raid => selectors.DisplayOthers,
             ZoneType.AllianceRaid => selectors.DisplayOthers,
+            ZoneType.ChaoticRaid => selectors.DisplayOthers,
             ZoneType.FieldOperation => selectors.DisplayFieldOperationOthers,
             _ => throw new ArgumentOutOfRangeException($"Unknown zone type {zoneType}")
         });
