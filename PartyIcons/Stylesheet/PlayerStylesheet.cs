@@ -158,4 +158,15 @@ public sealed class PlayerStylesheet
             _ => ch
         };
     }
+
+    public static char BoxedOutlinedCharacter(char ch)
+    {
+        return ch switch
+        {
+            >= '0' and <= '9' => (char)(ch + 0xE0B0),
+            >= 'A' and <= 'Z' => (char)(ch + 0xE030),
+            >= 'a' and <= 'z' => (char)(ch + 0xE010),
+            _ => ch
+        };
+    }
 }

@@ -3,7 +3,9 @@ using System;
 using System.Runtime.CompilerServices;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
+using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using FFXIVClientStructs.Interop;
 using PartyIcons.Configuration;
 using PartyIcons.Entities;
 using PartyIcons.Runtime;
@@ -202,7 +204,7 @@ public sealed class NameplateView : IDisposable
             case NameplateMode.SmallJobIconAndRole:
             {
                 if (context.DisplayConfig.RoleDisplayStyle == RoleDisplayStyle.PartyNumber) {
-                    if (PartyListHUDView.GetPartySlotIndex(context.PlayerCharacter.EntityId) is { } partySlot) {
+                    if (GetPartySlotIndex(context.PlayerCharacter.EntityId) is { } partySlot) {
                         // var slotString = hasRole
                         //     ? _stylesheet.GetPartySlotNumber(partySlot + 1, roleId)
                         //     : _stylesheet.GetPartySlotNumber(partySlot + 1, context.GenericRole);
@@ -240,7 +242,7 @@ public sealed class NameplateView : IDisposable
             }
             case NameplateMode.BigJobIconAndPartySlot:
             {
-                if (PartyListHUDView.GetPartySlotIndex(context.PlayerCharacter.EntityId) is { } partySlot) {
+                if (GetPartySlotIndex(context.PlayerCharacter.EntityId) is { } partySlot) {
                     var slotString = _stylesheet.GetPartySlotNumber(partySlot + 1, context.GenericRole);
                     slotString.Payloads.Insert(0, new TextPayload(FullWidthSpace));
                     handler.SetField(NamePlateStringField.Name, slotString);
@@ -259,7 +261,7 @@ public sealed class NameplateView : IDisposable
             {
                 SeString nameString;
                 if (context.DisplayConfig.RoleDisplayStyle == RoleDisplayStyle.PartyNumber) {
-                    nameString = PartyListHUDView.GetPartySlotIndex(context.PlayerCharacter.EntityId) is { } partySlot
+                    nameString = GetPartySlotIndex(context.PlayerCharacter.EntityId) is { } partySlot
                         ? _stylesheet.GetPartySlotNumber(partySlot + 1, context.GenericRole)
                         : _stylesheet.GetGenericRolePlate(context.GenericRole);
                 }
@@ -565,5 +567,33 @@ public sealed class NameplateView : IDisposable
             resNode->SetScale(scale, scale);
             state.IsGlobalScaleModified = true;
         }
+    }
+
+    private static unsafe uint? GetPartySlotIndex(uint entityId)
+    {
+        var hud = AgentHUD.Instance();
+        if (hud == null)
+        {
+            Service.Log.Warning("AgentHUD null!");
+            return null;
+        }
+
+        // 9 instead of 8 is used here, in case the player has a pet out
+        if (hud->PartyMemberCount > 9)
+        {
+            // hud->PartyMemberCount gives out special (?) value when in trust
+            // TODO: ^ this is probably no longer be true
+            Service.Log.Verbose("GetPartySlotIndex - trust detected, returning null");
+            return null;
+        }
+
+        for (var i = 0; i < hud->PartyMemberCount; i++) {
+            var member = hud->PartyMembers.GetPointer(i);
+            if (member->EntityId == entityId) {
+                return member->Index;
+            }
+        }
+
+        return null;
     }
 }

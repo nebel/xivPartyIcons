@@ -139,7 +139,7 @@ public sealed class ViewModeSetter
         var enableHud =
             _nameplateView.PartyDisplay.Mode is NameplateMode.RoleLetters or NameplateMode.SmallJobIconAndRole &&
             _nameplateView.PartyDisplay.RoleDisplayStyle == RoleDisplayStyle.Role;
-        _partyListHudUpdater.EnableUpdates(enableHud);
+        _partyListHudUpdater.SetRoleVisibility(enableHud);
 
         Service.Log.Verbose($"Setting modes: nameplates party {_nameplateView.PartyDisplay.Mode} others {_nameplateView.OthersDisplay.Mode}, chat {_chatNameUpdater.PartyMode}, update HUD {enableHud}");
         Service.Log.Debug($"Entered ZoneType {ZoneType.ToString()}");
