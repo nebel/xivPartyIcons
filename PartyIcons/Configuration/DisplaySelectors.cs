@@ -10,6 +10,7 @@ public class DisplaySelectors
     public DisplaySelector DisplayDungeon { get; set; } = new(DisplayPreset.BigJobIconAndPartySlot);
     public DisplaySelector DisplayRaid { get; set; } = new(DisplayPreset.RoleLetters);
     public DisplaySelector DisplayAllianceRaid { get; set; } = new(DisplayPreset.BigJobIconAndPartySlot);
+    public DisplaySelector DisplayChaoticRaid { get; set; } = new(DisplayPreset.BigJobIconAndPartySlot);
     public DisplaySelector DisplayFieldOperationParty { get; set; } = new(DisplayPreset.BigJobIconAndPartySlot);
     public DisplaySelector DisplayFieldOperationOthers { get; set; } = new(DisplayPreset.SmallJobIcon);
     public DisplaySelector DisplayOthers { get; set; } = new(DisplayPreset.SmallJobIcon);

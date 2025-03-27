@@ -29,6 +29,7 @@ public static class UiNames
             ZoneType.Dungeon => "Dungeon",
             ZoneType.Raid => "Raid",
             ZoneType.AllianceRaid => "Alliance Raid",
+            ZoneType.ChaoticRaid => "Chaotic Raid",
             ZoneType.FieldOperation => "Field Operation",
             _ => $"Unknown ({(int)zoneType}/{zoneType.ToString()})"
         };

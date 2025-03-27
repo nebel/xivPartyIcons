@@ -120,6 +120,10 @@ public sealed class NameplateTab
             NameplateModeSection("##np_alliance", () => Plugin.Settings.DisplaySelectors.DisplayAllianceRaid,
                 sel => Plugin.Settings.DisplaySelectors.DisplayAllianceRaid = sel,
                 "Alliance:");
+
+            NameplateModeSection("##np_chaotic", () => Plugin.Settings.DisplaySelectors.DisplayChaoticRaid,
+               sel => Plugin.Settings.DisplaySelectors.DisplayChaoticRaid = sel,
+               "Chaotic:");
         }
 
         ImGuiExt.SectionHeader("Field Operations");

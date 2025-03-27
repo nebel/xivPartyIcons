@@ -45,6 +45,7 @@ public class Settings : IPluginConfiguration
     public StatusConfigs StatusConfigs { get; set; } = new();
     public ChatConfig ChatOverworld { get; set; } = new(ChatMode.Role);
     public ChatConfig ChatAllianceRaid { get; set; } = new(ChatMode.Role);
+    public ChatConfig ChatChaoticRaid { get; set; } = new(ChatMode.Role);
     public ChatConfig ChatDungeon { get; set; } = new(ChatMode.Job);
     public ChatConfig ChatRaid { get; set; } = new(ChatMode.Role);
     public ChatConfig ChatOthers { get; set; } = new(ChatMode.Job);
