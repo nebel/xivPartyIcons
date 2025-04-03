@@ -13,7 +13,7 @@ public class CommandHandler : IDisposable
         Service.CommandManager.AddHandler(commandName, new CommandInfo(OnCommand)
         {
             HelpMessage =
-                "opens configuration window; \"reset\" or \"r\" resets all assignments; \"debug\" prints debugging info"
+                "opens configuration window; \"reset\" or \"r\" resets all assignments"
         });
     }
     

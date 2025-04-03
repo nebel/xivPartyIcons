@@ -18,8 +18,8 @@ public sealed class PartyListHUDUpdater : IDisposable
     private readonly RoleTracker _roleTracker;
 
     private bool _enabled;
+    private bool _modified;
     private bool _isShowingRoles;
-    private bool _hasModifiedNodes;
 
     private readonly bool[] _occupiedSlots = new bool[8];
     private readonly string[] _originalText = new string[8];
@@ -111,26 +111,35 @@ public sealed class PartyListHUDUpdater : IDisposable
     private void CheckState()
     {
         var shouldEnable = _isShowingRoles && _configuration.DisplayRoleInPartyList && !Service.ClientState.IsPvP;
-        Service.Log.Warning($"{_isShowingRoles} {_configuration.DisplayRoleInPartyList} && {!Service.ClientState.IsPvP}");
         if (_enabled != shouldEnable) {
-            if (!shouldEnable) {
-                Service.Log.Verbose("PartyListHUDUpdater: Disable");
-                RevertNodes();
-                _onRequestedUpdateHook.Disable();
+            if (shouldEnable) {
+                Service.Log.Verbose("PartyListHUDUpdater: Enable");
+                _onRequestedUpdateHook.Enable();
             }
             else {
-                Service.Log.Verbose("PartyListHUDUpdater: Enable");
-                ModifyNodes();
-                _onRequestedUpdateHook.Enable();
+                Service.Log.Verbose("PartyListHUDUpdater: Disable");
+                _onRequestedUpdateHook.Disable();
             }
             _enabled = shouldEnable;
             ForceArrayUpdate();
+        }
+
+        var shouldModify = _enabled && Plugin.RoleTracker.HasAssignedRoles();
+        if (shouldModify != _modified) {
+            if (shouldModify) {
+                Service.Log.Verbose("PartyListHUDUpdater: Modify nodes");
+                ModifyNodes();
+            }
+            else {
+                Service.Log.Verbose("PartyListHUDUpdater: Revert nodes");
+                RevertNodes();
+            }
         }
     }
 
     public void SetRoleVisibility(bool value)
     {
-        Service.Log.Warning("PartyListHUDUpdater: SetRoleVisibility");
+        Service.Log.Verbose("PartyListHUDUpdater: SetRoleVisibility");
         _isShowingRoles = value;
         CheckState();
     }
@@ -156,30 +165,31 @@ public sealed class PartyListHUDUpdater : IDisposable
     private void OnAssignedRolesUpdated()
     {
         Service.Log.Verbose("PartyListHUDUpdater: OnAssignedRolesUpdated");
+        CheckState();
         ForceArrayUpdate();
     }
 
     private unsafe void ModifyNodes()
     {
-        if (!_hasModifiedNodes) {
+        if (!_modified) {
             var addonPartyList = (AddonPartyList*)Service.GameGui.GetAddonByName("_PartyList");
             foreach (ref var member in addonPartyList->PartyMembers) {
                 member.Name->SetPositionShort(29, 0);
                 member.GroupSlotIndicator->SetPositionShort(6, 0);
             }
-            _hasModifiedNodes = true;
+            _modified = true;
         }
     }
 
     private unsafe void RevertNodes()
     {
-        if (_hasModifiedNodes) {
+        if (_modified) {
             var addonPartyList = (AddonPartyList*)Service.GameGui.GetAddonByName("_PartyList");
             foreach (ref var member in addonPartyList->PartyMembers) {
                 member.Name->SetPositionShort(19, 0);
                 member.GroupSlotIndicator->SetPositionShort(0, 0);
             }
-            _hasModifiedNodes = false;
+            _modified = false;
         }
     }
 

@@ -42,12 +42,9 @@ public sealed class StaticAssignmentsTab
         }
 
         ImGui.SameLine();
-        using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudGrey3)) {
-            ImGui.Text("Replace party numbers with role in Party List\n(Disabled temporarily due to changes in 7.1)");
-            ImGuiExt.ImGuiHelpTooltip(
-                "Only works when nameplates set to 'Role letters' or 'Small job icon, role and name'.",
-                true);
-        }
+        ImGui.Text("Replace party numbers with role in Party List");
+        ImGuiExt.ImGuiHelpTooltip(
+            "Only works when nameplates set to 'Role letters' or 'Small job icon, role and name'.");
 
         var useContextMenu = Plugin.Settings.UseContextMenu;
         

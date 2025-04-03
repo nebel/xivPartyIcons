@@ -75,6 +75,11 @@ public sealed class RoleTracker : IDisposable
         Disable();
     }
 
+    public bool HasAssignedRoles()
+    {
+        return _assignedRoles.Count != 0;
+    }
+
     public bool TryGetSuggestedRole(string name, uint worldId, out RoleId roleId) =>
         _suggestedRoles.TryGetValue(PlayerId(name, worldId), out roleId);
 
