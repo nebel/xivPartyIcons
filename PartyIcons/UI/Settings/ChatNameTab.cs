@@ -44,6 +44,11 @@ public static class ChatNameTab
                 () => Plugin.Settings.ChatAllianceRaid,
                 (config) => Plugin.Settings.ChatAllianceRaid = config,
                 "Alliance:");
+
+            ChatModeSection("##chat_chaotic",
+                () => Plugin.Settings.ChatChaoticRaid,
+                (config) => Plugin.Settings.ChatChaoticRaid = config,
+                "Chaotic:");
         }
     }
     

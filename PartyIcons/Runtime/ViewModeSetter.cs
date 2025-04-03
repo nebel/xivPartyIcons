@@ -14,6 +14,7 @@ public enum ZoneType
     Dungeon,
     Raid,
     AllianceRaid,
+    ChaoticRaid,
     FieldOperation,
 }
 
@@ -116,6 +117,7 @@ public sealed class ViewModeSetter
                 2 => ZoneType.Dungeon,
                 3 => ZoneType.Raid,
                 4 => ZoneType.AllianceRaid,
+                37 => ZoneType.ChaoticRaid,
                 127 => ZoneType.FieldOperation,
                 _ => ZoneType.Dungeon
             };
@@ -130,6 +132,7 @@ public sealed class ViewModeSetter
             ZoneType.Dungeon => _configuration.ChatDungeon,
             ZoneType.Raid => _configuration.ChatRaid,
             ZoneType.AllianceRaid => _configuration.ChatAllianceRaid,
+            ZoneType.ChaoticRaid => _configuration.ChatChaoticRaid,
             ZoneType.FieldOperation => _configuration.ChatOverworld,
             _ => _configuration.ChatDungeon
         };
