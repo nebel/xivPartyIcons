@@ -1,79 +1,21 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Dalamud.NET.Sdk/12.0.2">
     <PropertyGroup>
         <Authors>shdwp, abashby, nebel</Authors>
         <Company>shdwp</Company>
         <Description>PartyIcons plugin</Description>
         <Copyright>shdwp 2021</Copyright>
-        <PackageProjectUrl>https://github.com/abashby/xivPartyIcons</PackageProjectUrl>
-        <Version>1.2.2.1</Version>
-    </PropertyGroup>
-
-    <PropertyGroup>
-        <TargetFramework>net9.0-windows</TargetFramework>
-        <Platforms>x64</Platforms>
-        <Nullable>enable</Nullable>
-        <LangVersion>latest</LangVersion>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
-        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-        <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+        <PackageProjectUrl>https://github.com/nebel/xivPartyIcons</PackageProjectUrl>
+        <Version>1.2.3.0</Version>
     </PropertyGroup>
 
     <ItemGroup>
-        <EmbeddedResource Include="Resources/1.png">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </EmbeddedResource>
-        <EmbeddedResource Include="Resources/2.png">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </EmbeddedResource>
-        <EmbeddedResource Include="Resources/3.png">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </EmbeddedResource>
-        <EmbeddedResource Include="Resources/4.png">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </EmbeddedResource>
+        <EmbeddedResource Include="Resources/1.png"/>
+        <EmbeddedResource Include="Resources/2.png"/>
+        <EmbeddedResource Include="Resources/3.png"/>
+        <EmbeddedResource Include="Resources/4.png"/>
     </ItemGroup>
 
-    <PropertyGroup>
-        <DalamudLibPath>$(appdata)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
-    </PropertyGroup>
-
-    <ItemGroup>
-        <PackageReference Include="DalamudPackager" Version="12.0.0" />
-        <Reference Include="FFXIVClientStructs">
-            <HintPath>$(DalamudLibPath)FFXIVClientStructs.dll</HintPath>
-            <Private>false</Private>
-        </Reference>
-        <Reference Include="InteropGenerator.Runtime">
-            <HintPath>$(DalamudLibPath)\InteropGenerator.Runtime.dll</HintPath>
-            <Private>false</Private>
-        </Reference>
-        <Reference Include="Newtonsoft.Json">
-            <HintPath>$(DalamudLibPath)Newtonsoft.Json.dll</HintPath>
-            <Private>false</Private>
-        </Reference>
-        <Reference Include="Dalamud">
-            <HintPath>$(DalamudLibPath)Dalamud.dll</HintPath>
-            <Private>false</Private>
-        </Reference>
-        <Reference Include="ImGui.NET">
-            <HintPath>$(DalamudLibPath)ImGui.NET.dll</HintPath>
-            <Private>false</Private>
-        </Reference>
-        <Reference Include="ImGuiScene">
-            <HintPath>$(DalamudLibPath)ImGuiScene.dll</HintPath>
-            <Private>false</Private>
-        </Reference>
-        <Reference Include="Lumina">
-            <HintPath>$(DalamudLibPath)Lumina.dll</HintPath>
-            <Private>false</Private>
-        </Reference>
-        <Reference Include="Lumina.Excel">
-            <HintPath>$(DalamudLibPath)Lumina.Excel.dll</HintPath>
-            <Private>false</Private>
-        </Reference>
-    </ItemGroup>
+    <Target Name="CopyIcon" AfterTargets="Build">
+        <Copy SourceFiles="$(ProjectDir)\Resources\icon.png" DestinationFolder="$(OutDir)\images"/>
+    </Target>
 </Project>
