@@ -137,6 +137,7 @@ public class Settings : IPluginConfiguration
             config.DisplaySelectors.DisplayDungeon = new DisplaySelector(config.NameplateDungeon);
             config.DisplaySelectors.DisplayRaid = new DisplaySelector(config.NameplateRaid);
             config.DisplaySelectors.DisplayAllianceRaid = new DisplaySelector(config.NameplateAllianceRaid);
+            config.DisplaySelectors.DisplayChaoticRaid = new DisplaySelector(config.NameplateAllianceRaid);
             config.DisplaySelectors.DisplayFieldOperationParty = new DisplaySelector(config.NameplateBozjaParty);
             config.DisplaySelectors.DisplayFieldOperationOthers = new DisplaySelector(config.NameplateBozjaOthers);
             config.DisplaySelectors.DisplayOthers = new DisplaySelector(config.NameplateOthers);
