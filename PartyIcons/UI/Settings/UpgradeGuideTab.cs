@@ -1,7 +1,7 @@
 ﻿using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using PartyIcons.Configuration;
 using PartyIcons.Runtime;
 using PartyIcons.UI.Utils;

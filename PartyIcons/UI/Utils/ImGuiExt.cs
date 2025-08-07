@@ -5,7 +5,7 @@ using System.Numerics;
 using Dalamud.Interface.Textures;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using PartyIcons.Configuration;
 using PartyIcons.Entities;
 using PartyIcons.Stylesheet;
@@ -104,7 +104,7 @@ public static class ImGuiExt
                 // Service.Log.Warning($"uv0 {uv0} uv1 {uv1}");
 
                 ImGui.SameLine();
-                ImGui.Image(icon.ImGuiHandle, new Vector2(imageSize, imageSize), uv0, uv1);
+                ImGui.Image(icon.Handle, new Vector2(imageSize, imageSize), uv0, uv1);
             }
         }
     }

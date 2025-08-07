@@ -1,5 +1,5 @@
 ﻿using Dalamud.Interface.Utility.Raii;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using Lumina.Excel.Sheets;
 using PartyIcons.Configuration;
 using PartyIcons.UI.Utils;
@@ -130,7 +130,7 @@ public static class StatusTab
                 ImGui.Separator();
 
                 var icon = ImGuiExt.GetIconTexture(row.Icon);
-                ImGui.Image(icon.GetWrapOrEmpty().ImGuiHandle, iconSize);
+                ImGui.Image(icon.GetWrapOrEmpty().Handle, iconSize);
                 ImGui.SameLine();
 
                 using (ImRaii.PushColor(ImGuiCol.Button, 0))

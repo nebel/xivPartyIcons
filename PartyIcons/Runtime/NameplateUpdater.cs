@@ -146,7 +146,7 @@ public sealed class NameplateUpdater : IDisposable
             }
             else if (_updaterState == UpdaterState.WaitingForNodes) {
                 try {
-                    if (CreateNodes((AddonNamePlate*)args.Addon)) {
+                    if (CreateNodes((AddonNamePlate*)args.Addon.Address)) {
                         SetReadyState(UpdaterState.Ready);
                         Service.Framework.RunOnFrameworkThread(ForceRedrawNamePlates);
                     }

@@ -63,7 +63,7 @@ public sealed class PartyListHUDUpdater : IDisposable
                     var index = hudPartyMember->Index;
                     var arrayIndex = NumberStructStartIndex + NumberStructSize * index;
                     _occupiedSlots[index] = true;
-                    _originalText[index] = MemoryHelper.ReadStringNullTerminated((nint)array[arrayIndex]);
+                    _originalText[index] = MemoryHelper.ReadStringNullTerminated((nint)array[arrayIndex].Value);
                     stringData->SetValue(arrayIndex, Plugin.PlayerStylesheet.GetRolePlate(roleId).Encode(), false, true, true);
                 }
             }
@@ -172,7 +172,7 @@ public sealed class PartyListHUDUpdater : IDisposable
     private unsafe void ModifyNodes()
     {
         if (!_modified) {
-            var addonPartyList = (AddonPartyList*)Service.GameGui.GetAddonByName("_PartyList");
+            var addonPartyList = (AddonPartyList*)Service.GameGui.GetAddonByName("_PartyList").Address;
             foreach (ref var member in addonPartyList->PartyMembers) {
                 member.Name->SetPositionShort(29, 0);
                 member.GroupSlotIndicator->SetPositionShort(6, 0);
@@ -184,7 +184,7 @@ public sealed class PartyListHUDUpdater : IDisposable
     private unsafe void RevertNodes()
     {
         if (_modified) {
-            var addonPartyList = (AddonPartyList*)Service.GameGui.GetAddonByName("_PartyList");
+            var addonPartyList = (AddonPartyList*)Service.GameGui.GetAddonByName("_PartyList").Address;
             foreach (ref var member in addonPartyList->PartyMembers) {
                 member.Name->SetPositionShort(19, 0);
                 member.GroupSlotIndicator->SetPositionShort(0, 0);

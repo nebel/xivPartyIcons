@@ -2,7 +2,7 @@
 using Dalamud.Interface.Components;
 using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Interface.Utility.Raii;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using PartyIcons.Configuration;
 using PartyIcons.UI.Utils;
 using System;
@@ -157,7 +157,7 @@ public sealed class NameplateTab
     private static void CollapsibleExampleImage(NameplateMode mode, IDalamudTextureWrap tex)
     {
         if (ImGui.CollapsingHeader(UiNames.GetName(mode))) {
-            ImGui.Image(tex.ImGuiHandle, new Vector2(tex.Width, tex.Height));
+            ImGui.Image(tex.Handle, new Vector2(tex.Width, tex.Height));
         }
     }
 

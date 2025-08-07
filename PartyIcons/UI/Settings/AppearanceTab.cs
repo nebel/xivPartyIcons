@@ -1,7 +1,7 @@
 ﻿using Dalamud.Interface.Colors;
 using Dalamud.Interface.Components;
 using Dalamud.Interface.Utility.Raii;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using PartyIcons.Configuration;
 using PartyIcons.Runtime;
 using PartyIcons.UI.Utils;
@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using Action = System.Action;
 
 namespace PartyIcons.UI.Settings;
@@ -206,7 +207,7 @@ public sealed class AppearanceTab
         ImGuiComponents.HelpMarker("Hold Control and click the slider to input an exact value");
 
         int[] pos = [icon.OffsetX, icon.OffsetY];
-        if (ImGui.SliderInt2("Offset X/Y", ref pos[0], -50, 50)) {
+        if (ImGui.SliderInt("Offset X/Y", pos.AsSpan(), -50, 50)) {
             var x = (short)Math.Clamp(pos[0], -1000, 1000);
             var y = (short)Math.Clamp(pos[1], -1000, 1000);
             setter(icon with { OffsetX = x, OffsetY = y });

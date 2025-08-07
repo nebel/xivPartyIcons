@@ -1,5 +1,5 @@
 using Dalamud.Interface.Utility.Raii;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using PartyIcons.Configuration;
 using PartyIcons.UI.Utils;
 using System;

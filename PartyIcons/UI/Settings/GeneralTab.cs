@@ -2,7 +2,7 @@ using Dalamud.Interface.Colors;
 using Dalamud.Interface.Components;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using PartyIcons.UI.Utils;
 using System;
 using System.Diagnostics;
@@ -111,7 +111,7 @@ public sealed class Notice
 
         using var col = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DPSRed);
 
-        ImGuiHelpers.SafeTextWrapped(_noticeString);
+        ImGui.TextWrapped(_noticeString);
 
         if (_noticeUrl != null && ImGui.Button(_noticeUrl)) {
             try {
