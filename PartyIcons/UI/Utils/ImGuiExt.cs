@@ -87,8 +87,8 @@ public static class ImGuiExt
             }
         }
 
-        if (currentIconSetId != IconSetId.Inherit && Service.ClientState.LocalPlayer is { } player) {
-            var job = (Job)player.ClassJob.RowId;
+        if (currentIconSetId != IconSetId.Inherit && Service.PlayerState.ClassJob.ValueNullable is { } classJob) {
+            var job = (Job)classJob.RowId;
             var iconGroupId = PlayerStylesheet.GetGenericRoleIconGroupId(currentIconSetId, job.GetRole());
             var iconGroup = IconRegistrar.Get(iconGroupId);
             var iconId = iconGroup.GetJobIcon((uint)job);

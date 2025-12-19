@@ -56,8 +56,8 @@ public sealed class ChatNameUpdater : IDisposable
     {
         var playerPayload = sender.Payloads.FirstOrDefault(p => p is PlayerPayload) as PlayerPayload ?? null;
 
-        if (playerPayload == null && Service.ClientState.LocalPlayer is { } localPlayer) {
-            playerPayload = new PlayerPayload(localPlayer.Name.TextValue, localPlayer.HomeWorld.RowId);
+        if (playerPayload == null) {
+            playerPayload = new PlayerPayload(Service.PlayerState.CharacterName, Service.PlayerState.HomeWorld.RowId);
         }
 
         return playerPayload;

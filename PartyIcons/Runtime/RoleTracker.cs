@@ -310,8 +310,8 @@ public sealed class RoleTracker : IDisposable
 
             if (playerPayload == null)
             {
-                playerName = Service.ClientState.LocalPlayer?.Name.TextValue;
-                playerWorld = Service.ClientState.LocalPlayer?.HomeWorld.RowId;
+                playerName = Service.PlayerState.CharacterName;
+                playerWorld = Service.PlayerState.HomeWorld.RowId;
             }
             else
             {

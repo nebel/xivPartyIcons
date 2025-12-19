@@ -93,7 +93,7 @@ public static class AtkHelper
     }
 
     private static unsafe bool TryMakeImageNode(uint id, NodeFlags resNodeFlags, uint resNodeDrawFlags, byte wrapMode,
-        byte imageNodeFlags, [NotNullWhen(true)] out AtkImageNode* imageNode)
+        ImageNodeFlags imageNodeFlags, [NotNullWhen(true)] out AtkImageNode* imageNode)
     {
         imageNode = IMemorySpace.GetUISpace()->Create<AtkImageNode>();
         if ((IntPtr)imageNode == IntPtr.Zero)
