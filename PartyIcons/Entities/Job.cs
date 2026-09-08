@@ -50,11 +50,12 @@ public enum Job : uint
     SGE = 40,
     VIP = 41,
     PCT = 42,
+    BST = 43,
 }
 
 public static class JobConstants
 {
-    public const int MaxJob = (int)Job.PCT;
+    public const int MaxJob = (int)Job.BST;
 }
 
 public static class JobExtensions
@@ -88,6 +89,7 @@ public static class JobExtensions
             case Job.SAM:
             case Job.RPR:
             case Job.VIP:
+            case Job.BST:
                 return GenericRole.Melee;
 
             case Job.ARC:
